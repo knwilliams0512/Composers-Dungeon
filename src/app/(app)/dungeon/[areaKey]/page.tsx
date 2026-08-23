@@ -6,6 +6,7 @@ import { tierOrdinal, ROOM_TYPE_INFO, type RoomType } from "@/lib/enums";
 import { Icon, ROOM_ICONS, SKILL_ICONS } from "@/components/ui/Icon";
 import { Meter, DangerRating, Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { roomTypeTheme, categoryVars } from "@/lib/category-theme";
 
 export default async function DungeonAreaPage({
   params,
@@ -137,8 +138,8 @@ export default async function DungeonAreaPage({
         </Panel>
       )}
 
-      {/* Rooms as a descending path */}
-      <ol className="relative space-y-4 before:absolute before:bottom-4 before:left-6 before:top-4 before:w-px before:bg-gradient-to-b before:from-gold-700/50 before:via-abyss-600 before:to-crimson-600/50">
+      {/* Rooms as a descending, glowing path — each type its own colour */}
+      <ol className="stagger relative space-y-4 before:absolute before:bottom-4 before:left-6 before:top-4 before:w-px before:bg-gradient-to-b before:from-gold-700/50 before:via-abyss-600 before:to-crimson-600/50">
         {area.rooms.map((room) => {
           const info = ROOM_TYPE_INFO[room.type as RoomType];
           const roomLocked = profile.level < room.levelRequirement;
@@ -150,65 +151,58 @@ export default async function DungeonAreaPage({
             room.type === "BOSS" && room.boss
               ? `/bosses/${room.boss.key}`
               : `/dungeon/room/${room.id}`;
+          const theme = roomTypeTheme(room.type);
           const inner = (
             <div
-              className={`card lit-edge relative ml-12 p-4 transition-all ${
-                roomLocked
-                  ? "opacity-50"
-                  : cleared
-                    ? "border-emerald-700/50"
-                    : room.type === "BOSS"
-                      ? "border-crimson-600/50 hover:shadow-crimson"
-                      : "hover:border-gold-700/60 hover:shadow-glow"
+              className={`card-accent group relative ml-12 p-4 ${
+                roomLocked ? "opacity-55 saturate-[0.55]" : cleared ? "border-emerald2-500/40" : ""
               }`}
+              style={categoryVars(theme)}
             >
               <span
-                className={`absolute -left-[2.4rem] top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border bg-abyss-900 text-base ${
-                  cleared
-                    ? "border-emerald-600"
-                    : room.type === "BOSS"
-                      ? "border-crimson-600"
-                      : "border-abyss-600"
-                }`}
+                className="absolute -left-[2.4rem] top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-2 bg-abyss-950/90 text-base backdrop-blur transition-transform duration-300 group-hover:scale-110"
+                style={{
+                  borderColor: cleared
+                    ? "rgba(79,215,168,0.6)"
+                    : `color-mix(in srgb, ${theme.hex} 55%, transparent)`,
+                  boxShadow: roomLocked
+                    ? "none"
+                    : `0 0 14px -2px ${cleared ? "#4dc79a" : theme.hex}`,
+                }}
               >
                 {roomLocked ? (
                   <Icon name="lock" size={15} className="text-parchment-500" />
+                ) : cleared ? (
+                  <Icon name="check" size={17} className="text-emerald2-400" />
                 ) : (
-                  <Icon
-                    name={ROOM_ICONS[room.type] ?? "sword"}
-                    size={17}
-                    className={
-                      cleared
-                        ? "text-emerald-400"
-                        : room.type === "BOSS"
-                          ? "text-crimson-400"
-                          : "text-gold-500"
-                    }
-                  />
+                  <Icon name={ROOM_ICONS[room.type] ?? "sword"} size={17} style={{ color: theme.light }} />
                 )}
               </span>
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="flex items-center gap-1.5 font-display text-gold-300">
-                  {cleared && <Icon name="check" size={14} className="text-emerald-400" />}
+              <div className="relative flex items-baseline justify-between gap-2">
+                <p className="flex items-center gap-1.5 font-display text-parchment-100">
+                  {cleared && <Icon name="check" size={14} className="text-emerald2-400" />}
                   {room.name}
                 </p>
-                <span className="shrink-0 text-[10px] uppercase tracking-wider text-parchment-500">
-                  {info?.label}
+                <span className="accent-chip">
+                  <Icon name={theme.icon} size={10} />
+                  {info?.label ?? theme.label}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-parchment-400">{room.description}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <p className="relative mt-1 text-sm leading-relaxed text-parchment-400">
+                {room.description}
+              </p>
+              <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
                 {roomLocked ? (
                   <span className="pill">
                     <Icon name="lock" size={10} /> Needs level {room.levelRequirement}
                   </span>
                 ) : cleared ? (
-                  <span className="pill border-emerald-700/60 text-emerald-300">
+                  <span className="pill-emerald">
                     <Icon name="check" size={10} /> Cleared
                   </span>
                 ) : (
-                  <span className="pill-gold">
-                    <Icon name="chevron" size={10} /> Enter
+                  <span className="accent-text inline-flex items-center gap-1 text-xs font-semibold opacity-80 transition-opacity group-hover:opacity-100">
+                    Enter <Icon name="arrow" size={12} />
                   </span>
                 )}
                 {room.type === "BOSS" && room.boss && (
@@ -221,7 +215,7 @@ export default async function DungeonAreaPage({
           );
           return (
             <li key={room.id}>
-              {roomLocked ? inner : <Link href={href}>{inner}</Link>}
+              {roomLocked ? inner : <Link href={href} className="group block">{inner}</Link>}
             </li>
           );
         })}

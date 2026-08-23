@@ -50,6 +50,22 @@ export function skillTheme(skill?: string | null): CategoryTheme {
   return (skill && SKILL_THEME[skill]) || CATEGORY_THEME.FUNDAMENTALS;
 }
 
+/** A jewel tone per dungeon room type, so a descent through an area reads
+ * like a sequence of distinct chambers rather than identical grey boxes. */
+export const ROOM_TYPE_THEME: Record<string, CategoryTheme> = {
+  CHALLENGE: { label: "Challenge", icon: "sword",  hex: "#a03c38", light: "#dc8580", deep: "#5c1e1d" },
+  PUZZLE:    { label: "Puzzle",    icon: "puzzle", hex: "#4f63a8", light: "#9fb4e8", deep: "#2a365f" },
+  CURSE:     { label: "Curse",     icon: "moon",   hex: "#9358c9", light: "#d3aef5", deep: "#502d73" },
+  TREASURE:  { label: "Treasure",  icon: "chest",  hex: "#c9a84c", light: "#f0d894", deep: "#7d6229" },
+  REST:      { label: "Rest",      icon: "flame",  hex: "#2fa27c", light: "#8fe0bc", deep: "#164e3c" },
+  BOSS:      { label: "Boss",      icon: "skull",  hex: "#a03c38", light: "#dc8580", deep: "#5c1e1d" },
+  EVENT:     { label: "Event",     icon: "sparkle",hex: "#cc5580", light: "#f3b6c9", deep: "#712c48" },
+};
+
+export function roomTypeTheme(type: string): CategoryTheme {
+  return ROOM_TYPE_THEME[type] ?? CATEGORY_THEME.FUNDAMENTALS;
+}
+
 const FALLBACK = CATEGORY_THEME.FUNDAMENTALS;
 
 export function categoryTheme(category: string): CategoryTheme {

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { BossFight } from "@/components/bosses/BossFight";
 import { Icon } from "@/components/ui/Icon";
 import { Panel } from "@/components/ui/primitives";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export default async function BossPage({ params }: { params: { bossKey: string } }) {
   const userId = await getSessionUserId();
@@ -52,6 +53,7 @@ export default async function BossPage({ params }: { params: { bossKey: string }
 
   return (
     <div className="mx-auto max-w-3xl">
+      <ScrollProgress />
       <Link
         href="/bosses"
         className="inline-flex items-center gap-1.5 text-sm text-parchment-500 transition-colors hover:text-gold-300"
@@ -59,31 +61,8 @@ export default async function BossPage({ params }: { params: { bossKey: string }
         <Icon name="chevron" size={13} className="rotate-180" /> Back to the Bosses
       </Link>
 
-      {boss.lore && (
-        <Panel title="The Story So Far" icon="scroll" tone="crimson" className="my-4">
-          <p className="text-[15px] leading-[1.75] text-parchment-300">{boss.lore}</p>
-        </Panel>
-      )}
-
-      {tactics.length > 0 && (
-        <Panel
-          title="Before You Engage"
-          icon="compass"
-          subtitle="What previous challengers learned the hard way"
-          className="mb-4"
-        >
-          <ul className="space-y-2.5">
-            {tactics.map((t) => (
-              <li key={t} className="flex gap-2.5 text-sm text-parchment-300">
-                <Icon name="sword" size={15} className="mt-0.5 shrink-0 text-crimson-400" />
-                <span className="leading-relaxed">{t}</span>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
-      <BossFight
+      <div className="mt-4">
+        <BossFight
         boss={{
           key: boss.key,
           name: boss.name,
@@ -122,7 +101,32 @@ export default async function BossPage({ params }: { params: { bossKey: string }
               }
             : { started: false, currentHp: boss.totalHp, defeated: false, completedObjectiveIds: [] }
         }
-      />
+        />
+      </div>
+
+      {boss.lore && (
+        <Panel title="The Story So Far" icon="scroll" tone="crimson" className="mt-6">
+          <p className="text-[15px] leading-[1.75] text-parchment-300">{boss.lore}</p>
+        </Panel>
+      )}
+
+      {tactics.length > 0 && (
+        <Panel
+          title="Before You Engage"
+          icon="compass"
+          subtitle="What previous challengers learned the hard way"
+          className="mt-4"
+        >
+          <ul className="space-y-2.5">
+            {tactics.map((t) => (
+              <li key={t} className="flex gap-2.5 text-sm text-parchment-300">
+                <Icon name="sword" size={15} className="mt-0.5 shrink-0 text-crimson-400" />
+                <span className="leading-relaxed">{t}</span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </div>
   );
 }

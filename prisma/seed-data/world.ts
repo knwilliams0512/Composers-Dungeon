@@ -134,7 +134,7 @@ export const bosses = [
     title: "Voice of the Frozen Hall",
     description:
       "A spectral singer whose single unbroken line freezes all who cannot answer it. Only true melody — shaped, breathing, inevitable — can thaw her sorrow.",
-    artwork: "👤",
+    artwork: "🎤",
     totalHp: 6000,
     difficulty: 3,
     levelRequirement: 3,

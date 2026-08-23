@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startBossFight, completeBossObjective } from "@/server/actions/boss";
 import { AwardBanner } from "@/components/ui/AwardBanner";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Meter } from "@/components/ui/primitives";
 import type { AwardResult } from "@/lib/progression";
 import { Icon } from "@/components/ui/Icon";
 
@@ -120,45 +120,80 @@ export function BossFight({
     <div className="mt-2 space-y-5">
       {/* Boss banner */}
       <section
-        className={`card relative overflow-hidden p-6 text-center ${
-          boss.final ? "border-crimson-600/60 shadow-crimson" : "border-abyss-600"
+        className={`card-crimson lit-edge relative overflow-hidden p-8 text-center ${
+          defeated ? "border-emerald2-500/40" : ""
         }`}
       >
-        <p className={`text-6xl ${defeated ? "grayscale" : "animate-flicker"}`}>
-          {boss.artwork}
-        </p>
-        <h1 className="heading-display mt-3 text-3xl">{boss.name}</h1>
-        <p className="text-sm italic text-parchment-500">{boss.title}</p>
-        <p className="mx-auto mt-3 max-w-xl text-parchment-300">{boss.description}</p>
-        <div className="mx-auto mt-5 max-w-xl">
-          <ProgressBar
-            percent={hpPercent}
-            color="crimson"
-            label={
-              defeated
-                ? "DEFEATED"
-                : `${currentHp.toLocaleString()} / ${boss.totalHp.toLocaleString()} HP`
-            }
+        {/* A crimson aura bleeding from behind the portrait, dimmed once defeated */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 -translate-y-1/3 rounded-full opacity-30 blur-3xl transition-opacity duration-700"
+          style={{
+            background: `radial-gradient(circle, ${defeated ? "#2fa27c" : "#a03c38"}, transparent 70%)`,
+            opacity: defeated ? 0.18 : 0.35,
+          }}
+        />
+        {boss.final && !defeated && (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+            style={{ background: "linear-gradient(90deg, transparent, #dc8580, transparent)" }}
           />
-          {lastHit && !defeated && (
-            <p className="mt-1 animate-rise text-sm text-crimson-400">
-              <Icon name="sword" size={15} className="mr-1 inline" />
-              {lastHit.toLocaleString()} damage!
-            </p>
-          )}
+        )}
+
+        <div className="relative">
+          <span
+            className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 text-5xl leading-none backdrop-blur ${
+              defeated
+                ? "border-emerald2-500/40 bg-emerald2-500/10 grayscale"
+                : "border-crimson-400/50 bg-crimson-500/10 animate-flicker"
+            }`}
+          >
+            {boss.artwork}
+          </span>
+          <h1 className="text-gilded mt-4 font-display text-3xl">{boss.name}</h1>
+          <p className="text-sm italic text-parchment-500">{boss.title}</p>
+          <p className="mx-auto mt-3 max-w-xl leading-relaxed text-parchment-300">
+            {boss.description}
+          </p>
+
+          <div className="mx-auto mt-6 max-w-xl">
+            <div className="mb-1.5 flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 font-semibold uppercase tracking-[0.14em] text-parchment-400">
+                <Icon name="heart" size={13} className={defeated ? "text-emerald2-400" : "text-crimson-400"} />
+                {defeated ? "Defeated" : "Health"}
+              </span>
+              {!defeated && (
+                <span className="tabular-nums text-parchment-500">
+                  {currentHp.toLocaleString()} / {boss.totalHp.toLocaleString()}
+                </span>
+              )}
+            </div>
+            <Meter percent={hpPercent} color={defeated ? "emerald" : "crimson"} thick />
+            {lastHit && !defeated && (
+              <p className="mt-2 animate-rise text-sm text-crimson-400">
+                <Icon name="sword" size={15} className="mr-1 inline" />
+                {lastHit.toLocaleString()} damage!
+              </p>
+            )}
+          </div>
         </div>
       </section>
 
       {defeated && (
-        <section className="card-gold p-6 text-center">
-          <p className="text-4xl">🏆</p>
-          <h2 className="heading-display mt-2 text-xl">{boss.name} Has Fallen</h2>
-          {rewardArtifactName && (
-            <p className="mt-2 text-gold-300">
-              {boss.rewardArtifact?.icon} You claimed the{" "}
-              <strong>{rewardArtifactName}</strong>
-            </p>
-          )}
+        <section className="card-gold aura lit-edge relative overflow-hidden p-7 text-center">
+          <div
+            className="pointer-events-none absolute -top-16 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full opacity-30 blur-3xl"
+            style={{ background: "radial-gradient(circle, #f0d894, transparent 70%)" }}
+          />
+          <div className="relative">
+            <Icon name="trophy" size={38} className="mx-auto text-gold-300" />
+            <h2 className="text-gilded mt-3 font-display text-2xl">{boss.name} Has Fallen</h2>
+            {rewardArtifactName && (
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-gold-300">
+                <span className="text-lg">{boss.rewardArtifact?.icon}</span>
+                You claimed the <strong>{rewardArtifactName}</strong>
+              </p>
+            )}
+          </div>
         </section>
       )}
 

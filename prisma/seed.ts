@@ -58,26 +58,25 @@ async function seedLessons() {
       practiceRoutine: detail.practiceRoutine ? JSON.stringify(detail.practiceRoutine) : null,
     };
 
+    // Every authored field is content, and re-seeding is how the self-updating
+    // desktop app pushes content fixes to players who already have this row —
+    // a narrower `update` than `create` means some future fix (a rebalanced
+    // XP reward, a corrected level gate) would silently never reach them.
+    const lessonFields = {
+      title: l.title,
+      description: l.description,
+      category: l.category,
+      difficulty: l.difficulty,
+      tierRequirement: l.tierRequirement,
+      levelRequirement: l.levelRequirement ?? 1,
+      order: l.order,
+      xpReward: l.xpReward,
+      ...detailFields,
+    };
     const lesson = await db.lesson.upsert({
       where: { slug: l.slug },
-      create: {
-        slug: l.slug,
-        title: l.title,
-        description: l.description,
-        category: l.category,
-        difficulty: l.difficulty,
-        tierRequirement: l.tierRequirement,
-        levelRequirement: l.levelRequirement ?? 1,
-        order: l.order,
-        xpReward: l.xpReward,
-        ...detailFields,
-      },
-      update: {
-        title: l.title,
-        description: l.description,
-        order: l.order,
-        ...detailFields,
-      },
+      create: { slug: l.slug, ...lessonFields },
+      update: lessonFields,
     });
 
     // Quiz
@@ -180,29 +179,24 @@ async function seedBosses() {
     const rewardArtifact = b.rewardArtifactKey
       ? await db.artifact.findUnique({ where: { key: b.rewardArtifactKey } })
       : null;
+    const bossFields = {
+      name: b.name,
+      title: b.title,
+      description: b.description,
+      artwork: b.artwork,
+      totalHp: b.totalHp,
+      difficulty: b.difficulty,
+      levelRequirement: b.levelRequirement,
+      xpReward: b.xpReward,
+      final: (b as { final?: boolean }).final ?? false,
+      rewardArtifactId: rewardArtifact?.id ?? null,
+      lore: bossDetail[b.key]?.lore ?? null,
+      tactics: bossDetail[b.key]?.tactics ? JSON.stringify(bossDetail[b.key].tactics) : null,
+    };
     const boss = await db.boss.upsert({
       where: { key: b.key },
-      create: {
-        key: b.key,
-        name: b.name,
-        title: b.title,
-        description: b.description,
-        artwork: b.artwork,
-        totalHp: b.totalHp,
-        difficulty: b.difficulty,
-        levelRequirement: b.levelRequirement,
-        xpReward: b.xpReward,
-        final: (b as { final?: boolean }).final ?? false,
-        rewardArtifactId: rewardArtifact?.id ?? null,
-        lore: bossDetail[b.key]?.lore ?? null,
-        tactics: bossDetail[b.key]?.tactics ? JSON.stringify(bossDetail[b.key].tactics) : null,
-      },
-      update: {
-        description: b.description,
-        totalHp: b.totalHp,
-        lore: bossDetail[b.key]?.lore ?? null,
-        tactics: bossDetail[b.key]?.tactics ? JSON.stringify(bossDetail[b.key].tactics) : null,
-      },
+      create: { key: b.key, ...bossFields },
+      update: bossFields,
     });
     const phaseCount = await db.bossPhase.count({ where: { bossId: boss.id } });
     if (phaseCount === 0) {
@@ -222,34 +216,26 @@ async function seedBosses() {
 
 async function seedDungeon() {
   for (const area of dungeonAreas) {
+    const areaFields = {
+      name: area.name,
+      description: area.description,
+      theme: area.theme,
+      icon: area.icon,
+      levelRequirement: area.levelRequirement,
+      tierRequirement: area.tierRequirement,
+      skillKey: area.skillKey,
+      order: area.order,
+      special: area.special ?? false,
+      lore: areaDetail[area.key]?.lore ?? null,
+      dangerRating: areaDetail[area.key]?.dangerRating ?? 1,
+      survivalTips: areaDetail[area.key]?.survivalTips
+        ? JSON.stringify(areaDetail[area.key].survivalTips)
+        : null,
+    };
     const dbArea = await db.dungeonArea.upsert({
       where: { key: area.key },
-      create: {
-        key: area.key,
-        name: area.name,
-        description: area.description,
-        theme: area.theme,
-        icon: area.icon,
-        levelRequirement: area.levelRequirement,
-        tierRequirement: area.tierRequirement,
-        skillKey: area.skillKey,
-        order: area.order,
-        special: area.special ?? false,
-        lore: areaDetail[area.key]?.lore ?? null,
-        dangerRating: areaDetail[area.key]?.dangerRating ?? 1,
-        survivalTips: areaDetail[area.key]?.survivalTips
-          ? JSON.stringify(areaDetail[area.key].survivalTips)
-          : null,
-      },
-      update: {
-        description: area.description,
-        theme: area.theme,
-        lore: areaDetail[area.key]?.lore ?? null,
-        dangerRating: areaDetail[area.key]?.dangerRating ?? 1,
-        survivalTips: areaDetail[area.key]?.survivalTips
-          ? JSON.stringify(areaDetail[area.key].survivalTips)
-          : null,
-      },
+      create: { key: area.key, ...areaFields },
+      update: areaFields,
     });
 
     for (const room of area.rooms) {
