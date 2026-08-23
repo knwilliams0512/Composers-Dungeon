@@ -51,9 +51,7 @@ jobs:
         run: |
           gh release create "${GITHUB_REF_NAME}" \
             --title "Composer's Dungeon ${GITHUB_REF_NAME}" \
-            --notes "Download **ComposersDungeonSetup.exe** below and double-click it. Nothing else to install — Node, the app and all its content are inside.
-
-Already have it? Just launch the app: it updates itself from this release." \
+            --notes-file .github/release-notes.md \
             dist/ComposersDungeonSetup.exe dist/ComposersDungeon-*-update.zip dist/latest.json \
           || gh release upload "${GITHUB_REF_NAME}" \
                dist/ComposersDungeonSetup.exe dist/ComposersDungeon-*-update.zip dist/latest.json \

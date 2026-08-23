@@ -2,6 +2,12 @@
 
 **The Academy teaches you. The Dungeon tests you.**
 
+### ⬇ [Download for Windows](https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest) · 📖 [Full installation guide](INSTALL.md)
+
+> One file, double-click, done — no Node, no Git, no build step, no internet
+> needed after setup. macOS and Linux instructions, manual/source installs and
+> troubleshooting all live in **[INSTALL.md](INSTALL.md)**.
+
 Composer's Dungeon is an educational music theory & composition platform fused
 with an RPG progression game. A complete beginner can start with no theory
 knowledge, learn through structured Academy lessons, then descend into a
@@ -24,127 +30,45 @@ All XP, levels, skill progression, boss damage, achievements, artifacts, and
 streaks are computed **exclusively server-side** (`src/lib/progression.ts`).
 Clients submit actions, never numbers.
 
-## Install on Windows
+## Installing
 
-**One file. Double-click it. Done.**
+Everything about installation — Windows, macOS, Linux, from source, updating,
+uninstalling, verifying downloads and troubleshooting — is in one place:
 
-Grab **`ComposersDungeonSetup.exe`** from the
-[Releases page](https://github.com/knwilliams0512/Composer-s-Dungeon/releases)
-and run it. It installs for your account only — no administrator password, no
-Node.js, no Git, no npm, no build step, no internet connection. The Node
-runtime, the compiled app and a database already stocked with all 25 lessons,
-9 dungeon areas, 4 bosses, 8 artifacts and 15 achievements are inside the
-installer. Setup takes about a minute and ends with **Composer's Dungeon** on
-your Desktop and in your Start menu.
+### → **[INSTALL.md](INSTALL.md)** ←
 
-### Windows will warn you — this is expected
+The short version:
 
-The installer isn't code-signed (a certificate costs a few hundred dollars a
-year), so Windows treats it like any other unsigned program:
-
-1. **Downloading:** your browser may say *"this file may be unsafe"* or
-   *"isn't commonly downloaded"*. Click the **⋯** next to the download →
-   **Keep** → **Keep anyway**.
-2. **Running:** a blue **"Windows protected your PC"** box appears. Click
-   **More info**, then **Run anyway**.
-
-Both prompts mean "we don't recognise the publisher", not "we found something
-bad." Nothing is downloaded at install time and the app never opens a network
-port beyond `127.0.0.1`.
-
-### Updates install themselves
-
-You never reinstall. Every launch, the app quietly asks the release feed
-whether there is a newer version; if there is, it downloads the update package,
-**verifies its SHA-256 against the published checksum**, stops the server,
-swaps the app directory, applies any pending database migrations, re-runs the
-(idempotent) content seed so new lessons and areas appear, and starts up — all
-before the window opens. If the check fails, times out, or you are offline, it
-starts normally: an update is never the reason the app will not open. A failed
-swap rolls back to the previous copy.
-
-Your data is never part of that: compositions, levels, streaks and guild posts
-live in `data\` and are not touched. **Settings → Updates** shows the installed
-version, checks on demand, and installs on request.
-
-### Using it
-
-Launch from the Desktop or Start-menu shortcut. It opens in its own window —
-no address bar, no tabs, no browser. Closing the window stops the server, like
-any normal program. The app is entirely local: your compositions, levels and
-streaks live in `%LOCALAPPDATA%\ComposersDungeon\data`, and nothing leaves
-your PC.
+| Platform | How |
+| --- | --- |
+| **Windows** | Download `ComposersDungeonSetup.exe` from the [latest release](https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest) and double-click it. No admin rights, no prerequisites, ~1 minute. |
+| **Windows, from source** | Unzip the repo and double-click `Install Composers Dungeon.bat` |
+| **macOS / Linux** | `npm run setup && npm run build && npm start` — see [INSTALL.md](INSTALL.md#3--macos) |
 
 **Demo account:** `bard@composersdungeon.demo` / `dungeon-demo-1` — a
 mid-progress composer with skills, completed lessons, and a public guild post.
 Or sign up fresh to go through onboarding and the adaptive Placement Trial.
 
-**Pin it to the taskbar:** once open, use the window's `…` menu →
-**Install Composer's Dungeon**. Windows then gives it a Start-menu entry and
-jump-list shortcuts straight to the Academy, the Dungeon and today's Daily
-Trial. (There's also an **Install as App** button in the sidebar.)
+Windows shows two warnings for any unsigned installer — *"isn't commonly
+downloaded"* on the way in, and *"Windows protected your PC"* on the way out.
+**More info → Run anyway.** [Why, and how to verify the download yourself.](INSTALL.md#verifying-your-download)
 
-**Uninstall:** Settings → Apps → Composer's Dungeon, or the Start-menu entry.
-It asks before deleting your save, and backs it up to your Desktop first.
+### Updates install themselves
 
-### Building the installer yourself
+You never reinstall. Every launch, the app checks the release feed, verifies the
+download's SHA-256 against the published checksum, swaps the app directory,
+applies pending database migrations, re-runs the idempotent seed so new lessons
+and areas appear, and starts — all before the window opens. Offline, feed down
+or malformed: it starts normally. A failed swap rolls back. Your compositions,
+levels and streaks live in `data\` and are never touched.
 
-Runs on Linux or macOS — no Windows machine required:
-
-```bash
-sudo apt-get install -y nsis      # or: brew install makensis
-npm ci
-scripts/windows/build-installer.sh
-# -> dist/ComposersDungeonSetup.exe
-```
-
-The script fetches a Windows Node runtime, generates the Prisma client with
-the Windows query engine, builds the Next.js standalone server, seeds a fresh
-database to ship, and compiles everything into one NSIS installer. Pushing a
-`v*` tag runs the same script in CI and attaches the result to a GitHub
-Release (`.github/workflows/windows-installer.yml`).
-
-### Installing from source instead
-
-If you'd rather run the code directly than install a binary, the repo also
-carries a scripted setup: unzip a **Code → Download ZIP** and double-click
-**`Install Composers Dungeon.bat`**, or paste this into PowerShell (works once
-the repository is public):
-
-```powershell
-irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scripts/windows/install.ps1 | iex
-```
-
-That route installs Node and Git via winget, then builds from source. Note
-that browsers block `.bat` downloads, so download the whole ZIP rather than
-the single file.
-
-| Task | Do this |
-| --- | --- |
-| Update a source install | `npm run win:update` (progress is preserved) |
-| Run on a different port | `npm run win:start -- -Port 3005` |
-| Force-stop a stuck server | `npm run win:stop` |
-| Remove a source install | `npm run win:uninstall -- -RemoveFiles` |
-
-## Quick Start (macOS, Linux, or manual)
+## Developing
 
 ```bash
-# 1. Configure environment
-cp .env.example .env
-# edit .env — at minimum set a real NEXTAUTH_SECRET:
-#   openssl rand -base64 32
-
-# 2. Install deps, create prisma/dev.db, seed lessons/dungeons/bosses
-npm run setup
-
-# 3. Start
-npm run dev                  # development, http://localhost:3000
-npm run build && npm start   # production
+cp .env.example .env         # set a real NEXTAUTH_SECRET
+npm run setup                # deps + database + all seed content
+npm run dev                  # http://localhost:3000
 ```
-
-Same demo account as above. On macOS and Linux you can install it as a desktop
-app the same way: open it in Chrome or Edge and use the address bar's install
-icon (or **⋮ → Cast, save and share → Install page as app**).
 
 ### Migrations
 
