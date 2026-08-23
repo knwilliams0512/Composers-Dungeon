@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Torches Have Gone Out — Composer's Dungeon</title>
+    <link rel="icon" href="/icons/icon-64.png" />
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background: radial-gradient(ellipse at top, #2d2547 0%, #0c0a14 55%, #07060b 100%);
+        color: #e9dcc0;
+        font-family: Georgia, "Times New Roman", serif;
+        text-align: center;
+      }
+      .panel {
+        max-width: 30rem;
+        border: 1px solid #2d2547;
+        border-radius: 0.75rem;
+        background: rgba(23, 19, 38, 0.75);
+        padding: 2.5rem 2rem;
+        box-shadow: 0 0 40px rgba(201, 168, 76, 0.12);
+      }
+      h1 { color: #e3c26d; font-size: 1.6rem; margin: 0 0 0.75rem; letter-spacing: 0.02em; }
+      p { line-height: 1.6; color: #b3a07c; margin: 0 0 1.25rem; }
+      code {
+        display: inline-block;
+        background: #110e1c;
+        border: 1px solid #2d2547;
+        border-radius: 0.375rem;
+        padding: 0.35rem 0.6rem;
+        color: #f0d894;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 0.9rem;
+      }
+      button {
+        margin-top: 1.5rem;
+        background: linear-gradient(180deg, #c9a84c, #a8863a);
+        border: none;
+        border-radius: 0.5rem;
+        color: #07060b;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 700;
+        padding: 0.7rem 1.4rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>The Torches Have Gone Out</h1>
+      <p>
+        Composer's Dungeon runs on your own machine, and its server isn't
+        answering right now — usually because the app was closed or the
+        computer restarted.
+      </p>
+      <p>Start it again from your <strong>Composer's Dungeon</strong> shortcut, or run:</p>
+      <p><code>npm run start</code></p>
+      <button onclick="location.reload()">Relight the Torches</button>
+    </div>
+  </body>
+</html>

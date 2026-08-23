@@ -13,7 +13,12 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "setup": "npm install && prisma generate && prisma db push && tsx prisma/seed.ts"
+    "setup": "npm install && prisma generate && prisma db push && tsx prisma/seed.ts",
+    "win:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/install.ps1",
+    "win:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/start.ps1",
+    "win:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/stop.ps1",
+    "win:update": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/update.ps1",
+    "win:uninstall": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/uninstall.ps1"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

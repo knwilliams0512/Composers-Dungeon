@@ -7,5 +7,7 @@ build/
 *.db-journal
 prisma/dev.db*
 .DS_Store
+logs/
+.app-profile/
 *.tsbuildinfo
 next-env.d.ts

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="34%" r="72%">
+      <stop offset="0%" stop-color="#2d2547"/>
+      <stop offset="55%" stop-color="#110e1c"/>
+      <stop offset="100%" stop-color="#07060b"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#f0d894"/>
+      <stop offset="52%" stop-color="#e3c26d"/>
+      <stop offset="100%" stop-color="#a8863a"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- arcane ring -->
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#4f63a8" stroke-opacity="0.35" stroke-width="3"/>
+  <circle cx="256" cy="256" r="178" fill="none" stroke="url(#gold)" stroke-opacity="0.55" stroke-width="6"/>
+
+  <!-- portcullis / dungeon gate hint -->
+  <g stroke="#c9a84c" stroke-opacity="0.22" stroke-width="5" stroke-linecap="round">
+    <line x1="150" y1="118" x2="150" y2="394"/>
+    <line x1="362" y1="118" x2="362" y2="394"/>
+    <line x1="126" y1="150" x2="386" y2="150"/>
+    <line x1="126" y1="362" x2="386" y2="362"/>
+  </g>
+
+  <!-- eighth note -->
+  <g fill="url(#gold)" filter="url(#glow)">
+    <ellipse cx="212" cy="348" rx="64" ry="48" transform="rotate(-21 212 348)"/>
+    <rect x="256" y="128" width="20" height="222" rx="7"/>
+    <path d="M276 136 C 344 166, 382 204, 366 276 C 356 224, 322 198, 276 186 Z"/>
+  </g>
+</svg>

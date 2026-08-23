@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 
 const NAV_ITEMS = [
   { href: "/hall", label: "Entrance Hall", short: "Hall", icon: "🏰" },
@@ -69,6 +70,7 @@ export function AppNav({
               <p className="text-xs text-parchment-500">Level {level} Composer</p>
             </div>
           </div>
+          <InstallAppButton className="mb-2" />
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className="w-full rounded-md border border-abyss-600 px-3 py-1.5 text-xs text-parchment-400 transition-colors hover:border-crimson-600 hover:text-crimson-400"

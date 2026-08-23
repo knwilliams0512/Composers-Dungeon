@@ -24,34 +24,85 @@ All XP, levels, skill progression, boss damage, achievements, artifacts, and
 streaks are computed **exclusively server-side** (`src/lib/progression.ts`).
 Clients submit actions, never numbers.
 
-## Quick Start
+## Install on Windows (as an app)
+
+**One line. Nothing else needed** — not even Node or Git; the installer fetches
+them for you. Open **PowerShell** (Start menu → type "PowerShell" → Enter) and
+paste:
+
+```powershell
+irm https://raw.githubusercontent.com/knwilliams0512/composer-s-dungeon/claude/composers-dungeon-fullstack-8aire4/scripts/windows/install.ps1 | iex
+```
+
+It installs Git + Node.js LTS if they're missing, downloads the app to
+`%LOCALAPPDATA%\ComposersDungeon`, generates a real `NEXTAUTH_SECRET`, builds
+the database with all 25 lessons / 9 dungeon areas / 4 bosses, compiles the
+production bundle, and puts **Composer's Dungeon** on your Desktop and Start
+menu. First run takes a few minutes; after that it opens in seconds.
+
+*Prefer clicking to typing?* Download the repo
+(**Code → Download ZIP**), unzip it, and double-click
+**`Install Composers Dungeon.bat`**.
+
+### Using it
+
+Launch from the Desktop or Start-menu shortcut. The app opens in its own
+window with no browser chrome, address bar or tabs — closing the window shuts
+the server down, like any normal program. `Play Composers Dungeon.bat` does the
+same thing if the shortcut ever goes missing.
+
+**Pin it to the taskbar / Start:** once it's open, use the window's `…` menu →
+**Install Composer's Dungeon**. Windows then treats it as a proper installed
+app — taskbar pinning, its own Start-menu entry, jump-list shortcuts straight
+to the Academy, the Dungeon and today's Daily Trial. (There's also an
+**Install as App** button at the bottom of the sidebar.)
+
+**Demo account:** `bard@composersdungeon.demo` / `dungeon-demo-1` — a
+mid-progress composer with skills, completed lessons, and a public guild post.
+Or sign up fresh to go through onboarding and the adaptive Placement Trial.
+
+| Task | Do this |
+| --- | --- |
+| Update to the latest version | `npm run win:update` (progress is preserved) |
+| Run on a different port | `npm run win:start -- -Port 3005` |
+| Start the server without a window | `npm run win:start -- -NoWindow` |
+| Force-stop a stuck server | `npm run win:stop` |
+| Remove shortcuts | `npm run win:uninstall` |
+| Remove everything | `npm run win:uninstall -- -RemoveFiles` (backs your database up to the Desktop first) |
+
+Everything runs on your own machine. Nothing is uploaded, and nobody else can
+reach it — the Guild is populated by accounts created on this install.
+
+### If Windows gets in the way
+
+| What you see | What to do |
+| --- | --- |
+| "Windows protected your PC" (SmartScreen) | **More info → Run anyway.** It fires for any unsigned script downloaded from the internet. |
+| "running scripts is disabled on this system" | You launched the `.ps1` directly. Use the `.bat` or the `irm … \| iex` line — both bypass execution policy for that one run. |
+| Installer can't find winget | You're on an older Windows 10. Install [Node.js LTS](https://nodejs.org) and [Git](https://git-scm.com/download/win) by hand, then run the installer again. |
+| Nothing happens when you click the shortcut | Something already owns port 3000. Run `npm run win:start -- -Port 3005`, or `npm run win:stop` to clear a stuck server. |
+| It opened in a normal browser tab | Edge and Chrome are both missing. Install either one for the windowed app experience. |
+| Server errors on launch | Look in `logs\server.log` inside the install folder. |
+
+## Quick Start (macOS, Linux, or manual)
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Configure environment
+# 1. Configure environment
 cp .env.example .env
 # edit .env — at minimum set a real NEXTAUTH_SECRET:
 #   openssl rand -base64 32
 
-# 3. Initialize the database (creates prisma/dev.db)
-npx prisma generate
-npx prisma db push
+# 2. Install deps, create prisma/dev.db, seed lessons/dungeons/bosses
+npm run setup
 
-# 4. Seed demo content (lessons, dungeons, bosses, artifacts, demo user)
-npm run db:seed
-
-# 5. Start
-npm run dev        # development, http://localhost:3000
-# or
+# 3. Start
+npm run dev                  # development, http://localhost:3000
 npm run build && npm start   # production
 ```
 
-One-liner: `npm run setup && npm run dev`
-
-**Demo account:** `bard@composersdungeon.demo` / `dungeon-demo-1` — a
-mid-progress composer with skills, completed lessons, and a public guild post.
+Same demo account as above. On macOS and Linux you can install it as a desktop
+app the same way: open it in Chrome or Edge and use the address bar's install
+icon (or **⋮ → Cast, save and share → Install page as app**).
 
 ### Migrations
 
@@ -126,6 +177,15 @@ compositions are never exposed — enforced in queries, not just UI.
 ## Project Layout
 
 ```
+public/
+  manifest.webmanifest # PWA manifest — makes it installable as a desktop app
+  sw.js                # minimal service worker (installability + offline page)
+  icons/               # icon.svg source + rendered PNG/ICO
+scripts/windows/
+  install.ps1          # one-shot installer (prereqs → build → shortcuts)
+  start.ps1            # launcher: free port → server → app window
+  launch.vbs           # runs start.ps1 with no console flash
+  update.ps1 / stop.ps1 / uninstall.ps1
 prisma/
   schema.prisma        # all models (see header note on enums)
   seed.ts              # idempotent seed
