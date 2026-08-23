@@ -4,6 +4,8 @@ import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ensureDailyChallenge } from "@/lib/daily";
 import { ChallengePanel } from "@/components/dungeon/ChallengePanel";
+import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
+import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
 
 export const metadata = { title: "Daily Dungeon Challenge" };
 export const dynamic = "force-dynamic";
@@ -16,6 +18,15 @@ export default async function DailyChallengePage() {
   const profile = await db.userProfile.findUnique({ where: { userId } });
 
   const done = uc.status === "COMPLETED";
+  const brief = briefForChallenge(uc.challenge);
+  const checks = parseChecks(uc.challenge.checks) ?? brief.checks;
+  const lessonsCompleted = await db.lessonProgress.count({
+    where: { userId, status: "COMPLETED" },
+  });
+  const freedom = cappedFreedom(
+    freedomForPlayer(profile?.level ?? 1, lessonsCompleted),
+    uc.challenge.freedomCap ?? brief.freedomCap
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -49,25 +60,24 @@ export default async function DailyChallengePage() {
         </div>
       ) : (
         <ChallengePanel
-          roomId={null}
-          isCurse={false}
-          isDaily
-          hasRerollArtifact={false}
-          activeChallenge={{
+          challenge={{
             userChallengeId: uc.id,
             title: uc.challenge.title,
             description: uc.challenge.description,
             difficulty: uc.challenge.difficulty,
             keySig: uc.challenge.keySig,
             meter: uc.challenge.meter,
-            lengthBars: uc.challenge.lengthBars,
+            lengthBars: brief.setup.bars,
             instrument: uc.challenge.instrument,
             style: uc.challenge.style,
             requirement: uc.challenge.requirement,
             restriction: uc.challenge.restriction,
             xpReward: uc.challenge.xpReward,
-            curated: false,
+            canReroll: false,
           }}
+          setup={brief.setup}
+          checks={checks}
+          freedom={freedom}
         />
       )}
     </div>

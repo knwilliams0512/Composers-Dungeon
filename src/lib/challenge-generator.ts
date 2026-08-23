@@ -6,6 +6,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { db } from "@/lib/db";
 import { challengeXpForDifficulty } from "@/lib/xp";
 import type { ChallengeType, SkillKey } from "@/lib/enums";
+import { briefForChallenge } from "@/lib/challenge-brief";
 
 type Tx = Prisma.TransactionClient | PrismaClient;
 
@@ -189,10 +190,23 @@ export async function createUserChallenge(
       ...options,
       avoidTitles: recent.map((r) => r.challenge.title),
     });
+    // The composer's brief travels with the challenge, so the standard a
+    // player sees is the same one the server grades against later.
+    const brief = briefForChallenge({
+      difficulty: generated.difficulty,
+      keySig: generated.keySig,
+      meter: generated.meter,
+      lengthBars: generated.lengthBars,
+      instrument: generated.instrument,
+      skillKey: generated.skillKey,
+    });
+
     const challenge = await tx.challenge.create({
       data: {
         roomId: options.roomId ?? null,
         type: generated.type,
+        checks: JSON.stringify(brief.checks),
+        freedomCap: brief.freedomCap,
         title: generated.title,
         description: generated.description,
         difficulty: generated.difficulty,

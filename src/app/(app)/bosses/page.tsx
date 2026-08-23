@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Icon } from "@/components/ui/Icon";
+import { Meter } from "@/components/ui/primitives";
 
 export const metadata = { title: "The Bosses" };
 
@@ -33,7 +34,7 @@ export default async function BossesPage() {
           const hpPercent = p ? (p.currentHp / boss.totalHp) * 100 : 100;
           const inner = (
             <div
-              className={`card h-full p-5 transition-all ${
+              className={`card lit-edge h-full p-5 transition-all ${
                 boss.final ? "border-crimson-600/60" : ""
               } ${
                 locked
@@ -46,15 +47,28 @@ export default async function BossesPage() {
               <div className="flex items-start gap-4">
                 <span className="text-4xl">{boss.artwork}</span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="heading-display text-lg">
-                    {p?.defeated && "✓ "}
+                  <h2 className="flex items-center gap-1.5 heading-display text-lg">
+                    {p?.defeated && <Icon name="check" size={15} className="text-emerald-400" />}
                     {boss.name}
                   </h2>
                   <p className="text-xs italic text-parchment-500">{boss.title}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="pill-crimson">
+                      <Icon name="target" size={10} /> Difficulty {boss.difficulty}/10
+                    </span>
+                    <span className="pill-gold">
+                      <Icon name="sparkle" size={10} /> {boss.xpReward} XP
+                    </span>
+                    {boss.final && (
+                      <span className="pill-crimson">
+                        <Icon name="star" size={10} /> Final
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {locked && (
-                  <span className="shrink-0 rounded border border-abyss-600 px-2 py-0.5 text-[10px] text-parchment-500">
-                    🔒 Lv {boss.levelRequirement}
+                  <span className="pill shrink-0">
+                    <Icon name="lock" size={10} /> Lv {boss.levelRequirement}
                   </span>
                 )}
               </div>
@@ -63,17 +77,22 @@ export default async function BossesPage() {
               </p>
               <div className="mt-4">
                 {p?.defeated ? (
-                  <p className="text-sm text-emerald-300">Defeated · {boss.xpReward} XP claimed</p>
+                  <p className="flex items-center gap-2 text-sm text-emerald-300">
+                    <Icon name="trophy" size={15} /> Defeated · {boss.xpReward} XP claimed
+                  </p>
                 ) : (
-                  <ProgressBar
-                    percent={hpPercent}
-                    color="crimson"
-                    label={
-                      p
-                        ? `${p.currentHp.toLocaleString()} / ${boss.totalHp.toLocaleString()} HP`
-                        : `${boss.totalHp.toLocaleString()} HP · untouched`
-                    }
-                  />
+                  <>
+                    <div className="mb-1.5 flex items-center justify-between text-[11px] text-parchment-500">
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="heart" size={11} className="text-crimson-400" />
+                        {p
+                          ? `${p.currentHp.toLocaleString()} / ${boss.totalHp.toLocaleString()} HP`
+                          : `${boss.totalHp.toLocaleString()} HP · untouched`}
+                      </span>
+                      <span className="tabular-nums">{Math.round(hpPercent)}%</span>
+                    </div>
+                    <Meter percent={hpPercent} color="crimson" thick />
+                  </>
                 )}
               </div>
             </div>

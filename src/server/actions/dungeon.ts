@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
-import { compositionSchema } from "@/lib/validation";
+import { compositionSchema, scoreSchema } from "@/lib/validation";
+import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
+import { runChecks, type CheckResult, type Score } from "@/lib/score";
 import {
   awardProgress,
   checkSpecializations,
@@ -139,6 +141,8 @@ export interface ChallengeCompletionResult {
   error?: string;
   award?: AwardResult;
   newSpecializations?: string[];
+  /** Per-requirement verdicts when a submission falls short. */
+  results?: CheckResult[];
 }
 
 /**
@@ -147,12 +151,11 @@ export interface ChallengeCompletionResult {
  */
 export async function completeChallenge(input: {
   userChallengeId: string;
-  objectivesDone: string[];
+  score: Score;
   composition: {
     title: string;
     description?: string;
     reflection?: string;
-    scoreLink?: string;
     visibility?: string;
   };
 }): Promise<ChallengeCompletionResult> {
@@ -168,21 +171,44 @@ export async function completeChallenge(input: {
     title: input.composition.title,
     description: input.composition.description ?? "",
     reflection: input.composition.reflection ?? "",
-    scoreLink: input.composition.scoreLink ?? "",
+    scoreLink: "",
     visibility: input.composition.visibility ?? "PRIVATE",
   });
   if (!parsedComp.success) {
     return { ok: false, error: parsedComp.error.errors[0]?.message ?? "Invalid composition" };
   }
 
-  // Required objectives = the challenge's requirement/restriction lines.
-  const required = [uc.challenge.requirement, uc.challenge.restriction].filter(
-    (o): o is string => !!o
-  );
-  const done = new Set(input.objectivesDone.map((s) => s.slice(0, 300)));
-  const missing = required.filter((r) => !done.has(r));
-  if (missing.length > 0) {
-    return { ok: false, error: "Check off every objective before claiming victory" };
+  const parsedScore = scoreSchema.safeParse(input.score);
+  if (!parsedScore.success) {
+    return { ok: false, error: "That piece could not be read. Try again from the composer." };
+  }
+  const score = parsedScore.data as Score;
+
+  // The brief the challenge was created with is the standard. Regenerating it
+  // for older rows keeps trials made before the composer existed playable.
+  const brief = briefForChallenge(uc.challenge);
+  const checks = parseChecks(uc.challenge.checks) ?? brief.checks;
+
+  // The setup is not the player's to change: a trial in 3/4 must be in 3/4.
+  if (
+    score.key !== brief.setup.key ||
+    score.mode !== brief.setup.mode ||
+    score.meter.beats !== brief.setup.meter.beats ||
+    score.meter.unit !== brief.setup.meter.unit ||
+    score.bars !== brief.setup.bars
+  ) {
+    return { ok: false, error: "This piece does not match the trial's brief." };
+  }
+
+  // The authority. The editor shows the same verdicts while you write, but a
+  // client could say anything — only this run decides.
+  const verdict = runChecks(score, checks);
+  if (!verdict.passed) {
+    return {
+      ok: false,
+      error: `The trial is not yet satisfied — ${verdict.passedCount} of ${verdict.results.length} standards met.`,
+      results: verdict.results,
+    };
   }
 
   const composition = await db.composition.create({
@@ -191,10 +217,11 @@ export async function completeChallenge(input: {
       title: parsedComp.data.title,
       description: parsedComp.data.description,
       reflection: parsedComp.data.reflection,
-      scoreLink: parsedComp.data.scoreLink,
+      scoreLink: "",
       visibility: parsedComp.data.visibility,
       challengeId: uc.id,
       source: uc.challenge.type === "DAILY" ? "DAILY" : "CHALLENGE",
+      score: JSON.stringify(score),
     },
   });
 
@@ -203,7 +230,7 @@ export async function completeChallenge(input: {
     data: {
       status: "COMPLETED",
       completedAt: new Date(),
-      objectivesDone: JSON.stringify(Array.from(done)),
+      objectivesDone: JSON.stringify(checks.map((c) => c.id)),
       compositionId: composition.id,
     },
   });
@@ -216,10 +243,11 @@ export async function completeChallenge(input: {
   });
   const newSpecializations = await checkSpecializations(userId);
 
-  revalidatePath("/dungeon");
-  revalidatePath("/hall");
-  revalidatePath("/library");
-  return { ok: true, award, newSpecializations };
+  // Deliberately no revalidatePath here. Every one of these routes is
+  // dynamically rendered, so there is no cache to bust — and revalidating from
+  // inside a server action re-renders the current route, which would unmount
+  // the victory screen the player just earned before they can read it.
+  return { ok: true, award, newSpecializations, results: verdict.results };
 }
 
 /** Solving a puzzle room. Solutions live server-side in room.puzzleData. */

@@ -39,6 +39,42 @@ export const compositionSchema = z.object({
   visibility: z.enum(PROFILE_VISIBILITIES).default("PRIVATE"),
 });
 
+/**
+ * The in-app score. Bounded deliberately: this is user input that the server
+ * runs music analysis over, so every array and number has a ceiling.
+ */
+export const scoreSchema = z.object({
+  version: z.literal(1),
+  key: z.string().trim().max(3),
+  mode: z.enum(["major", "minor"]),
+  meter: z.object({
+    beats: z.number().int().min(1).max(12),
+    unit: z.union([z.literal(2), z.literal(4), z.literal(8), z.literal(16)]),
+  }),
+  tempo: z.number().int().min(30).max(240),
+  bars: z.number().int().min(1).max(64),
+  instrument: z.string().trim().max(40),
+  melody: z
+    .array(
+      z.object({
+        start: z.number().int().min(0).max(4096),
+        duration: z.number().int().min(1).max(256),
+        pitch: z.number().int().min(21).max(108),
+      })
+    )
+    .max(2000),
+  chords: z
+    .array(
+      z.object({
+        start: z.number().int().min(0).max(4096),
+        duration: z.number().int().min(1).max(256),
+        degree: z.number().int().min(1).max(7),
+        quality: z.enum(["maj", "min", "dim"]),
+      })
+    )
+    .max(128),
+});
+
 export const guildPostSchema = z.object({
   content: z.string().trim().min(1, "Say something").max(2000),
   compositionId: z.string().trim().optional(),

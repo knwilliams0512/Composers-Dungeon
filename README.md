@@ -52,6 +52,21 @@ Both prompts mean "we don't recognise the publisher", not "we found something
 bad." Nothing is downloaded at install time and the app never opens a network
 port beyond `127.0.0.1`.
 
+### Updates install themselves
+
+You never reinstall. Every launch, the app quietly asks the release feed
+whether there is a newer version; if there is, it downloads the update package,
+**verifies its SHA-256 against the published checksum**, stops the server,
+swaps the app directory, applies any pending database migrations, re-runs the
+(idempotent) content seed so new lessons and areas appear, and starts up — all
+before the window opens. If the check fails, times out, or you are offline, it
+starts normally: an update is never the reason the app will not open. A failed
+swap rolls back to the previous copy.
+
+Your data is never part of that: compositions, levels, streaks and guild posts
+live in `data\` and are not touched. **Settings → Updates** shows the installed
+version, checks on demand, and installs on request.
+
 ### Using it
 
 Launch from the Desktop or Start-menu shortcut. It opens in its own window —
@@ -148,13 +163,48 @@ then be promoted to native Prisma enums (their canonical values live in
 
 ## What's Inside
 
+### The Composer (everywhere you write)
+Composition happens **inside the app**. A trial hands you a finished brief —
+key, mode, meter, length, instrument, tempo — and a grid where every row is a
+note that belongs to that key, so a beginner cannot play a wrong note. Click to
+place, click again to remove, press play to hear it through a Web Audio
+synthesiser built into the page. A harmony lane adds one chord per bar, named
+in Roman numerals.
+
+Beside it, **The Standard**: the machine-checkable requirements this piece must
+meet, updating live as you write. Fills every bar, stays in key, ends on the
+tonic, one clear climax, mostly stepwise, leaps resolved, a motif that returns,
+strong beats on chord tones, a V–I cadence — sixteen checks in
+`src/lib/score.ts`, assembled per trial by difficulty and by the skill the area
+trains. **Submitting runs those same checks server-side**, and a piece that
+does not meet them does not pass the level. Nothing is taken on trust.
+
+Freedom is earned. The **Apprentice** tier gives one octave, in key, two note
+lengths — deliberately small, because a blank page with infinite options is the
+main reason beginners write nothing. Levelling or finishing lessons unlocks
+eighth notes and harmony, then two octaves and all seven diatonic chords, then
+chromatic notes and control of the setup, up to **Virtuoso**: three octaves,
+thirty-two bars, nothing held back.
+
+### The Workshop (`/workshop`)
+The custom-level area: no trial, no judge. Choose your own key, mode, meter,
+length, tempo and instrument (as your tier allows), optionally hold yourself to
+any of the standards, and write. Everything saves to the Library, where each
+piece plays back and draws itself as a piano roll.
+
 ### The Academy (`/academy`)
 25 seeded lessons spanning seven experience tiers — from *What Are Musical
 Notes?* to *Writing Virtuoso Repertoire* (including the difference between
 musically effective difficulty, idiomatic virtuosity, and physically
 unrealistic writing). Every lesson: concept → examples → quiz (server-graded,
 70% to pass) → practice exercise → composition exercise → XP + skill rewards.
-Prerequisite chains gate progression.
+Prerequisite chains gate progression. Every lesson also carries the depth a
+good teacher adds around a concept: a **summary** of what you walk away with,
+a **vocabulary** list, the **mistakes everyone makes first** and how to fix
+them, **recordings to go and listen to** with a line on why each one matters,
+and a **five-minute drill**. The composition exercise opens the composer with a
+setup chosen to suit the lesson — the minor-scales lesson in A minor, the
+time-signature lesson in 3/4 — and standards that check you applied the idea.
 
 ### The Dungeon (`/dungeon`)
 Nine areas (Hall of Melody, Crypt of Harmony, Tower of Rhythm, Hall of the
@@ -164,11 +214,13 @@ Room types: Challenge, Puzzle (interactive, solutions checked server-side),
 Curse (creative restrictions), Treasure (artifacts), Rest, and Boss rooms.
 A weighted **challenge generator** assembles endless challenges from 60+
 database components (keys, meters, lengths, instruments, styles, requirements,
-restrictions) while filtering nonsense combinations. The **Ancient Motif**
-artifact grants rerolls.
+restrictions) while filtering nonsense combinations, then turns each one into a
+composer brief and a gradeable standard. Areas carry lore, a danger rating and
+survival advice; the **Ancient Motif** artifact grants rerolls.
 
 ### Bosses (`/bosses`)
-Four bosses with HP, phases, objectives, and artifact rewards — The Pale
+Four bosses with HP, phases, objectives, tactics, backstory and artifact
+rewards — The Pale
 Soprano, The Iron Metronome, The Chromatic Serpent, and the five-movement
 final encounter **The Forgotten Composer**. Objectives deal damage; the final
 blow requires submitting the finished composition.
@@ -228,8 +280,14 @@ src/
                        # bosses, library, guild, profile
     onboarding/
     api/auth/          # NextAuth route
-  components/          # UI by feature (academy, dungeon, bosses, guild, …)
+  components/          # UI by feature (composer, academy, dungeon, bosses, …)
+    composer/          #   ScoreEditor, ScorePlayer, Workshop
   lib/                 # domain logic:
+    score.ts           #   the score format, music theory, and the check engine
+    composer-freedom.ts#   what the editor lets you do, by tier
+    challenge-brief.ts #   challenge -> composer brief + standard
+    lesson-brief.ts    #   lesson -> composer brief + standard
+    desktop.ts         #   installed-app awareness (version, update feed)
     enums.ts           #   canonical enum unions
     xp.ts              #   leveling math
     streak.ts          #   Creative Flame

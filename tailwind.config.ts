@@ -61,22 +61,6 @@ const config: Config = {
         "gold-fade":
           "radial-gradient(ellipse at top, rgba(201,168,76,0.12), transparent 60%)",
       },
-      keyframes: {
-        flicker: {
-          "0%, 100%": { opacity: "1" },
-          "45%": { opacity: "0.85" },
-          "55%": { opacity: "0.95" },
-          "70%": { opacity: "0.8" },
-        },
-        rise: {
-          from: { opacity: "0", transform: "translateY(12px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
-      },
-      animation: {
-        flicker: "flicker 3s ease-in-out infinite",
-        rise: "rise 0.5s ease-out both",
-      },
     },
   },
   plugins: [],

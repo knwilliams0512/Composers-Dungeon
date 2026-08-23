@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { beginnerLessons } from "./seed-data/lessons-beginner";
 import { advancedLessons } from "./seed-data/lessons-advanced";
+import { lessonDetail } from "./seed-data/lesson-detail";
+import { areaDetail, bossDetail } from "./seed-data/world-detail";
 import {
   artifacts,
   bosses,
@@ -42,6 +44,20 @@ async function seedLessons() {
   );
 
   for (const l of lessons) {
+    // Depth from lesson-detail.ts is merged in here so both create and update
+    // paths carry it — an existing install picks it up on the next seed.
+    const detail = lessonDetail[l.slug] ?? {};
+    const sections = [...l.content, ...(detail.extraSections ?? [])];
+    const detailFields = {
+      content: JSON.stringify(sections),
+      summary: detail.summary ?? null,
+      estimatedMinutes: detail.estimatedMinutes ?? 12,
+      keyTerms: detail.keyTerms ? JSON.stringify(detail.keyTerms) : null,
+      commonMistakes: detail.commonMistakes ? JSON.stringify(detail.commonMistakes) : null,
+      listening: detail.listening ? JSON.stringify(detail.listening) : null,
+      practiceRoutine: detail.practiceRoutine ? JSON.stringify(detail.practiceRoutine) : null,
+    };
+
     const lesson = await db.lesson.upsert({
       where: { slug: l.slug },
       create: {
@@ -54,13 +70,13 @@ async function seedLessons() {
         levelRequirement: l.levelRequirement ?? 1,
         order: l.order,
         xpReward: l.xpReward,
-        content: JSON.stringify(l.content),
+        ...detailFields,
       },
       update: {
         title: l.title,
         description: l.description,
-        content: JSON.stringify(l.content),
         order: l.order,
+        ...detailFields,
       },
     });
 
@@ -178,8 +194,15 @@ async function seedBosses() {
         xpReward: b.xpReward,
         final: (b as { final?: boolean }).final ?? false,
         rewardArtifactId: rewardArtifact?.id ?? null,
+        lore: bossDetail[b.key]?.lore ?? null,
+        tactics: bossDetail[b.key]?.tactics ? JSON.stringify(bossDetail[b.key].tactics) : null,
       },
-      update: { description: b.description, totalHp: b.totalHp },
+      update: {
+        description: b.description,
+        totalHp: b.totalHp,
+        lore: bossDetail[b.key]?.lore ?? null,
+        tactics: bossDetail[b.key]?.tactics ? JSON.stringify(bossDetail[b.key].tactics) : null,
+      },
     });
     const phaseCount = await db.bossPhase.count({ where: { bossId: boss.id } });
     if (phaseCount === 0) {
@@ -212,8 +235,21 @@ async function seedDungeon() {
         skillKey: area.skillKey,
         order: area.order,
         special: area.special ?? false,
+        lore: areaDetail[area.key]?.lore ?? null,
+        dangerRating: areaDetail[area.key]?.dangerRating ?? 1,
+        survivalTips: areaDetail[area.key]?.survivalTips
+          ? JSON.stringify(areaDetail[area.key].survivalTips)
+          : null,
       },
-      update: { description: area.description, theme: area.theme },
+      update: {
+        description: area.description,
+        theme: area.theme,
+        lore: areaDetail[area.key]?.lore ?? null,
+        dangerRating: areaDetail[area.key]?.dangerRating ?? 1,
+        survivalTips: areaDetail[area.key]?.survivalTips
+          ? JSON.stringify(areaDetail[area.key].survivalTips)
+          : null,
+      },
     });
 
     for (const room of area.rooms) {
@@ -386,7 +422,12 @@ async function seedDemoUser() {
   console.log("✔ demo user: bard@composersdungeon.demo / dungeon-demo-1");
 }
 
-async function main() {
+/**
+ * Idempotent: every step upserts reference content and never touches player
+ * rows. Exported so the Windows updater can re-run it after an update to pull
+ * in new lessons, areas and bosses without a reinstall.
+ */
+export async function seed() {
   console.log("Seeding Composer's Dungeon…");
   await seedSkills();
   await seedLessons();
@@ -399,11 +440,14 @@ async function main() {
   await seedSpecializations();
   await seedDemoUser();
   console.log("Done.");
+  await db.$disconnect();
 }
 
-main()
-  .catch((e) => {
+// Running the file directly (npm run db:seed) seeds immediately; importing it
+// (the updater) just gets the function.
+if (require.main === module) {
+  seed().catch((e) => {
     console.error(e);
     process.exit(1);
-  })
-  .finally(() => db.$disconnect());
+  });
+}

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
-import { profileUpdateSchema, compositionSchema } from "@/lib/validation";
+import { profileUpdateSchema, compositionSchema, scoreSchema } from "@/lib/validation";
 
 export async function updateProfile(input: {
   displayName: string;
@@ -28,7 +28,9 @@ export async function createComposition(input: {
   reflection?: string;
   scoreLink?: string;
   visibility?: string;
-}): Promise<{ ok: boolean; error?: string }> {
+  /** A piece written in the app's own composer, if there is one. */
+  score?: unknown;
+}): Promise<{ ok: boolean; error?: string; compositionId?: string }> {
   const userId = await requireUserId();
   const parsed = compositionSchema.safeParse({
     title: input.title,
@@ -40,11 +42,30 @@ export async function createComposition(input: {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.errors[0]?.message ?? "Invalid input" };
   }
-  await db.composition.create({ data: { userId, ...parsed.data, source: "FREE" } });
+
+  let score: string | null = null;
+  if (input.score !== undefined && input.score !== null) {
+    const parsedScore = scoreSchema.safeParse(input.score);
+    if (!parsedScore.success) return { ok: false, error: "That piece could not be read." };
+    if (parsedScore.data.melody.length === 0) {
+      return { ok: false, error: "Write at least one note before saving." };
+    }
+    score = JSON.stringify(parsedScore.data);
+  }
+
+  const composition = await db.composition.create({
+    data: { userId, ...parsed.data, source: "FREE", score },
+  });
   const { awardProgress } = await import("@/lib/progression");
-  await awardProgress({ userId, xp: 60, skillXp: { EXPRESSION: 20 } });
+  // Writing something real in the app is worth more than logging a link to it.
+  await awardProgress({
+    userId,
+    xp: score ? 90 : 60,
+    skillXp: score ? { EXPRESSION: 25, MELODY: 20 } : { EXPRESSION: 20 },
+  });
   revalidatePath("/library");
-  return { ok: true };
+  revalidatePath("/workshop");
+  return { ok: true, compositionId: composition.id };
 }
 
 export async function setCompositionVisibility(input: {

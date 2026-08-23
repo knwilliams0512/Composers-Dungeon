@@ -16,7 +16,8 @@
 param(
     [int]$Port = 0,
     [switch]$KeepRunning,
-    [switch]$NoWindow
+    [switch]$NoWindow,
+    [switch]$SkipUpdate
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,6 +27,14 @@ $Root = Split-Path -Parent $PSScriptRoot     # ...\ComposersDungeon
 $AppDir = Join-Path $Root "app"
 $DataDir = Join-Path $Root "data"
 $NodeExe = Join-Path $Root "node.exe"
+
+function Get-InstalledVersion {
+    $file = Join-Path $Root "version.json"
+    if (Test-Path $file) {
+        try { return (Get-Content $file -Raw | ConvertFrom-Json).version } catch {}
+    }
+    return "0.0.0"
+}
 
 function Show-Problem($message) {
     $null = (New-Object -ComObject WScript.Shell).Popup($message, 0, "Composer's Dungeon", 16)
@@ -53,6 +62,22 @@ if (-not (Test-Path $secretPath)) {
     try { (Get-Item $secretPath).Attributes = "Hidden" } catch {}
 }
 $secret = (Get-Content $secretPath -Raw).Trim()
+
+# --- Automatic update --------------------------------------------------------
+# Runs before the server starts, so an update is applied to files nothing is
+# holding open. Offline, feed down, or no new version: it exits quietly and the
+# app starts as normal. -Relaunch is not passed - we continue into launch below.
+if (-not $SkipUpdate) {
+    $updater = Join-Path $PSScriptRoot "apply-update.ps1"
+    if (Test-Path $updater) {
+        try {
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $updater -Root $Root -Silent
+        }
+        catch {
+            # An update must never be the reason the app won't open.
+        }
+    }
+}
 
 # --- Port -------------------------------------------------------------------
 function Test-PortFree([int]$candidate) {
@@ -97,6 +122,20 @@ if (Test-PortFree $Port) {
     $env:HOSTNAME = "127.0.0.1"
     $env:PORT = "$Port"
     $env:NODE_ENV = "production"
+
+    # Desktop-only capabilities (the in-app updater) key off these; a plain
+    # `next start` never sets them, so the web build stays inert.
+    $env:CD_DESKTOP = "1"
+    $env:CD_ROOT = $Root
+    $env:CD_VERSION = Get-InstalledVersion
+    $configFile = Join-Path $PSScriptRoot "update-config.json"
+    if (Test-Path $configFile) {
+        try {
+            $cfg = Get-Content $configFile -Raw | ConvertFrom-Json
+            if ($cfg.feedUrl) { $env:CD_UPDATE_FEED = $cfg.feedUrl }
+        }
+        catch {}
+    }
 
     $server = Start-Process -FilePath $NodeExe -ArgumentList @("`"$(Join-Path $AppDir 'server.js')`"") `
         -WorkingDirectory $AppDir -NoNewWindow -PassThru `

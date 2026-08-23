@@ -88,6 +88,7 @@ Section "Composer's Dungeon" SecMain
 
   SetOutPath "$INSTDIR"
   File "${PAYLOAD}\node.exe"
+  File "${PAYLOAD}\version.json"
 
   SetOutPath "$INSTDIR\app"
   File /r "${PAYLOAD}\app\*.*"
@@ -147,6 +148,9 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\launch"
   RMDir /r "$INSTDIR\seed"
   Delete "$INSTDIR\node.exe"
+  Delete "$INSTDIR\version.json"
+  RMDir /r "$INSTDIR\update-staging"
+  RMDir /r "$INSTDIR\app.previous"
   Delete "$INSTDIR\Uninstall.exe"
 
   ; Compositions, levels and streaks live in data\ — never delete them without

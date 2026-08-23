@@ -78,6 +78,18 @@ mkdir -p "$PAYLOAD/app/.next"
 cp -r "$ROOT/.next/static" "$PAYLOAD/app/.next/static"
 cp -r "$ROOT/public" "$PAYLOAD/app/public"
 
+# Everything the in-place updater needs after a swap: the migration files, a
+# runner for them, and the seed compiled to plain JS so the bundled Node can
+# run it without npm or TypeScript. Only @prisma/client stays external — it
+# ships with the traced server; everything else is inlined, because Next's
+# file tracing has no reason to keep seed-only dependencies around.
+cp -r "$ROOT/migrations" "$PAYLOAD/app/migrations"
+cp "$ROOT/installer/upgrade.js" "$PAYLOAD/app/upgrade.js"
+npx esbuild "$ROOT/prisma/seed.ts" \
+  --bundle --platform=node --format=cjs --target=node18 \
+  --external:@prisma/client \
+  --outfile="$PAYLOAD/app/seed-runner.js" --log-level=warning
+
 # Never ship the developer's own .env — the standalone build copies it in.
 rm -f "$PAYLOAD/app/.env"
 # The Linux query engine is dead weight in a Windows installer.
@@ -85,9 +97,42 @@ find "$PAYLOAD/app" -name "libquery_engine-*.so.node" -delete
 find "$PAYLOAD/app" -name "*.map" -delete
 
 mkdir -p "$PAYLOAD/launch"
-cp "$ROOT/installer/app-launcher.ps1" "$ROOT/installer/launch.vbs" "$PAYLOAD/launch/"
+cp "$ROOT/installer/app-launcher.ps1" \
+   "$ROOT/installer/launch.vbs" \
+   "$ROOT/installer/apply-update.ps1" \
+   "$ROOT/installer/update-config.json" \
+   "$PAYLOAD/launch/"
 
-# --- 5. Compile the installer ------------------------------------------------
+# The installed app reads its own version from here; the updater rewrites it.
+printf '{\n  "version": "%s"\n}\n' "$VERSION" > "$PAYLOAD/version.json"
+
+# --- 5. Update package -------------------------------------------------------
+# The same payload, minus the 87 MB Node runtime that never changes. This is
+# what an installed copy downloads to update itself in place.
+say "Packaging the in-place update"
+UPDATE_DIR="$BUILD/update"
+rm -rf "$UPDATE_DIR"
+mkdir -p "$UPDATE_DIR"
+cp -r "$PAYLOAD/app" "$UPDATE_DIR/app"
+cp -r "$PAYLOAD/launch" "$UPDATE_DIR/launch"
+cp -r "$PAYLOAD/seed" "$UPDATE_DIR/seed"
+
+UPDATE_ZIP="$ROOT/dist/ComposersDungeon-$VERSION-update.zip"
+rm -f "$UPDATE_ZIP"
+( cd "$UPDATE_DIR" && zip -qr "$UPDATE_ZIP" app launch seed )
+UPDATE_SHA="$(sha256sum "$UPDATE_ZIP" | cut -d" " -f1 | tr "a-f" "A-F")"
+
+cat > "$ROOT/dist/latest.json" <<JSON
+{
+  "version": "$VERSION",
+  "url": "https://github.com/knwilliams0512/Composer-s-Dungeon/releases/download/v$VERSION/ComposersDungeon-$VERSION-update.zip",
+  "sha256": "$UPDATE_SHA",
+  "publishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "notes": "$(node -p "JSON.stringify(process.env.RELEASE_NOTES || 'Improvements and new content.').slice(1,-1)")"
+}
+JSON
+
+# --- 6. Compile the installer ------------------------------------------------
 say "Compiling the installer"
 makensis -NOCD \
   "-DPAYLOAD=$PAYLOAD" \
@@ -95,4 +140,6 @@ makensis -NOCD \
   "-DAPP_VERSION=$VERSION" \
   "$ROOT/installer/composers-dungeon.nsi" | tail -3
 
-printf '\n\033[1;32m  Built %s (%s)\033[0m\n\n' "$OUT" "$(du -h "$OUT" | cut -f1)"
+printf '\n\033[1;32m  Built %s (%s)\033[0m\n' "$OUT" "$(du -h "$OUT" | cut -f1)"
+printf '\033[1;32m  Built %s (%s)\033[0m\n' "$UPDATE_ZIP" "$(du -h "$UPDATE_ZIP" | cut -f1)"
+printf '\033[0;90m  Attach both, plus dist/latest.json, to the v%s release.\033[0m\n\n' "$VERSION"

@@ -4,6 +4,9 @@ import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tierOrdinal, ROOM_TYPE_INFO, type RoomType } from "@/lib/enums";
 import { ChallengePanel } from "@/components/dungeon/ChallengePanel";
+import { BeginTrialButton } from "@/components/dungeon/BeginTrialButton";
+import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
+import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
 import { PuzzlePanel } from "@/components/dungeon/PuzzlePanel";
 import { TreasurePanel } from "@/components/dungeon/TreasurePanel";
 
@@ -70,6 +73,24 @@ export default async function DungeonRoomPage({
         })) > 0
       : false;
 
+  // The composer's brief: the same standard the server will grade against.
+  const brief = briefForChallenge({
+    difficulty: activeChallenge?.challenge.difficulty ?? room.levelRequirement,
+    keySig: activeChallenge?.challenge.keySig,
+    meter: activeChallenge?.challenge.meter,
+    lengthBars: activeChallenge?.challenge.lengthBars,
+    instrument: activeChallenge?.challenge.instrument,
+    skillKey: activeChallenge?.challenge.skillKey ?? room.area.skillKey,
+  });
+  const checks = parseChecks(activeChallenge?.challenge.checks) ?? brief.checks;
+  const lessonsCompleted = await db.lessonProgress.count({
+    where: { userId, status: "COMPLETED" },
+  });
+  const freedom = cappedFreedom(
+    freedomForPlayer(profile.level, lessonsCompleted),
+    activeChallenge?.challenge.freedomCap ?? brief.freedomCap
+  );
+
   const ownsArtifact = room.artifactId
     ? (await db.userArtifact.count({
         where: { userId, artifactId: room.artifactId },
@@ -98,32 +119,33 @@ export default async function DungeonRoomPage({
         )}
       </header>
 
-      {(room.type === "CHALLENGE" || room.type === "CURSE" || room.type === "EVENT") && (
-        <ChallengePanel
-          roomId={room.id}
-          isCurse={room.type === "CURSE"}
-          hasRerollArtifact={hasRerollArtifact}
-          activeChallenge={
-            activeChallenge
-              ? {
-                  userChallengeId: activeChallenge.id,
-                  title: activeChallenge.challenge.title,
-                  description: activeChallenge.challenge.description,
-                  difficulty: activeChallenge.challenge.difficulty,
-                  keySig: activeChallenge.challenge.keySig,
-                  meter: activeChallenge.challenge.meter,
-                  lengthBars: activeChallenge.challenge.lengthBars,
-                  instrument: activeChallenge.challenge.instrument,
-                  style: activeChallenge.challenge.style,
-                  requirement: activeChallenge.challenge.requirement,
-                  restriction: activeChallenge.challenge.restriction,
-                  xpReward: activeChallenge.challenge.xpReward,
-                  curated: activeChallenge.challenge.curated,
-                }
-              : null
-          }
-        />
-      )}
+      {(room.type === "CHALLENGE" || room.type === "CURSE" || room.type === "EVENT") &&
+        (activeChallenge ? (
+          <ChallengePanel
+            challenge={{
+              userChallengeId: activeChallenge.id,
+              title: activeChallenge.challenge.title,
+              description: activeChallenge.challenge.description,
+              difficulty: activeChallenge.challenge.difficulty,
+              keySig: activeChallenge.challenge.keySig,
+              meter: activeChallenge.challenge.meter,
+              // Show the length the composer is actually set to, not the raw
+              // generated number — a tier can shorten it.
+              lengthBars: brief.setup.bars,
+              instrument: activeChallenge.challenge.instrument,
+              style: activeChallenge.challenge.style,
+              requirement: activeChallenge.challenge.requirement,
+              restriction: activeChallenge.challenge.restriction,
+              xpReward: activeChallenge.challenge.xpReward,
+              canReroll: hasRerollArtifact && !activeChallenge.challenge.curated,
+            }}
+            setup={brief.setup}
+            checks={checks}
+            freedom={freedom}
+          />
+        ) : (
+          <BeginTrialButton roomId={room.id} isCurse={room.type === "CURSE"} />
+        ))}
 
       {room.type === "PUZZLE" && room.puzzleData && (
         <PuzzlePanel

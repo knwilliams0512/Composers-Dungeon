@@ -119,8 +119,16 @@ model Lesson {
   xpReward       Int    @default(50)
 
   // Ordered content sections rendered by the lesson page:
-  // JSON [{ heading, body, example? }]
+  // JSON [{ heading, body, example?, callout?, call="" }]
   content String
+
+  // Optional depth, all rendered by the lesson page when present.
+  summary          String? // one-paragraph "what you walk away with"
+  estimatedMinutes Int     @default(12)
+  keyTerms         String? // JSON [{ term, definition }]
+  commonMistakes   String? // JSON [{ mistake, fix }]
+  listening        String? // JSON [{ piece, composer, why }]
+  practiceRoutine  String? // JSON [string] - a short daily drill
 
   prerequisiteId String?
   prerequisite   Lesson?  @relation("LessonPrereq", fields: [prerequisiteId], references: [id])
@@ -204,6 +212,11 @@ model Exercise {
   prompt   String
   hint     String @default("")
   order    Int    @default(0)
+
+  // Composition exercises open the in-app composer with this brief.
+  checks     String? // JSON [{ id, value? }]
+  scoreSetup String? // JSON { key, mode, meter, bars, tempo, instrument }
+  freedomCap Int?
 }
 
 // ---------------------------------------------------------------------------
@@ -222,6 +235,10 @@ model DungeonArea {
   skillKey         String? // primary SkillKey this area trains
   order            Int    @default(0)
   special          Boolean @default(false) // special unlockable dungeon
+
+  lore         String? // longer atmospheric description shown on the area page
+  dangerRating Int     @default(1) // 1..5, shown as skulls on the map
+  survivalTips String? // JSON [string]
 
   rooms DungeonRoom[]
 }
@@ -277,6 +294,12 @@ model Challenge {
   curated     Boolean @default(false) // seeded/handwritten rather than generated
   createdAt   DateTime @default(now())
 
+  // The in-app composer's brief. `checks` is the machine-checkable standard a
+  // submission must meet (see src/lib/score.ts); `freedomCap` limits which
+  // tools the editor offers regardless of the player's earned tier.
+  checks      String? // JSON [{ id, value? }]
+  freedomCap  Int?
+
   users  UserChallenge[]
   dailies DailyChallenge[]
 }
@@ -321,6 +344,9 @@ model Boss {
   levelRequirement Int    @default(1)
   xpReward         Int    @default(500)
   final            Boolean @default(false)
+
+  lore    String? // the story behind the encounter
+  tactics String? // JSON [string] - how to prepare for the fight
 
   rewardArtifactId String?
   rewardArtifact   Artifact? @relation(fields: [rewardArtifactId], references: [id])
@@ -483,6 +509,9 @@ model Composition {
   visibility  String   @default("PRIVATE") // enum: ProfileVisibility PUBLIC|PRIVATE
   challengeId String? // the UserChallenge this fulfilled, if any
   source      String   @default("FREE") // enum: CompositionSource FREE|CHALLENGE|LESSON|BOSS|DAILY
+
+  // The piece itself, written in-app. JSON Score (src/lib/score.ts).
+  score       String?
   createdAt   DateTime @default(now())
 
   posts GuildPost[]

@@ -2,19 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  getOrStartRoomChallenge,
-  rerollChallenge,
-  completeChallenge,
-  type ChallengeCompletionResult,
-} from "@/server/actions/dungeon";
+import { completeChallenge, rerollChallenge } from "@/server/actions/dungeon";
 import { AwardBanner } from "@/components/ui/AwardBanner";
+import { ScoreEditor } from "@/components/composer/ScoreEditor";
+import { Icon } from "@/components/ui/Icon";
+import type { AwardResult } from "@/lib/progression";
+import type { Check, CheckResult, Score } from "@/lib/score";
+import type { Freedom } from "@/lib/composer-freedom";
 
-export interface ActiveChallengeDto {
+export interface ChallengeView {
   userChallengeId: string;
   title: string;
   description: string;
-  difficulty: number;
   keySig: string | null;
   meter: string | null;
   lengthBars: number | null;
@@ -23,241 +22,236 @@ export interface ActiveChallengeDto {
   requirement: string | null;
   restriction: string | null;
   xpReward: number;
-  curated: boolean;
+  difficulty: number;
+  canReroll: boolean;
 }
 
 export function ChallengePanel({
-  roomId,
-  isCurse,
-  activeChallenge,
-  hasRerollArtifact,
-  isDaily = false,
+  challenge,
+  setup,
+  checks,
+  freedom,
 }: {
-  roomId: string | null;
-  isCurse: boolean;
-  activeChallenge: ActiveChallengeDto | null;
-  hasRerollArtifact: boolean;
-  isDaily?: boolean;
+  challenge: ChallengeView;
+  setup: Score;
+  checks: Check[];
+  freedom: Freedom;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [checked, setChecked] = useState<string[]>([]);
+  const [score, setScore] = useState<Score>(setup);
   const [title, setTitle] = useState("");
   const [reflection, setReflection] = useState("");
-  const [scoreLink, setScoreLink] = useState("");
   const [visibility, setVisibility] = useState("PRIVATE");
-  const [result, setResult] = useState<ChallengeCompletionResult | null>(null);
-
-  const objectives = activeChallenge
-    ? [activeChallenge.requirement, activeChallenge.restriction].filter(
-        (o): o is string => !!o
-      )
-    : [];
-
-  async function begin() {
-    if (!roomId) return;
-    setBusy(true);
-    setError(null);
-    const res = await getOrStartRoomChallenge(roomId);
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.error ?? "The room resists you");
-      return;
-    }
-    router.refresh();
-  }
-
-  async function reroll() {
-    if (!activeChallenge) return;
-    setBusy(true);
-    setError(null);
-    const res = await rerollChallenge(activeChallenge.userChallengeId);
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.error ?? "The reroll failed");
-      return;
-    }
-    setChecked([]);
-    router.refresh();
-  }
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [failed, setFailed] = useState<CheckResult[] | null>(null);
+  const [award, setAward] = useState<AwardResult | null>(null);
+  // Success is its own flag: an award can legitimately be absent (a repeat of
+  // an already-rewarded trial), and the victory screen must still appear.
+  const [conquered, setConquered] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!activeChallenge) return;
     setBusy(true);
     setError(null);
+    setFailed(null);
     const res = await completeChallenge({
-      userChallengeId: activeChallenge.userChallengeId,
-      objectivesDone: checked,
-      composition: { title, reflection, scoreLink, visibility },
+      userChallengeId: challenge.userChallengeId,
+      score,
+      composition: { title, reflection, visibility },
     });
     setBusy(false);
     if (!res.ok) {
-      setError(res.error ?? "Submission failed");
+      setError(res.error ?? "Something went wrong");
+      setFailed(res.results?.filter((r) => !r.passed) ?? null);
       return;
     }
-    setResult(res);
-    router.refresh();
+    // Deliberately no router.refresh() here: the room would re-render without
+    // an active challenge and unmount this panel, snatching away the victory
+    // screen the player just earned. They refresh by navigating.
+    setAward(res.award ?? null);
+    setConquered(true);
   }
 
-  if (result?.award) {
+  async function reroll() {
+    setBusy(true);
+    const res = await rerollChallenge(challenge.userChallengeId);
+    setBusy(false);
+    if (res.ok) router.refresh();
+    else setError(res.error ?? "Reroll failed");
+  }
+
+  if (conquered) {
     return (
       <div className="space-y-4">
-        <div className="card p-6 text-center">
-          <p className="text-4xl">{isCurse ? "🕯️" : "⚔️"}</p>
-          <h2 className="heading-display mt-2 text-xl">
-            {isCurse ? "The Curse Is Broken" : "Challenge Conquered"}
-          </h2>
-          <p className="mt-1 text-parchment-400">
-            Your composition has been filed in the Library.
+        <div className="card-gold lit-edge p-5 text-center">
+          <Icon name="trophy" size={30} className="mx-auto text-gold-400" />
+          <h2 className="heading-display mt-2 text-2xl">Challenge Conquered</h2>
+          <p className="mt-1 text-sm text-parchment-400">
+            Every standard met. The piece is yours, and it is in your Library.
           </p>
         </div>
-        <AwardBanner award={result.award} newSpecializations={result.newSpecializations} />
-      </div>
-    );
-  }
-
-  if (!activeChallenge) {
-    return (
-      <div className="card p-6 text-center">
-        <p className="text-4xl">{isCurse ? "🕯️" : "⚔️"}</p>
-        <p className="mx-auto mt-3 max-w-md text-parchment-400">
-          {isCurse
-            ? "A curse waits in the dark, ready to bind your writing with strange rules."
-            : "The room shifts and reforms, preparing a trial matched to your skills."}
-        </p>
-        {error && <p className="mt-3 text-sm text-crimson-400">{error}</p>}
-        <button onClick={begin} disabled={busy} className="btn-primary mt-4">
-          {busy ? "The walls are moving…" : isCurse ? "Face the Curse" : "Begin the Trial"}
+        <AwardBanner award={award ?? undefined} />
+        <button onClick={() => router.push("/dungeon")} className="btn-primary">
+          <Icon name="candle" size={15} /> Back to the Dungeon
         </button>
       </div>
     );
   }
 
-  const specs: { label: string; value: string }[] = [];
-  if (activeChallenge.keySig) specs.push({ label: "Key", value: activeChallenge.keySig });
-  if (activeChallenge.meter) specs.push({ label: "Meter", value: activeChallenge.meter });
-  if (activeChallenge.lengthBars)
-    specs.push({ label: "Length", value: `${activeChallenge.lengthBars} measures` });
-  if (activeChallenge.instrument)
-    specs.push({ label: "Instrument", value: activeChallenge.instrument });
-  if (activeChallenge.style) specs.push({ label: "Style", value: activeChallenge.style });
-
   return (
-    <div className="space-y-5">
-      <section className={`card p-5 ${isCurse ? "border-crimson-600/40" : ""}`}>
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="heading-display text-xl">{activeChallenge.title}</h2>
-          <span className="shrink-0 text-sm text-gold-400">
-            ✦ {activeChallenge.xpReward} XP
+    <div className="space-y-6">
+      {/* ---- The brief ---------------------------------------------------- */}
+      <section className="card-crimson lit-edge p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">
+              <Icon name="sword" size={12} /> The Trial · difficulty {challenge.difficulty}/10
+            </p>
+            <h2 className="heading-display mt-1 text-2xl">{challenge.title}</h2>
+          </div>
+          <span className="pill-gold">
+            <Icon name="sparkle" size={11} /> {challenge.xpReward} XP
           </span>
         </div>
-        <p className="mt-1 text-xs text-parchment-500">
-          Difficulty {activeChallenge.difficulty}/10
-          {isDaily && " · Daily Challenge"}
-        </p>
-        <p className="mt-3 text-parchment-200">{activeChallenge.description}</p>
-        {specs.length > 0 && (
-          <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {specs.map((s) => (
-              <div key={s.label} className="rounded border border-abyss-600 bg-abyss-900/60 p-2">
-                <dt className="text-[10px] uppercase tracking-wider text-parchment-500">
-                  {s.label}
-                </dt>
-                <dd className="text-sm text-parchment-100">{s.value}</dd>
-              </div>
-            ))}
-          </dl>
+
+        <p className="mt-3 leading-relaxed text-parchment-300">{challenge.description}</p>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: "Key", value: challenge.keySig ?? "—", icon: "note" as const },
+            { label: "Meter", value: challenge.meter ?? "—", icon: "drum" as const },
+            {
+              label: "Length",
+              value: challenge.lengthBars ? `${challenge.lengthBars} bars` : "—",
+              icon: "column" as const,
+            },
+            { label: "For", value: challenge.instrument ?? "—", icon: "harp" as const },
+          ].map((f) => (
+            <div
+              key={f.label}
+              className="rounded-lg border border-abyss-600/60 bg-abyss-900/50 px-3 py-2"
+            >
+              <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-parchment-500">
+                <Icon name={f.icon} size={10} /> {f.label}
+              </p>
+              <p className="mt-0.5 truncate text-sm text-parchment-100">{f.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {(challenge.requirement || challenge.restriction) && (
+          <ul className="mt-4 space-y-2 text-sm">
+            {challenge.requirement && (
+              <li className="flex gap-2 text-parchment-300">
+                <Icon name="target" size={15} className="mt-0.5 shrink-0 text-gold-500" />
+                {challenge.requirement}
+              </li>
+            )}
+            {challenge.restriction && (
+              <li className="flex gap-2 text-crimson-400">
+                <Icon name="lock" size={15} className="mt-0.5 shrink-0" />
+                {challenge.restriction}
+              </li>
+            )}
+          </ul>
         )}
-        {!activeChallenge.curated && !isDaily && (
-          <button
-            onClick={reroll}
-            disabled={busy || !hasRerollArtifact}
-            title={hasRerollArtifact ? "Uses the Ancient Motif" : "Requires the Ancient Motif artifact"}
-            className="btn-secondary mt-4 text-xs"
-          >
-            📜 Reroll this challenge {!hasRerollArtifact && "(requires Ancient Motif)"}
+
+        {challenge.canReroll && (
+          <button onClick={reroll} disabled={busy} className="btn-ghost mt-4 text-xs">
+            <Icon name="refresh" size={13} /> Reroll with the Ancient Motif
           </button>
         )}
       </section>
 
-      <section className="card p-5">
-        <h3 className="heading-display mb-1 text-lg">Claim Your Victory</h3>
-        <p className="mb-4 text-sm text-parchment-500">
-          Compose in your favorite notation software, then confirm each objective
-          honestly — the Dungeon trusts a composer&apos;s word.
+      {/* ---- The composer -------------------------------------------------- */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="heading-display text-lg">Write It Here</h3>
+          <span className="pill-arcane">
+            <Icon name="quill" size={11} /> {freedom.name} tools
+          </span>
+        </div>
+        <p className="mb-3 text-sm text-parchment-500">
+          The key, meter, length and instrument are already set for you. All that is missing is
+          the music.
         </p>
-        {objectives.length > 0 && (
-          <div className="mb-4 space-y-2">
-            {objectives.map((o) => (
-              <label
-                key={o}
-                className="flex cursor-pointer items-start gap-3 rounded border border-abyss-600 p-3 text-sm text-parchment-200 hover:border-gold-700/50"
-              >
-                <input
-                  type="checkbox"
-                  className="mt-0.5 accent-gold-500"
-                  checked={checked.includes(o)}
-                  onChange={(e) =>
-                    setChecked((c) =>
-                      e.target.checked ? [...c, o] : c.filter((x) => x !== o)
-                    )
-                  }
-                />
-                {o}
-              </label>
-            ))}
+        <ScoreEditor score={score} onChange={setScore} freedom={freedom} checks={checks} />
+      </div>
+
+      {/* ---- Submit --------------------------------------------------------- */}
+      <form onSubmit={submit} className="card lit-edge space-y-4 p-5">
+        <h3 className="heading-display text-lg">Claim Your Victory</h3>
+        <div>
+          <label className="label" htmlFor="comp-title">
+            Name your piece
+          </label>
+          <input
+            id="comp-title"
+            className="input"
+            required
+            maxLength={120}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Give it a title"
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor="comp-reflection">
+            What did you learn? (optional)
+          </label>
+          <textarea
+            id="comp-reflection"
+            className="input min-h-20"
+            maxLength={2000}
+            value={reflection}
+            onChange={(e) => setReflection(e.target.value)}
+            placeholder="The hardest part was…"
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor="comp-visibility">
+            Visibility
+          </label>
+          <select
+            id="comp-visibility"
+            className="input"
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value)}
+          >
+            <option value="PRIVATE">Private — only you</option>
+            <option value="PUBLIC">Public — shareable in the Guild</option>
+          </select>
+        </div>
+
+        {error && (
+          <div className="rounded-lg border border-crimson-600/50 bg-abyss-900/60 p-3">
+            <p className="flex items-center gap-2 text-sm text-crimson-400">
+              <Icon name="warning" size={15} /> {error}
+            </p>
+            {failed && failed.length > 0 && (
+              <ul className="mt-2 space-y-1.5 text-[13px] text-parchment-400">
+                {failed.map((r) => (
+                  <li key={r.id} className="flex gap-2">
+                    <Icon name="target" size={13} className="mt-0.5 shrink-0 text-crimson-400" />
+                    <span>
+                      {r.label} — <span className="text-parchment-500">{r.detail}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
-        <form onSubmit={submit} className="space-y-3">
-          <div>
-            <label className="label">Composition Title</label>
-            <input
-              className="input"
-              required
-              maxLength={120}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">Reflection / Notes</label>
-            <textarea
-              className="input min-h-20"
-              maxLength={2000}
-              value={reflection}
-              onChange={(e) => setReflection(e.target.value)}
-              placeholder="How did you satisfy the requirement? What fought back?"
-            />
-          </div>
-          <div>
-            <label className="label">Score Link (optional)</label>
-            <input
-              className="input"
-              type="url"
-              value={scoreLink}
-              onChange={(e) => setScoreLink(e.target.value)}
-              placeholder="https://musescore.com/… or flat.io, noteflight…"
-            />
-          </div>
-          <div>
-            <label className="label">Visibility</label>
-            <select
-              className="input"
-              value={visibility}
-              onChange={(e) => setVisibility(e.target.value)}
-            >
-              <option value="PRIVATE">Private — only you</option>
-              <option value="PUBLIC">Public — shareable in the Guild</option>
-            </select>
-          </div>
-          {error && <p className="text-sm text-crimson-400">{error}</p>}
-          <button type="submit" disabled={busy} className="btn-primary w-full">
-            {busy ? "Judging…" : isCurse ? "Break the Curse" : "Complete the Challenge"}
-          </button>
-        </form>
-      </section>
+
+        <button type="submit" disabled={busy} className="btn-primary">
+          <Icon name="sword" size={15} />
+          {busy ? "Submitting…" : "Submit for Judgement"}
+        </button>
+        <p className="text-xs text-parchment-500">
+          The dungeon checks your piece against every standard above. Nothing is taken on trust.
+        </p>
+      </form>
     </div>
   );
 }

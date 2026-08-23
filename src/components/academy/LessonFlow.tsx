@@ -10,6 +10,10 @@ import {
   type LessonCompletionResult,
 } from "@/server/actions/lessons";
 import { AwardBanner } from "@/components/ui/AwardBanner";
+import { ScoreEditor } from "@/components/composer/ScoreEditor";
+import { Icon } from "@/components/ui/Icon";
+import type { Check, CheckResult, Score } from "@/lib/score";
+import type { Freedom } from "@/lib/composer-freedom";
 
 interface QuizQuestionDto {
   id: string;
@@ -22,6 +26,8 @@ export function LessonFlow({
   quizQuestions,
   practiceExercises,
   compositionExercise,
+  brief,
+  freedom,
   initialState,
   nextLesson,
 }: {
@@ -29,6 +35,8 @@ export function LessonFlow({
   quizQuestions: QuizQuestionDto[];
   practiceExercises: { title: string; prompt: string; hint: string }[];
   compositionExercise: { title: string; prompt: string; hint: string } | null;
+  brief: { setup: Score; checks: Check[]; freedomCap: number };
+  freedom: Freedom;
   initialState: {
     quizPassed: boolean;
     practiceDone: boolean;
@@ -55,6 +63,8 @@ export function LessonFlow({
   const [title, setTitle] = useState("");
   const [reflection, setReflection] = useState("");
   const [scoreLink, setScoreLink] = useState("");
+  const [score, setScore] = useState<Score>(brief.setup);
+  const [failed, setFailed] = useState<CheckResult[] | null>(null);
   const [visibility, setVisibility] = useState("PRIVATE");
   const [error, setError] = useState<string | null>(null);
   const [completion, setCompletion] = useState<LessonCompletionResult | null>(null);
@@ -97,16 +107,19 @@ export function LessonFlow({
     e.preventDefault();
     setError(null);
     setBusy(true);
+    setFailed(null);
     const result = await submitLessonComposition({
       lessonSlug,
       title,
       reflection,
       scoreLink,
       visibility,
+      score,
     });
     setBusy(false);
     if (!result.ok) {
       setError(result.error ?? "Submission failed");
+      setFailed(result.results?.filter((r) => !r.passed) ?? null);
       return;
     }
     setCompletion(result);
@@ -231,53 +244,87 @@ export function LessonFlow({
             </p>
           )}
           {quizPassed && !completed && (
-            <form onSubmit={handleComposition} className="mt-4 space-y-3">
+            <div className="mt-5 space-y-5">
               <div>
-                <label className="label">Composition Title</label>
-                <input
-                  className="input"
-                  required
-                  maxLength={120}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Name your creation"
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="heading-display text-base">Write It Here</h3>
+                  <span className="pill-arcane">
+                    <Icon name="quill" size={11} /> {freedom.name} tools
+                  </span>
+                </div>
+                <p className="mb-3 text-sm text-parchment-500">
+                  The key, meter and length are set to suit this lesson. Place the notes, press
+                  play, and adjust until every standard on the right turns green.
+                </p>
+                <ScoreEditor
+                  score={score}
+                  onChange={setScore}
+                  freedom={freedom}
+                  checks={brief.checks}
                 />
               </div>
-              <div>
-                <label className="label">Reflection (what did you try?)</label>
-                <textarea
-                  className="input min-h-20"
-                  maxLength={2000}
-                  value={reflection}
-                  onChange={(e) => setReflection(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="label">Score Link (MuseScore, Flat.io, … — optional)</label>
-                <input
-                  className="input"
-                  type="url"
-                  value={scoreLink}
-                  onChange={(e) => setScoreLink(e.target.value)}
-                  placeholder="https://…"
-                />
-              </div>
-              <div>
-                <label className="label">Visibility</label>
-                <select
-                  className="input"
-                  value={visibility}
-                  onChange={(e) => setVisibility(e.target.value)}
-                >
-                  <option value="PRIVATE">Private — only you</option>
-                  <option value="PUBLIC">Public — visible in the Guild</option>
-                </select>
-              </div>
-              {error && <p className="text-sm text-crimson-400">{error}</p>}
-              <button type="submit" disabled={busy} className="btn-primary">
-                {busy ? "Submitting…" : "Complete the Lesson"}
-              </button>
-            </form>
+
+              <form onSubmit={handleComposition} className="space-y-3">
+                <div>
+                  <label className="label">Composition Title</label>
+                  <input
+                    className="input"
+                    required
+                    maxLength={120}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Name your creation"
+                  />
+                </div>
+                <div>
+                  <label className="label">Reflection (what did you try?)</label>
+                  <textarea
+                    className="input min-h-20"
+                    maxLength={2000}
+                    value={reflection}
+                    onChange={(e) => setReflection(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Visibility</label>
+                  <select
+                    className="input"
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value)}
+                  >
+                    <option value="PRIVATE">Private — only you</option>
+                    <option value="PUBLIC">Public — visible in the Guild</option>
+                  </select>
+                </div>
+                {error && (
+                  <div className="rounded-lg border border-crimson-600/50 bg-abyss-900/60 p-3">
+                    <p className="flex items-center gap-2 text-sm text-crimson-400">
+                      <Icon name="warning" size={15} /> {error}
+                    </p>
+                    {failed && failed.length > 0 && (
+                      <ul className="mt-2 space-y-1.5 text-[13px] text-parchment-400">
+                        {failed.map((r) => (
+                          <li key={r.id} className="flex gap-2">
+                            <Icon
+                              name="target"
+                              size={13}
+                              className="mt-0.5 shrink-0 text-crimson-400"
+                            />
+                            <span>
+                              {r.label} — <span className="text-parchment-500">{r.detail}</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                <button type="submit" disabled={busy} className="btn-primary">
+                  <Icon name="book" size={15} />
+                  {busy ? "Submitting…" : "Complete the Lesson"}
+                </button>
+              </form>
+            </div>
           )}
         </section>
       )}

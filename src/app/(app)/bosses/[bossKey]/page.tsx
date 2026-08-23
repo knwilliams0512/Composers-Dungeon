@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BossFight } from "@/components/bosses/BossFight";
+import { Icon } from "@/components/ui/Icon";
+import { Panel } from "@/components/ui/primitives";
 
 export default async function BossPage({ params }: { params: { bossKey: string } }) {
   const userId = await getSessionUserId();
@@ -22,17 +24,25 @@ export default async function BossPage({ params }: { params: { bossKey: string }
   if (!profile) redirect("/login");
   if (profile.level < boss.levelRequirement) {
     return (
-      <div className="card mx-auto max-w-lg p-8 text-center">
+      <div className="card-crimson mx-auto max-w-lg p-8 text-center">
         <p className="text-4xl">{boss.artwork}</p>
-        <h1 className="heading-display mt-2 text-xl">{boss.name} Awaits a Stronger Foe</h1>
+        <Icon name="lock" size={26} className="mx-auto mt-3 text-crimson-400" />
+        <h1 className="heading-display mt-3 text-xl">{boss.name} Awaits a Stronger Foe</h1>
         <p className="mt-2 text-parchment-400">
-          Return at Composer Level {boss.levelRequirement}.
+          Return at Composer Level {boss.levelRequirement}. You are level {profile.level}.
         </p>
         <Link href="/bosses" className="btn-secondary mt-4">
           Back to the Bosses
         </Link>
       </div>
     );
+  }
+
+  let tactics: string[] = [];
+  try {
+    tactics = boss.tactics ? (JSON.parse(boss.tactics) as string[]) : [];
+  } catch {
+    tactics = [];
   }
 
   const progress = await db.userBossProgress.findUnique({
@@ -42,9 +52,37 @@ export default async function BossPage({ params }: { params: { bossKey: string }
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link href="/bosses" className="text-sm text-parchment-500 hover:text-gold-300">
-        ← Back to the Bosses
+      <Link
+        href="/bosses"
+        className="inline-flex items-center gap-1.5 text-sm text-parchment-500 transition-colors hover:text-gold-300"
+      >
+        <Icon name="chevron" size={13} className="rotate-180" /> Back to the Bosses
       </Link>
+
+      {boss.lore && (
+        <Panel title="The Story So Far" icon="scroll" tone="crimson" className="my-4">
+          <p className="text-[15px] leading-[1.75] text-parchment-300">{boss.lore}</p>
+        </Panel>
+      )}
+
+      {tactics.length > 0 && (
+        <Panel
+          title="Before You Engage"
+          icon="compass"
+          subtitle="What previous challengers learned the hard way"
+          className="mb-4"
+        >
+          <ul className="space-y-2.5">
+            {tactics.map((t) => (
+              <li key={t} className="flex gap-2.5 text-sm text-parchment-300">
+                <Icon name="sword" size={15} className="mt-0.5 shrink-0 text-crimson-400" />
+                <span className="leading-relaxed">{t}</span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
       <BossFight
         boss={{
           key: boss.key,

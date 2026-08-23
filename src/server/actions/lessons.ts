@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
-import { quizSubmissionSchema, compositionSchema } from "@/lib/validation";
+import { quizSubmissionSchema, compositionSchema, scoreSchema } from "@/lib/validation";
+import { briefForLesson } from "@/lib/lesson-brief";
+import { runChecks, type CheckResult, type Score } from "@/lib/score";
 import { awardProgress, checkSpecializations, type AwardResult } from "@/lib/progression";
 import type { SkillKey } from "@/lib/enums";
 
@@ -107,6 +109,8 @@ export interface LessonCompletionResult {
   error?: string;
   award?: AwardResult;
   newSpecializations?: string[];
+  /** Per-standard verdicts when the exercise falls short. */
+  results?: CheckResult[];
 }
 
 /**
@@ -121,6 +125,7 @@ export async function submitLessonComposition(input: {
   reflection?: string;
   scoreLink?: string;
   visibility?: string;
+  score?: unknown;
 }): Promise<LessonCompletionResult> {
   const userId = await requireUserId();
   const parsedComp = compositionSchema.safeParse({
@@ -140,6 +145,32 @@ export async function submitLessonComposition(input: {
   });
   if (!lesson) return { ok: false, error: "Lesson not found" };
 
+  // The exercise is written in the app, and the same engine the dungeon uses
+  // decides whether it applied the lesson.
+  const brief = briefForLesson(lesson);
+  const parsedScore = scoreSchema.safeParse(input.score);
+  if (!parsedScore.success) {
+    return { ok: false, error: "Write the exercise in the composer before submitting." };
+  }
+  const score = parsedScore.data as Score;
+  if (
+    score.key !== brief.setup.key ||
+    score.mode !== brief.setup.mode ||
+    score.bars !== brief.setup.bars ||
+    score.meter.beats !== brief.setup.meter.beats ||
+    score.meter.unit !== brief.setup.meter.unit
+  ) {
+    return { ok: false, error: "This piece does not match the exercise's brief." };
+  }
+  const verdict = runChecks(score, brief.checks);
+  if (!verdict.passed) {
+    return {
+      ok: false,
+      error: `Not there yet — ${verdict.passedCount} of ${verdict.results.length} standards met.`,
+      results: verdict.results,
+    };
+  }
+
   const progress = await db.lessonProgress.findUnique({
     where: { userId_lessonId: { userId, lessonId: lesson.id } },
   });
@@ -154,6 +185,7 @@ export async function submitLessonComposition(input: {
     data: {
       userId,
       title: parsedComp.data.title,
+      score: JSON.stringify(score),
       description: parsedComp.data.description,
       reflection: parsedComp.data.reflection,
       scoreLink: parsedComp.data.scoreLink,

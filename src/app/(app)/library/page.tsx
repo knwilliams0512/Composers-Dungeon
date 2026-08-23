@@ -122,6 +122,7 @@ async function CompositionsTab({
                 visibility: c.visibility,
                 source: c.source,
                 createdAt: c.createdAt.toISOString(),
+                score: c.score,
               }}
             />
           ))}

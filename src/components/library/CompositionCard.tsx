@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setCompositionVisibility } from "@/server/actions/profile";
+import { ScorePlayer } from "@/components/composer/ScorePlayer";
+import type { Score } from "@/lib/score";
 
 const SOURCE_LABELS: Record<string, string> = {
   FREE: "Free composition",
@@ -24,11 +26,20 @@ export function CompositionCard({
     visibility: string;
     source: string;
     createdAt: string;
+    /** JSON Score written in the app's composer, when there is one. */
+    score?: string | null;
   };
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const isPublic = composition.visibility === "PUBLIC";
+
+  let score: Score | null = null;
+  try {
+    score = composition.score ? (JSON.parse(composition.score) as Score) : null;
+  } catch {
+    score = null;
+  }
 
   async function toggleVisibility() {
     setBusy(true);
@@ -61,6 +72,11 @@ export function CompositionCard({
         {SOURCE_LABELS[composition.source] ?? composition.source} ·{" "}
         {new Date(composition.createdAt).toLocaleDateString()}
       </p>
+      {score && (
+        <div className="mt-3">
+          <ScorePlayer score={score} compact />
+        </div>
+      )}
       {composition.description && (
         <p className="mt-2 text-sm text-parchment-300">{composition.description}</p>
       )}
