@@ -24,73 +24,92 @@ All XP, levels, skill progression, boss damage, achievements, artifacts, and
 streaks are computed **exclusively server-side** (`src/lib/progression.ts`).
 Clients submit actions, never numbers.
 
-## Install on Windows (as an app)
+## Install on Windows
 
-**Nothing to install first** — not even Node.js. Pick either route; both end at
-the same place.
+**One file. Double-click it. Done.**
 
-**Click route (works right now, private repo or not):** on the repo page hit
-**Code → Download ZIP**, unzip it anywhere, and double-click
-**`Install Composers Dungeon.bat`**.
+Grab **`ComposersDungeonSetup.exe`** from the
+[Releases page](https://github.com/knwilliams0512/Composer-s-Dungeon/releases)
+and run it. It installs for your account only — no administrator password, no
+Node.js, no Git, no npm, no build step, no internet connection. The Node
+runtime, the compiled app and a database already stocked with all 25 lessons,
+9 dungeon areas, 4 bosses, 8 artifacts and 15 achievements are inside the
+installer. Setup takes about a minute and ends with **Composer's Dungeon** on
+your Desktop and in your Start menu.
 
-**One-line route (needs the repo to be public):** open **PowerShell** (Start
-menu → type "PowerShell" → Enter) and paste:
+### Windows will warn you — this is expected
 
-```powershell
-irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scripts/windows/install.ps1 | iex
-```
+The installer isn't code-signed (a certificate costs a few hundred dollars a
+year), so Windows treats it like any other unsigned program:
 
-> This repository is currently **private**, so that raw URL returns 404 for
-> everyone including you. Make it public (Settings → General → Change
-> visibility) and the one-liner starts working. Until then, use the ZIP, or
-> `git clone` it yourself and run `Install Composers Dungeon.bat` from inside —
-> Git will prompt you to sign in.
+1. **Downloading:** your browser may say *"this file may be unsafe"* or
+   *"isn't commonly downloaded"*. Click the **⋯** next to the download →
+   **Keep** → **Keep anyway**.
+2. **Running:** a blue **"Windows protected your PC"** box appears. Click
+   **More info**, then **Run anyway**.
 
-Either way the installer puts Node.js LTS (and Git, if it needs to clone) in
-place via winget, generates a real `NEXTAUTH_SECRET`, builds the database with
-all 25 lessons / 9 dungeon areas / 4 bosses, compiles the production bundle,
-and drops **Composer's Dungeon** on your Desktop and Start menu. First run
-takes a few minutes; after that it opens in seconds.
+Both prompts mean "we don't recognise the publisher", not "we found something
+bad." Nothing is downloaded at install time and the app never opens a network
+port beyond `127.0.0.1`.
 
 ### Using it
 
-Launch from the Desktop or Start-menu shortcut. The app opens in its own
-window with no browser chrome, address bar or tabs — closing the window shuts
-the server down, like any normal program. `Play Composers Dungeon.bat` does the
-same thing if the shortcut ever goes missing.
-
-**Pin it to the taskbar / Start:** once it's open, use the window's `…` menu →
-**Install Composer's Dungeon**. Windows then treats it as a proper installed
-app — taskbar pinning, its own Start-menu entry, jump-list shortcuts straight
-to the Academy, the Dungeon and today's Daily Trial. (There's also an
-**Install as App** button at the bottom of the sidebar.)
+Launch from the Desktop or Start-menu shortcut. It opens in its own window —
+no address bar, no tabs, no browser. Closing the window stops the server, like
+any normal program. The app is entirely local: your compositions, levels and
+streaks live in `%LOCALAPPDATA%\ComposersDungeon\data`, and nothing leaves
+your PC.
 
 **Demo account:** `bard@composersdungeon.demo` / `dungeon-demo-1` — a
 mid-progress composer with skills, completed lessons, and a public guild post.
 Or sign up fresh to go through onboarding and the adaptive Placement Trial.
 
+**Pin it to the taskbar:** once open, use the window's `…` menu →
+**Install Composer's Dungeon**. Windows then gives it a Start-menu entry and
+jump-list shortcuts straight to the Academy, the Dungeon and today's Daily
+Trial. (There's also an **Install as App** button in the sidebar.)
+
+**Uninstall:** Settings → Apps → Composer's Dungeon, or the Start-menu entry.
+It asks before deleting your save, and backs it up to your Desktop first.
+
+### Building the installer yourself
+
+Runs on Linux or macOS — no Windows machine required:
+
+```bash
+sudo apt-get install -y nsis      # or: brew install makensis
+npm ci
+scripts/windows/build-installer.sh
+# -> dist/ComposersDungeonSetup.exe
+```
+
+The script fetches a Windows Node runtime, generates the Prisma client with
+the Windows query engine, builds the Next.js standalone server, seeds a fresh
+database to ship, and compiles everything into one NSIS installer. Pushing a
+`v*` tag runs the same script in CI and attaches the result to a GitHub
+Release (`.github/workflows/windows-installer.yml`).
+
+### Installing from source instead
+
+If you'd rather run the code directly than install a binary, the repo also
+carries a scripted setup: unzip a **Code → Download ZIP** and double-click
+**`Install Composers Dungeon.bat`**, or paste this into PowerShell (works once
+the repository is public):
+
+```powershell
+irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scripts/windows/install.ps1 | iex
+```
+
+That route installs Node and Git via winget, then builds from source. Note
+that browsers block `.bat` downloads, so download the whole ZIP rather than
+the single file.
+
 | Task | Do this |
 | --- | --- |
-| Update to the latest version | `npm run win:update` (progress is preserved) |
+| Update a source install | `npm run win:update` (progress is preserved) |
 | Run on a different port | `npm run win:start -- -Port 3005` |
-| Start the server without a window | `npm run win:start -- -NoWindow` |
 | Force-stop a stuck server | `npm run win:stop` |
-| Remove shortcuts | `npm run win:uninstall` |
-| Remove everything | `npm run win:uninstall -- -RemoveFiles` (backs your database up to the Desktop first) |
-
-Everything runs on your own machine. Nothing is uploaded, and nobody else can
-reach it — the Guild is populated by accounts created on this install.
-
-### If Windows gets in the way
-
-| What you see | What to do |
-| --- | --- |
-| "Windows protected your PC" (SmartScreen) | **More info → Run anyway.** It fires for any unsigned script downloaded from the internet. |
-| "running scripts is disabled on this system" | You launched the `.ps1` directly. Use the `.bat` or the `irm … \| iex` line — both bypass execution policy for that one run. |
-| Installer can't find winget | You're on an older Windows 10. Install [Node.js LTS](https://nodejs.org) and [Git](https://git-scm.com/download/win) by hand, then run the installer again. |
-| Nothing happens when you click the shortcut | Something already owns port 3000. Run `npm run win:start -- -Port 3005`, or `npm run win:stop` to clear a stuck server. |
-| It opened in a normal browser tab | Edge and Chrome are both missing. Install either one for the windowed app experience. |
-| Server errors on launch | Look in `logs\server.log` inside the install folder. |
+| Remove a source install | `npm run win:uninstall -- -RemoveFiles` |
 
 ## Quick Start (macOS, Linux, or manual)
 
@@ -189,11 +208,15 @@ public/
   manifest.webmanifest # PWA manifest — makes it installable as a desktop app
   sw.js                # minimal service worker (installability + offline page)
   icons/               # icon.svg source + rendered PNG/ICO
+installer/
+  composers-dungeon.nsi  # the .exe installer (per-user, no admin needed)
+  app-launcher.ps1       # launcher shipped inside the installed app
+  launch.vbs             # starts it with no console window
 scripts/windows/
-  install.ps1          # one-shot installer (prereqs → build → shortcuts)
-  start.ps1            # launcher: free port → server → app window
-  launch.vbs           # runs start.ps1 with no console flash
-  update.ps1 / stop.ps1 / uninstall.ps1
+  build-installer.sh   # builds ComposersDungeonSetup.exe (runs on Linux)
+  install.ps1          # source install: prereqs -> build -> shortcuts
+  start.ps1            # source launcher: free port -> server -> app window
+  launch.vbs / update.ps1 / stop.ps1 / uninstall.ps1
 prisma/
   schema.prisma        # all models (see header note on enums)
   seed.ts              # idempotent seed

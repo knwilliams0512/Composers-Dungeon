@@ -11,3 +11,5 @@ logs/
 .app-profile/
 *.tsbuildinfo
 next-env.d.ts
+build/
+dist/

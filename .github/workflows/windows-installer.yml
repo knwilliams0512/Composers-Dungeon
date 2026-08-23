@@ -1,0 +1,53 @@
+name: Windows installer
+
+# Builds ComposersDungeonSetup.exe on Linux (no Windows runner needed) and
+# attaches it to a GitHub Release, so installing is "go to Releases, download,
+# double-click".
+#
+#   - push a tag like v1.0.0  -> builds and publishes the release asset
+#   - run manually            -> builds and leaves it as a downloadable artifact
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install NSIS
+        run: sudo apt-get update && sudo apt-get install -y nsis
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the installer
+        run: bash scripts/windows/build-installer.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ComposersDungeonSetup
+          path: dist/ComposersDungeonSetup.exe
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "Composer's Dungeon ${GITHUB_REF_NAME}" \
+            --notes "Download **ComposersDungeonSetup.exe** below and double-click it. Nothing else to install — Node, the app and all its content are inside." \
+            dist/ComposersDungeonSetup.exe \
+          || gh release upload "${GITHUB_REF_NAME}" dist/ComposersDungeonSetup.exe --clobber
