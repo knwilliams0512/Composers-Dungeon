@@ -10,7 +10,10 @@
 
     Run it straight from GitHub:
 
-        irm https://raw.githubusercontent.com/knwilliams0512/composer-s-dungeon/claude/composers-dungeon-fullstack-8aire4/scripts/windows/install.ps1 | iex
+        irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scripts/windows/install.ps1 | iex
+
+    (That URL only resolves while the repository is public. If it's private,
+    download the ZIP or clone it first, then run this script from inside.)
 
     ...or, from a downloaded copy, double-click "Install Composers Dungeon.bat".
 
@@ -27,7 +30,7 @@
 [CmdletBinding()]
 param(
     [string]$InstallDir,
-    [string]$Repo = "https://github.com/knwilliams0512/composer-s-dungeon.git",
+    [string]$Repo = "https://github.com/knwilliams0512/Composer-s-Dungeon.git",
     [string]$Branch = "claude/composers-dungeon-fullstack-8aire4",
     [switch]$NoLaunch
 )
@@ -151,7 +154,7 @@ else {
     git clone --branch $Branch --depth 1 $Repo $InstallDir --quiet
     if ($LASTEXITCODE -ne 0) {
         Stop-Install "Couldn't download the app from GitHub." `
-            "Check your internet connection, then run the installer again."
+            "Check your connection. If the repository is private, sign in when Git asks, or download the ZIP and run the installer from inside it."
     }
     Write-Ok "Cloned into $InstallDir."
 }

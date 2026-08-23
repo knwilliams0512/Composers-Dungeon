@@ -26,23 +26,31 @@ Clients submit actions, never numbers.
 
 ## Install on Windows (as an app)
 
-**One line. Nothing else needed** — not even Node or Git; the installer fetches
-them for you. Open **PowerShell** (Start menu → type "PowerShell" → Enter) and
-paste:
+**Nothing to install first** — not even Node.js. Pick either route; both end at
+the same place.
+
+**Click route (works right now, private repo or not):** on the repo page hit
+**Code → Download ZIP**, unzip it anywhere, and double-click
+**`Install Composers Dungeon.bat`**.
+
+**One-line route (needs the repo to be public):** open **PowerShell** (Start
+menu → type "PowerShell" → Enter) and paste:
 
 ```powershell
-irm https://raw.githubusercontent.com/knwilliams0512/composer-s-dungeon/claude/composers-dungeon-fullstack-8aire4/scripts/windows/install.ps1 | iex
+irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scripts/windows/install.ps1 | iex
 ```
 
-It installs Git + Node.js LTS if they're missing, downloads the app to
-`%LOCALAPPDATA%\ComposersDungeon`, generates a real `NEXTAUTH_SECRET`, builds
-the database with all 25 lessons / 9 dungeon areas / 4 bosses, compiles the
-production bundle, and puts **Composer's Dungeon** on your Desktop and Start
-menu. First run takes a few minutes; after that it opens in seconds.
+> This repository is currently **private**, so that raw URL returns 404 for
+> everyone including you. Make it public (Settings → General → Change
+> visibility) and the one-liner starts working. Until then, use the ZIP, or
+> `git clone` it yourself and run `Install Composers Dungeon.bat` from inside —
+> Git will prompt you to sign in.
 
-*Prefer clicking to typing?* Download the repo
-(**Code → Download ZIP**), unzip it, and double-click
-**`Install Composers Dungeon.bat`**.
+Either way the installer puts Node.js LTS (and Git, if it needs to clone) in
+place via winget, generates a real `NEXTAUTH_SECRET`, builds the database with
+all 25 lessons / 9 dungeon areas / 4 bosses, compiles the production bundle,
+and drops **Composer's Dungeon** on your Desktop and Start menu. First run
+takes a few minutes; after that it opens in seconds.
 
 ### Using it
 
