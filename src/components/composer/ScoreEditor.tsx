@@ -14,6 +14,7 @@ import {
   scalePitches,
   ticksPerBar,
   ticksPerBeat,
+  TICKS_PER_WHOLE,
   totalTicks,
   triadFor,
   type Check,
@@ -144,7 +145,13 @@ export function ScoreEditor({
   checks: Check[];
   readOnly?: boolean;
 }) {
-  const [duration, setDuration] = useState(freedom.durations[0] ?? 4);
+  // Default to one beat, not the shortest length available: a grid full of
+  // sixteenths is the wrong first impression, and a beat is the unit a
+  // beginner already feels.
+  const [duration, setDuration] = useState(() => {
+    const beat = TICKS_PER_WHOLE / (score.meter.unit || 4);
+    return freedom.durations.includes(beat) ? beat : (freedom.durations[0] ?? 4);
+  });
   const [playing, setPlaying] = useState(false);
   const [playhead, setPlayhead] = useState<number | null>(null);
   const [showHelp, setShowHelp] = useState(false);
