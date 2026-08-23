@@ -64,6 +64,11 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
+            # Re-running a release refreshes both the assets and the notes, so
+            # a fix to .github/release-notes.md reaches an already-published tag.
+            gh release edit "$TAG" \
+              --title "Composer's Dungeon ${TAG}" \
+              --notes-file .github/release-notes.md
             gh release upload "$TAG" \
               dist/ComposersDungeonSetup.exe \
               dist/ComposersDungeon-*-update.zip \

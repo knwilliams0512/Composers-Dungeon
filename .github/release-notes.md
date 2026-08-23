@@ -17,8 +17,6 @@ Both Windows warnings appear because the installer isn't code-signed — they me
 release the next time you launch it, and your compositions, levels and streaks
 are untouched.
 
-**Demo account:** `bard@composersdungeon.demo` / `dungeon-demo-1`
-
 Full instructions for Windows, macOS, Linux, source installs, updating,
 uninstalling and troubleshooting: **[INSTALL.md](https://github.com/knwilliams0512/Composer-s-Dungeon/blob/HEAD/INSTALL.md)**
 

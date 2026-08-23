@@ -327,13 +327,22 @@ async function seedSpecializations() {
 }
 
 async function seedDemoUser() {
+  // Admin-only. The demo composer exists solely for the maintainer to inspect a
+  // mid-progress account, so it is created only when CD_DEMO_PASSWORD is set —
+  // shipped installs and ordinary source setups never contain it, and the
+  // password never appears in the repository.
+  const demoPassword = process.env.CD_DEMO_PASSWORD;
+  if (!demoPassword) {
+    console.log("· demo user skipped (set CD_DEMO_PASSWORD to create it)");
+    return;
+  }
   const email = "bard@composersdungeon.demo";
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {
     console.log("✔ demo user exists");
     return;
   }
-  const passwordHash = await bcrypt.hash("dungeon-demo-1", 10);
+  const passwordHash = await bcrypt.hash(demoPassword, 10);
   const user = await db.user.create({
     data: {
       email,
@@ -342,7 +351,7 @@ async function seedDemoUser() {
         create: {
           displayName: "Aria the Wandering Bard",
           avatar: "lyre",
-          bio: "A demo composer three floors into the Dungeon. Password: dungeon-demo-1",
+          bio: "A demo composer three floors into the Dungeon.",
           visibility: "PUBLIC",
           experienceTier: "KNOW_A_LITTLE",
           goals: JSON.stringify(["LEARN_COMPOSITION", "BETTER_MELODIES"]),
@@ -419,7 +428,7 @@ async function seedDemoUser() {
     },
   });
 
-  console.log("✔ demo user: bard@composersdungeon.demo / dungeon-demo-1");
+  console.log("✔ demo user created");
 }
 
 /**

@@ -49,6 +49,10 @@ export type IconName =
   | "plus"
   | "play"
   | "stop"
+  | "undo"
+  | "redo"
+  | "metronome"
+  | "loop"
   | "star";
 
 const PATHS: Record<IconName, JSX.Element> = {
@@ -261,6 +265,31 @@ const PATHS: Record<IconName, JSX.Element> = {
   plus: <path d="M12 5v14M5 12h14" />,
   play: <path d="M8 5.5l11 6.5-11 6.5z" />,
   stop: <rect x="6.5" y="6.5" width="11" height="11" rx="1.5" />,
+  undo: (
+    <>
+      <path d="M8 5L3.5 9.5 8 14" />
+      <path d="M3.5 9.5H15a5.5 5.5 0 0 1 0 11h-4" />
+    </>
+  ),
+  redo: (
+    <>
+      <path d="M16 5l4.5 4.5L16 14" />
+      <path d="M20.5 9.5H9a5.5 5.5 0 0 0 0 11h4" />
+    </>
+  ),
+  metronome: (
+    <>
+      <path d="M9.5 3h5L18 21H6z" />
+      <path d="M7 16h10M12 16L17.5 5.5" />
+    </>
+  ),
+  loop: (
+    <>
+      <path d="M17 4l3 3-3 3" />
+      <path d="M20 7H8a4.5 4.5 0 0 0 0 9h1M7 20l-3-3 3-3" />
+      <path d="M4 17h12a4.5 4.5 0 0 0 2.5-8.2" />
+    </>
+  ),
   star: (
     <path d="M12 3.5l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8z" />
   ),

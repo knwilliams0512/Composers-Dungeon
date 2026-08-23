@@ -28,15 +28,34 @@ import {
 
 const midiToHz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
-const TIMBRES: Record<string, { wave: OscillatorType; decay: number; gain: number }> = {
-  PIANO: { wave: "triangle", decay: 1.1, gain: 0.22 },
-  STRINGS: { wave: "sawtooth", decay: 0.35, gain: 0.14 },
-  FLUTE: { wave: "sine", decay: 0.5, gain: 0.26 },
-  HARP: { wave: "triangle", decay: 1.6, gain: 0.2 },
-  ORGAN: { wave: "square", decay: 0.2, gain: 0.11 },
+interface Timbre {
+  wave: OscillatorType;
+  /** Second oscillator, detuned in cents, for width and warmth. */
+  wave2?: OscillatorType;
+  detune?: number;
+  /** Lowpass cutoff as a multiple of the fundamental. */
+  brightness: number;
+  attack: number;
+  decay: number;
+  gain: number;
+}
+
+/**
+ * Each instrument is a two-oscillator patch through its own filter — small,
+ * but the difference between "a beep" and "a voice". The piano's second
+ * triangle a few cents flat gives the slow beat of real strings under one
+ * hammer; the flute is a bare sine with breathy attack; the organ's square
+ * pair locks dead in tune the way pipes do.
+ */
+const TIMBRES: Record<string, Timbre> = {
+  PIANO: { wave: "triangle", wave2: "triangle", detune: 4, brightness: 6, attack: 0.005, decay: 1.4, gain: 0.2 },
+  STRINGS: { wave: "sawtooth", wave2: "sawtooth", detune: 9, brightness: 3.5, attack: 0.09, decay: 0.6, gain: 0.1 },
+  FLUTE: { wave: "sine", wave2: "triangle", detune: 3, brightness: 2.5, attack: 0.04, decay: 0.45, gain: 0.24 },
+  HARP: { wave: "triangle", wave2: "sine", detune: 5, brightness: 8, attack: 0.003, decay: 2.0, gain: 0.19 },
+  ORGAN: { wave: "square", wave2: "square", detune: 0, brightness: 3, attack: 0.02, decay: 0.15, gain: 0.08 },
 };
 
-function timbreFor(instrument: string) {
+function timbreFor(instrument: string): Timbre {
   const key = Object.keys(TIMBRES).find((k) => instrument.toUpperCase().includes(k));
   return TIMBRES[key ?? "PIANO"];
 }
@@ -60,22 +79,52 @@ class Player {
   note(pitch: number, at: number, seconds: number, instrument: string, velocity = 1) {
     const ctx = this.context();
     const t = timbreFor(instrument);
+    const hz = midiToHz(pitch);
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = Math.min(12000, hz * t.brightness);
+    filter.Q.value = 0.4;
+
+    const peak = t.gain * velocity;
+    const release = Math.max(0.08, Math.min(seconds + t.decay, seconds * 1.6 + 0.3));
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(peak, at + t.attack);
+    // A touch of early decay before the release keeps long notes alive
+    // instead of organ-flat.
+    gain.gain.exponentialRampToValueAtTime(peak * 0.72, at + t.attack + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + release);
+    gain.connect(filter).connect(ctx.destination);
+
+    const voices: [OscillatorType, number][] = [[t.wave, 0]];
+    if (t.wave2) voices.push([t.wave2, t.detune ?? 0]);
+    for (const [wave, detune] of voices) {
+      const osc = ctx.createOscillator();
+      osc.type = wave;
+      osc.frequency.value = hz;
+      osc.detune.value = detune;
+      osc.connect(gain);
+      osc.start(at);
+      osc.stop(at + release + 0.05);
+      this.nodes.push(osc);
+    }
+    this.stopAt = Math.max(this.stopAt, at + release);
+  }
+
+  /** Metronome tick: a filtered click, brighter on the downbeat. */
+  tick(at: number, accent: boolean) {
+    const ctx = this.context();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = t.wave;
-    osc.frequency.value = midiToHz(pitch);
-    const peak = t.gain * velocity;
+    osc.type = "sine";
+    osc.frequency.value = accent ? 1660 : 1150;
     gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.exponentialRampToValueAtTime(peak, at + 0.012);
-    gain.gain.exponentialRampToValueAtTime(
-      0.0001,
-      at + Math.max(0.08, Math.min(seconds + t.decay, seconds * 1.6 + 0.25))
-    );
+    gain.gain.exponentialRampToValueAtTime(accent ? 0.12 : 0.07, at + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.055);
     osc.connect(gain).connect(ctx.destination);
     osc.start(at);
-    osc.stop(at + seconds + t.decay + 0.05);
+    osc.stop(at + 0.08);
     this.nodes.push(osc);
-    this.stopAt = Math.max(this.stopAt, at + seconds + t.decay);
   }
 
   now(): number {
@@ -155,9 +204,46 @@ export function ScoreEditor({
   const [playing, setPlaying] = useState(false);
   const [playhead, setPlayhead] = useState<number | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [metronome, setMetronome] = useState(false);
+  const [loop, setLoop] = useState(false);
   const playerRef = useRef<Player | null>(null);
   const rafRef = useRef<number | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const loopRef = useRef(false);
+  loopRef.current = loop;
+
+  // Undo/redo. The editor owns the history even though the score lives in the
+  // parent: every mutation funnels through change() below.
+  const undoStack = useRef<Score[]>([]);
+  const redoStack = useRef<Score[]>([]);
+  const [historyVersion, setHistoryVersion] = useState(0);
+
+  const change = useCallback(
+    (next: Score) => {
+      undoStack.current.push(score);
+      if (undoStack.current.length > 100) undoStack.current.shift();
+      redoStack.current = [];
+      setHistoryVersion((v) => v + 1);
+      onChange(next);
+    },
+    [score, onChange]
+  );
+
+  const undo = useCallback(() => {
+    const prev = undoStack.current.pop();
+    if (!prev) return;
+    redoStack.current.push(score);
+    setHistoryVersion((v) => v + 1);
+    onChange(prev);
+  }, [score, onChange]);
+
+  const redo = useCallback(() => {
+    const next = redoStack.current.pop();
+    if (!next) return;
+    undoStack.current.push(score);
+    setHistoryVersion((v) => v + 1);
+    onChange(next);
+  }, [score, onChange]);
 
   const barTicks = ticksPerBar(score.meter);
   const beatTicks = ticksPerBeat(score.meter);
@@ -201,7 +287,7 @@ export function ScoreEditor({
     if (readOnly) return;
     const existing = noteAt(pitch, tick);
     if (existing) {
-      onChange({ ...score, melody: score.melody.filter((n) => n !== existing) });
+      change({ ...score, melody: score.melody.filter((n) => n !== existing) });
       return;
     }
     const len = Math.min(duration, total - tick);
@@ -211,7 +297,7 @@ export function ScoreEditor({
       (n) => n.start + n.duration <= tick || n.start >= tick + len
     );
     melody.push({ start: tick, duration: len, pitch });
-    onChange({ ...score, melody: melody.sort((a, b) => a.start - b.start) });
+    change({ ...score, melody: melody.sort((a, b) => a.start - b.start) });
     preview(pitch);
   }
 
@@ -230,7 +316,7 @@ export function ScoreEditor({
         pitches.forEach((pitch) => p.note(pitch, now, 0.5, score.instrument, 0.5));
       });
     }
-    onChange({ ...score, chords: chords.sort((a, b) => a.start - b.start) });
+    change({ ...score, chords: chords.sort((a, b) => a.start - b.start) });
   }
 
   /* ---- Playback --------------------------------------------------------- */
@@ -251,40 +337,64 @@ export function ScoreEditor({
     const secondsPerTick = 60 / score.tempo / ticksPerBeat(score.meter);
     const t0 = p.now() + 0.08;
 
-    for (const n of score.melody) {
-      p.note(n.pitch, t0 + n.start * secondsPerTick, n.duration * secondsPerTick, score.instrument);
-    }
-    for (const c of score.chords) {
-      const { pitches } = triadFor(c.degree, score.key, score.mode);
-      pitches.forEach((pitch, i) =>
-        p.note(
-          pitch - 12,
-          t0 + c.start * secondsPerTick + i * 0.012,
-          c.duration * secondsPerTick,
-          score.instrument,
-          0.4
-        )
-      );
-    }
-
-    setPlaying(true);
-    const endsAt = t0 + total * secondsPerTick;
-    const tick = () => {
-      const now = p.now();
-      if (now >= endsAt) return stop();
-      setPlayhead(Math.max(0, (now - t0) / secondsPerTick));
-      rafRef.current = requestAnimationFrame(tick);
+    const schedule = (from: number) => {
+      for (const n of score.melody) {
+        p.note(n.pitch, from + n.start * secondsPerTick, n.duration * secondsPerTick, score.instrument);
+      }
+      for (const c of score.chords) {
+        const { pitches } = triadFor(c.degree, score.key, score.mode);
+        pitches.forEach((pitch, i) =>
+          p.note(
+            pitch - 12,
+            from + c.start * secondsPerTick + i * 0.012,
+            c.duration * secondsPerTick,
+            score.instrument,
+            0.4
+          )
+        );
+      }
+      if (metronome) {
+        const bt = ticksPerBeat(score.meter);
+        for (let t = 0; t < total; t += bt) {
+          p.tick(from + t * secondsPerTick, t % ticksPerBar(score.meter) === 0);
+        }
+      }
     };
-    rafRef.current = requestAnimationFrame(tick);
+
+    schedule(t0);
+    setPlaying(true);
+    let passStart = t0;
+    const passLength = total * secondsPerTick;
+    const frame = () => {
+      const now = p.now();
+      if (now >= passStart + passLength) {
+        if (loopRef.current) {
+          // Seamless: schedule the next pass exactly at the end of this one.
+          passStart += passLength;
+          schedule(passStart);
+        } else {
+          return stop();
+        }
+      }
+      setPlayhead(Math.max(0, (now - passStart) / secondsPerTick));
+      rafRef.current = requestAnimationFrame(frame);
+    };
+    rafRef.current = requestAnimationFrame(frame);
   }
 
   useEffect(() => () => stop(), [stop]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.code === "Space" && !(e.target as HTMLElement)?.closest("input,textarea,select")) {
+      const inField = (e.target as HTMLElement)?.closest("input,textarea,select");
+      if (e.code === "Space" && !inField) {
         e.preventDefault();
         void play();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ" && !inField && !readOnly) {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
       }
     }
     window.addEventListener("keydown", onKey);
@@ -337,6 +447,56 @@ export function ScoreEditor({
           </div>
         )}
 
+        {!readOnly && (
+          <div className="flex items-center rounded-lg border border-abyss-600 bg-abyss-900/60 p-1">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={undoStack.current.length === 0}
+              title="Undo (Ctrl+Z)"
+              aria-label="Undo"
+              className="rounded px-2 py-1 text-parchment-300 transition-colors hover:bg-abyss-700 disabled:opacity-30"
+            >
+              <Icon name="undo" size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={redoStack.current.length === 0}
+              title="Redo (Ctrl+Shift+Z)"
+              aria-label="Redo"
+              className="rounded px-2 py-1 text-parchment-300 transition-colors hover:bg-abyss-700 disabled:opacity-30"
+            >
+              <Icon name="redo" size={14} />
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center rounded-lg border border-abyss-600 bg-abyss-900/60 p-1">
+          <button
+            type="button"
+            onClick={() => setMetronome((m) => !m)}
+            title="Metronome — a click on every beat during playback"
+            aria-pressed={metronome}
+            className={`rounded px-2 py-1 transition-colors ${
+              metronome ? "bg-gold-600 text-abyss-950" : "text-parchment-300 hover:bg-abyss-700"
+            }`}
+          >
+            <Icon name="metronome" size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setLoop((l) => !l)}
+            title="Loop — play the piece round and round"
+            aria-pressed={loop}
+            className={`rounded px-2 py-1 transition-colors ${
+              loop ? "bg-gold-600 text-abyss-950" : "text-parchment-300 hover:bg-abyss-700"
+            }`}
+          >
+            <Icon name="loop" size={14} />
+          </button>
+        </div>
+
         <span className="pill">
           <Icon name="note" size={11} /> {score.key} {score.mode}
         </span>
@@ -369,7 +529,7 @@ export function ScoreEditor({
           {!readOnly && score.melody.length > 0 && (
             <button
               type="button"
-              onClick={() => onChange({ ...score, melody: [], chords: [] })}
+              onClick={() => change({ ...score, melody: [], chords: [] })}
               className="btn-ghost text-xs"
             >
               <Icon name="refresh" size={13} /> Clear
@@ -407,8 +567,13 @@ export function ScoreEditor({
           </p>
           <p className="flex gap-2">
             <Icon name="clock" size={15} className="mt-0.5 shrink-0 text-gold-500" />
-            Press <kbd className="rounded bg-abyss-900 px-1.5 py-0.5 text-xs">Space</kbd> to
-            play or stop.
+            <span>
+              <kbd className="rounded bg-abyss-900 px-1.5 py-0.5 text-xs">Space</kbd> plays and
+              stops. <kbd className="rounded bg-abyss-900 px-1.5 py-0.5 text-xs">Ctrl+Z</kbd>{" "}
+              undoes; add <kbd className="rounded bg-abyss-900 px-1.5 py-0.5 text-xs">Shift</kbd>{" "}
+              to redo. The metronome clicks every beat; the loop plays your piece round and
+              round while you listen for what to change.
+            </span>
           </p>
         </div>
       )}
@@ -484,6 +649,9 @@ export function ScoreEditor({
                             aria-label={`${pitchName(pitch, score.key)} at bar ${
                               Math.floor(tick / barTicks) + 1
                             }`}
+                            title={`${pitchName(pitch, score.key)} · bar ${
+                              Math.floor(tick / barTicks) + 1
+                            }, beat ${Math.floor((tick % barTicks) / beatTicks) + 1}`}
                             className={`relative border-b border-abyss-700/40 transition-colors ${
                               barLine
                                 ? "border-l-2 border-l-abyss-600"
@@ -564,6 +732,9 @@ export function ScoreEditor({
                   )}% stepwise`
                 : "no movement yet"}
             </span>
+            <span>
+              ~{Math.round((total * 60) / score.tempo / ticksPerBeat(score.meter))}s at {score.tempo} bpm
+            </span>
             <span className="ml-auto">{freedom.name} tools</span>
           </div>
         </div>
@@ -592,6 +763,18 @@ export function ScoreEditor({
               }}
             />
           </div>
+
+          {results.passed && results.results.length > 0 && (
+            <div className="mt-4 flex items-center gap-2.5 rounded-lg border border-emerald-700/60 bg-abyss-900/60 px-3.5 py-2.5 animate-rise">
+              <Icon name="trophy" size={18} className="shrink-0 text-emerald-300" />
+              <div>
+                <p className="font-display text-sm text-emerald-300">The Standard Is Met</p>
+                <p className="text-[11px] text-parchment-500">
+                  Listen once more, name it, and claim your victory below.
+                </p>
+              </div>
+            </div>
+          )}
 
           <ul className="mt-4 space-y-3">
             {results.results.map((r) => (

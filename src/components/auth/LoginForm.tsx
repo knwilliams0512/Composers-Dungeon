@@ -59,9 +59,6 @@ export function LoginForm() {
       <button type="submit" disabled={loading} className="btn-primary w-full">
         {loading ? "Unbarring the gate…" : "Sign In"}
       </button>
-      <p className="text-center text-xs text-parchment-500">
-        Demo account: bard@composersdungeon.demo / dungeon-demo-1
-      </p>
     </form>
   );
 }

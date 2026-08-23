@@ -45,9 +45,8 @@ The short version:
 | **Windows, from source** | Unzip the repo and double-click `Install Composers Dungeon.bat` |
 | **macOS / Linux** | `npm run setup && npm run build && npm start` — see [INSTALL.md](INSTALL.md#3--macos) |
 
-**Demo account:** `bard@composersdungeon.demo` / `dungeon-demo-1` — a
-mid-progress composer with skills, completed lessons, and a public guild post.
-Or sign up fresh to go through onboarding and the adaptive Placement Trial.
+Sign up on first launch — onboarding and the adaptive Placement Trial take a
+couple of minutes and shape the whole dungeon to you.
 
 Windows shows two warnings for any unsigned installer — *"isn't commonly
 downloaded"* on the way in, and *"Windows protected your PC"* on the way out.

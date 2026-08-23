@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composer's Dungeon — Download</title>
+<meta name="description" content="Learn music theory in the Academy. Prove it in the Dungeon. An RPG for composers — download for Windows, free.">
+<style>
+  /* This page never needs regenerating: the /releases/latest/download/ URLs
+     below always redirect to the newest published release. */
+  :root {
+    color-scheme: dark;
+    --abyss-950:#07060b; --abyss-900:#0c0a14; --abyss-850:#110e1c;
+    --abyss-800:#171326; --abyss-700:#211b36; --abyss-600:#2d2547;
+    --gold-300:#f0d894; --gold-400:#e3c26d; --gold-500:#c9a84c;
+    --gold-600:#a8863a; --gold-700:#7d6229;
+    --parchment-100:#f5ecd7; --parchment-200:#e9dcc0; --parchment-300:#d6c5a0;
+    --parchment-400:#b3a07c; --parchment-500:#8c7a5b;
+    --crimson-400:#c2554f; --arcane-300:#9fb4e8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: var(--abyss-950);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(45,37,71,.55), transparent),
+      radial-gradient(ellipse 60% 45% at 85% 105%, rgba(92,30,29,.18), transparent);
+    background-attachment: fixed;
+    color: var(--parchment-200);
+    min-height: 100vh;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 4rem 1.5rem 5rem; text-align: center; }
+  .note-mark { font-size: 3.2rem; filter: drop-shadow(0 0 18px rgba(227,194,109,.45)); animation: flicker 3s ease-in-out infinite; }
+  @keyframes flicker { 0%,100%{opacity:1} 45%{opacity:.85} 70%{opacity:.93} }
+  h1 {
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    letter-spacing: .04em;
+    color: var(--gold-300);
+    font-weight: 600;
+    margin-top: .8rem;
+    text-shadow: 0 0 34px rgba(201,168,76,.25);
+  }
+  .tag { margin-top:.6rem; font-size:1.12rem; color: var(--parchment-400); font-style: italic; }
+  .cta {
+    display: inline-block;
+    margin-top: 2.4rem;
+    padding: 1rem 2.6rem;
+    border-radius: .65rem;
+    background: linear-gradient(180deg, var(--gold-400), #b8923f);
+    color: var(--abyss-950);
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: .02em;
+    box-shadow: 0 0 34px rgba(201,168,76,.3);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .cta:hover { transform: translateY(-2px); box-shadow: 0 0 48px rgba(201,168,76,.45); }
+  .cta small { display:block; font-size:.72rem; font-weight:600; opacity:.75; margin-top:.15rem; }
+  .meta { margin-top: .9rem; font-size:.85rem; color: var(--parchment-500); }
+  .meta a { color: var(--gold-500); text-decoration: none; }
+  .meta a:hover { text-decoration: underline; }
+  .panel {
+    margin-top: 3rem;
+    text-align: left;
+    background: rgba(17,14,28,.75);
+    border: 1px solid rgba(45,37,71,.7);
+    border-radius: .9rem;
+    padding: 1.6rem 1.8rem;
+    position: relative;
+  }
+  .panel::before {
+    content:""; position:absolute; left:1.5rem; right:1.5rem; top:0; height:1px;
+    background: linear-gradient(90deg, transparent, rgba(201,168,76,.45), transparent);
+  }
+  .panel h2 {
+    font-size:.8rem; letter-spacing:.28em; text-transform:uppercase;
+    color: var(--gold-500); font-weight:600; margin-bottom: .9rem;
+  }
+  ol.steps { list-style:none; counter-reset: step; }
+  ol.steps li { counter-increment: step; display:flex; gap:.9rem; padding:.45rem 0; color:var(--parchment-300); font-size:.98rem; }
+  ol.steps li::before {
+    content: counter(step);
+    flex: 0 0 1.6rem; height:1.6rem; border-radius:50%;
+    border:1px solid var(--gold-700); color:var(--gold-400);
+    display:flex; align-items:center; justify-content:center;
+    font-size:.8rem; margin-top:.1rem;
+  }
+  ol.steps b { color: var(--parchment-100); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:.9rem; margin-top:.4rem; }
+  .cell { border:1px solid rgba(45,37,71,.7); border-radius:.65rem; padding: .9rem 1rem; background: rgba(12,10,20,.5); }
+  .cell b { display:block; color: var(--gold-400); font-size:.95rem; margin-bottom:.25rem; letter-spacing:.02em; }
+  .cell span { font-size:.86rem; color: var(--parchment-400); }
+  .foot { margin-top:3rem; font-size:.82rem; color:var(--parchment-500); }
+  .foot a { color: var(--gold-500); text-decoration:none; }
+  .divider { margin: 0 auto; margin-top: 3rem; width: 60%; height:1px;
+    background: linear-gradient(90deg, transparent, rgba(125,98,41,.5), transparent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note-mark">🕯️</div>
+  <h1>Composer's Dungeon</h1>
+  <p class="tag">The Academy teaches you. The Dungeon tests you.</p>
+
+  <a class="cta" href="https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest/download/ComposersDungeonSetup.exe">
+    ⬇ Download for Windows
+    <small id="version-line">free · ~30 MB · no other installs needed</small>
+  </a>
+  <p class="meta">
+    This link always serves the newest version ·
+    <a href="https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest">release notes</a> ·
+    <a href="https://github.com/knwilliams0512/Composer-s-Dungeon/blob/HEAD/INSTALL.md">full install guide</a>
+  </p>
+
+  <div class="panel">
+    <h2>Install in one minute</h2>
+    <ol class="steps">
+      <li>Download the file above. If your browser hesitates: <b>⋯ → Keep → Keep anyway</b>.</li>
+      <li>Double-click it. At <i>"Windows protected your PC"</i>: <b>More info → Run anyway</b>. (It appears because the installer isn't code-signed — not because anything is wrong.)</li>
+      <li>Launch <b>Composer's Dungeon</b> from your Desktop or Start menu and sign up. The Placement Trial shapes the whole dungeon to you.</li>
+    </ol>
+  </div>
+
+  <div class="panel">
+    <h2>It keeps itself up to date</h2>
+    <p style="font-size:.95rem; color:var(--parchment-300)">
+      Once installed, you never come back here. Each time you launch it, the app checks
+      this project's releases, verifies the download against its published checksum, and
+      updates itself — new lessons, new dungeon areas, fixes — before the window opens.
+      Offline? It simply starts. Your compositions, levels and streaks are never touched.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2>What's inside</h2>
+    <div class="grid">
+      <div class="cell"><b>Compose in-app</b><span>A grid where every note fits the key, a built-in synth, and live standards your piece must meet to pass.</span></div>
+      <div class="cell"><b>25 lessons</b><span>From "What are notes?" to virtuoso writing — with vocabulary, common mistakes and listening lists.</span></div>
+      <div class="cell"><b>9 dungeon areas</b><span>Endless generated trials, puzzles, curses and treasure, each area training a different craft.</span></div>
+      <div class="cell"><b>4 bosses</b><span>Health bars, phases, tactics — and a final blow that must be a finished composition.</span></div>
+      <div class="cell"><b>Earned freedom</b><span>Beginners start with a small, safe toolset; levels and lessons unlock the full palette.</span></div>
+      <div class="cell"><b>Entirely yours</b><span>Runs only on your PC. No accounts on a server, no uploads, works offline forever.</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <p class="foot">
+    Windows 10 (1809+) or 11, 64-bit · no administrator rights needed ·
+    <a href="https://github.com/knwilliams0512/Composer-s-Dungeon">source on GitHub</a>
+  </p>
+</div>
+
+<script>
+  // Purely cosmetic: show the live version on the button when the API is
+  // reachable (public repo). The download link works either way.
+  fetch("https://api.github.com/repos/knwilliams0512/Composer-s-Dungeon/releases/latest")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (rel) {
+      if (!rel || !rel.tag_name) return;
+      var el = document.getElementById("version-line");
+      var date = rel.published_at ? new Date(rel.published_at).toLocaleDateString() : "";
+      el.textContent = rel.tag_name + (date ? " · " + date : "") + " · free · ~30 MB";
+    })
+    .catch(function () { /* fine — static text stands */ });
+</script>
+</body>
+</html>

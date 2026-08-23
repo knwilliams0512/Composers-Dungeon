@@ -43,6 +43,18 @@ function Show-Problem($message) {
 
 if (-not (Test-Path $NodeExe)) { Show-Problem "This install looks damaged (node.exe is missing).`n`nReinstall Composer's Dungeon." }
 
+# The database engine is a native DLL that needs the Microsoft Visual C++
+# runtime. Nearly every PC has it (games install it constantly), but on a
+# clean machine its absence surfaces as a cryptic server error — catch it
+# here with an actionable message instead.
+$vcrt = Join-Path $env:SystemRoot "System32\vcruntime140.dll"
+if (-not (Test-Path $vcrt)) {
+    Show-Problem ("Composer's Dungeon needs the Microsoft Visual C++ Runtime, which this PC doesn't have yet.`n`n" +
+        "Install it (free, one minute) from:`n" +
+        "https://aka.ms/vs/17/release/vc_redist.x64.exe`n`n" +
+        "Then launch Composer's Dungeon again.")
+}
+
 # --- First run: database + secret -------------------------------------------
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 
@@ -117,6 +129,7 @@ if (Test-PortFree $Port) {
     # Prisma wants forward slashes; loopback-only binding keeps Windows
     # Firewall from ever prompting.
     $env:DATABASE_URL = "file:" + ($dbPath -replace "\\", "/")
+    Add-Content -Path (Join-Path $DataDir "server.log") -Value ("[launcher] DATABASE_URL=" + $env:DATABASE_URL) -ErrorAction SilentlyContinue
     $env:NEXTAUTH_SECRET = $secret
     $env:NEXTAUTH_URL = $url
     $env:HOSTNAME = "127.0.0.1"

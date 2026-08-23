@@ -218,7 +218,6 @@ Write-Host ""
 Write-Host "  The dungeon is ready." -ForegroundColor Green
 Write-Host ""
 Write-Host "  Launch it       : Desktop or Start-menu shortcut 'Composer's Dungeon'" -ForegroundColor Gray
-Write-Host "  Demo account    : bard@composersdungeon.demo / dungeon-demo-1" -ForegroundColor Gray
 Write-Host "  Pin to taskbar  : once open, use the browser menu -> Install," -ForegroundColor Gray
 Write-Host "                    then right-click the window -> Pin to taskbar" -ForegroundColor Gray
 Write-Host "  Update later    : run scripts\windows\update.ps1" -ForegroundColor Gray

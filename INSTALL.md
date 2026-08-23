@@ -61,13 +61,8 @@ installation.
 The app opens in **its own window** — no address bar, no tabs, no browser
 chrome. Closing the window stops it, like any normal program.
 
-Sign up to start from your first note, or use the demo composer to look around
-a character who is already partway through:
-
-```
-bard@composersdungeon.demo
-dungeon-demo-1
-```
+Sign up to start from your first note — onboarding and the adaptive Placement
+Trial take a couple of minutes and shape the whole dungeon to you.
 
 **Pin it to the taskbar:** once open, use the window's `…` menu →
 **Install Composer's Dungeon**. Windows then treats it as a properly installed
@@ -274,7 +269,8 @@ the file and download it again.
 | Nothing happens when you click the shortcut | Another program owns port 3000. Run `npm run win:start -- -Port 3005`, or `npm run win:stop` to clear a stuck server. |
 | It opened in a normal browser tab | Neither Edge nor Chrome is installed. Install either for the windowed experience. |
 | The app says it can't reach the update server | Normal when offline. It keeps working; updates resume when you're back online. |
-| Server errors on launch | Read `%LOCALAPPDATA%\ComposersDungeon\data\server.log`. |
+| *"Application error: a server-side exception has occurred"* with a digest number | The page hit a real error; the digest is just its fingerprint. The actual cause is written to `%LOCALAPPDATA%\ComposersDungeon\data\server.log.err` — open it in Notepad and read the last lines. The most common cause on a fresh PC is a missing Microsoft VC++ runtime: install it from <https://aka.ms/vs/17/release/vc_redist.x64.exe> and launch again. |
+| Server errors on launch | Read `%LOCALAPPDATA%\ComposersDungeon\data\server.log` and `server.log.err`. |
 | Update failed | Read `…\data\update.log`. A failed update rolls back — your previous version still works. |
 | You want your progress back after uninstalling | The uninstaller left `composers-dungeon-backup.db` on your Desktop. Reinstall, then copy it over `…\ComposersDungeon\data\dungeon.db` with the app closed. |
 

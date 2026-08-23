@@ -48,7 +48,7 @@ VIAddVersionKey "LegalCopyright"  "${APP_PUBLISHER}"
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchDungeon
 !define MUI_FINISHPAGE_RUN_TEXT "Descend into the dungeon now"
-!define MUI_FINISHPAGE_TEXT "${APP_NAME} is installed.$\r$\n$\r$\nLaunch it from the Desktop or Start menu whenever you like.$\r$\n$\r$\nTry the demo composer:$\r$\n    bard@composersdungeon.demo$\r$\n    dungeon-demo-1$\r$\n$\r$\nOr sign up fresh to start from your very first note."
+!define MUI_FINISHPAGE_TEXT "${APP_NAME} is installed.$\r$\n$\r$\nLaunch it from the Desktop or Start menu whenever you like.$\r$\n$\r$\nSign up on first launch — the Placement Trial takes a couple of minutes and shapes the whole dungeon to you."
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
