@@ -3,6 +3,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { GuildFeed } from "@/components/guild/GuildFeed";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export const metadata = { title: "The Composer's Guild" };
 export const dynamic = "force-dynamic";
@@ -73,6 +74,7 @@ export default async function GuildPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      <ScrollProgress />
       <SectionHeading
         eyebrow="Fellowship · Craft · Renown"
         title="The Composer's Guild"

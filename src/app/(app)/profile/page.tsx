@@ -6,6 +6,7 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { levelFromXp, skillLevelFromXp } from "@/lib/xp";
 import { Icon } from "@/components/ui/Icon";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import {
   avatarGlyph,
   parseJsonArray,
@@ -53,6 +54,7 @@ export default async function ProfilePage() {
 
   return (
     <div>
+      <ScrollProgress />
       <SectionHeading
         eyebrow="Prestigious · Collectible · Yours"
         title="Composer Profile"

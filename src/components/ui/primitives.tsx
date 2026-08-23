@@ -99,6 +99,7 @@ export function SkillMeter({
   percent,
   intoLevel,
   needed,
+  accent = "#7289d1",
 }: {
   icon: IconName;
   name: string;
@@ -106,10 +107,19 @@ export function SkillMeter({
   percent: number;
   intoLevel?: number;
   needed?: number;
+  /** The skill's own jewel tone. */
+  accent?: string;
 }) {
   return (
     <div className="group grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-abyss-600/70 bg-abyss-900/60 text-arcane-300 transition-colors group-hover:border-arcane-600/70">
+      <span
+        className="flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur transition-transform duration-300 group-hover:scale-110"
+        style={{
+          borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
+          background: `color-mix(in srgb, ${accent} 12%, transparent)`,
+          color: accent,
+        }}
+      >
         <Icon name={icon} size={16} />
       </span>
       <div className="min-w-0">
@@ -121,9 +131,25 @@ export function SkillMeter({
             </span>
           )}
         </div>
-        <Meter percent={percent} color="arcane" className="mt-1" />
+        <div className="meter-track mt-1.5">
+          <div
+            className="meter-fill"
+            style={{
+              width: `${Math.max(0, Math.min(100, percent))}%`,
+              background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 60%, #000), ${accent})`,
+              color: accent,
+            }}
+          />
+        </div>
       </div>
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-arcane-600/40 bg-abyss-900/60 font-display text-sm text-arcane-300">
+      <span
+        className="flex h-9 w-9 items-center justify-center rounded-xl border font-display text-sm backdrop-blur"
+        style={{
+          borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
+          background: `color-mix(in srgb, ${accent} 10%, transparent)`,
+          color: accent,
+        }}
+      >
         {level}
       </span>
     </div>
@@ -192,29 +218,51 @@ export function StatTile({
   value,
   hint,
   href,
+  accent = "#c9a84c",
 }: {
   icon: IconName;
   label: string;
   value: string | number;
   hint?: string;
   href?: string;
+  /** Jewel tone for the icon and its hover glow. */
+  accent?: string;
 }) {
   const body = (
     <>
-      <Icon name={icon} size={16} className="text-gold-600" />
-      <span className="mt-2 block font-display text-xl leading-none text-parchment-100">
+      {/* Accent bloom, revealed on hover */}
+      <span
+        className="pointer-events-none absolute -left-6 -top-8 h-24 w-24 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-40"
+        style={{ background: `radial-gradient(circle, ${accent}, transparent 70%)` }}
+      />
+      <span
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg border backdrop-blur transition-transform duration-300 group-hover:scale-110"
+        style={{
+          borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
+          background: `color-mix(in srgb, ${accent} 12%, transparent)`,
+          color: accent,
+        }}
+      >
+        <Icon name={icon} size={15} />
+      </span>
+      <span className="relative mt-2.5 block font-display text-2xl leading-none text-parchment-100">
         {value}
       </span>
-      <span className="mt-1 block text-[10px] uppercase tracking-[0.18em] text-parchment-500">
+      <span className="relative mt-1.5 block text-[10px] uppercase tracking-[0.18em] text-parchment-500">
         {label}
       </span>
-      {hint && <span className="mt-1 block text-[10px] text-parchment-500/80">{hint}</span>}
+      {hint && (
+        <span className="relative mt-1 block text-[10px] text-parchment-500/80">{hint}</span>
+      )}
     </>
   );
   const cls =
-    "rounded-lg border border-abyss-600/50 bg-abyss-900/40 px-3 py-3 text-left transition-colors";
+    "group relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3.5 text-left backdrop-blur transition-all duration-300";
   return href ? (
-    <Link href={href} className={`${cls} block hover:border-gold-700/60`}>
+    <Link
+      href={href}
+      className={`${cls} block hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.06]`}
+    >
       {body}
     </Link>
   ) : (

@@ -6,6 +6,8 @@ import { levelFromXp, skillLevelFromXp } from "@/lib/xp";
 import { flameAlive } from "@/lib/streak";
 import { getRecommendations } from "@/lib/recommendations";
 import { Icon, SKILL_ICONS, type IconName } from "@/components/ui/Icon";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { skillTheme } from "@/lib/category-theme";
 import {
   Panel,
   Meter,
@@ -162,13 +164,24 @@ export default async function EntranceHallPage() {
 
   return (
     <div className="space-y-6">
+      <ScrollProgress />
+
       {/* ---- Identity banner ------------------------------------------------ */}
-      <section className="card-gold lit-edge animate-rise overflow-hidden p-6">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+      <section className="card-gold aura lit-edge animate-rise relative overflow-hidden p-7">
+        {/* Twin auroras behind the identity block */}
+        <div
+          className="pointer-events-none absolute -left-24 -top-28 h-80 w-80 rounded-full opacity-25 blur-3xl"
+          style={{ background: "radial-gradient(circle, #c9a84c, transparent 70%)" }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(circle, #9358c9, transparent 70%)" }}
+        />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center">
           <div className="flex items-center gap-5">
             <div className="relative">
               <XpRing percent={xp.percent} level={xp.level} />
-              <span className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border border-gold-700/60 bg-abyss-850 text-lg shadow-glow">
+              <span className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border border-gold-500/60 bg-abyss-900/90 text-lg shadow-[0_0_18px_-2px_rgba(201,168,76,0.8)] backdrop-blur">
                 {avatarGlyph(profile.avatar)}
               </span>
             </div>
@@ -176,31 +189,44 @@ export default async function EntranceHallPage() {
               <p className="eyebrow">
                 <Icon name="hall" size={12} /> The Entrance Hall
               </p>
-              <h1 className="heading-display mt-1 truncate text-3xl">{profile.displayName}</h1>
+              <h1 className="text-gilded mt-1 truncate font-display text-4xl leading-tight">
+                {profile.displayName}
+              </h1>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-parchment-400">
                 <span>{tierLabel}</span>
                 {specTitle && (
-                  <>
-                    <span className="text-abyss-600">·</span>
-                    <span className="text-arcane-300">{specTitle}</span>
-                  </>
+                  <span className="pill-arcane">
+                    <Icon name="star" size={10} /> {specTitle}
+                  </span>
                 )}
               </p>
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-baseline justify-between text-xs">
-              <span className="text-parchment-400">
-                {xp.intoLevel.toLocaleString()} / {xp.needed.toLocaleString()} XP to level{" "}
-                {xp.level + 1}
-              </span>
-              <span className="tabular-nums text-parchment-500">
-                {profile.totalXp.toLocaleString()} total
-              </span>
+          <div className="min-w-0 flex-1 space-y-2.5 lg:min-w-[18rem]">
+            <div className="flex items-end justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-display text-lg leading-none text-parchment-100">
+                  <span className="tabular-nums text-gold-300">
+                    {xp.intoLevel.toLocaleString()}
+                  </span>
+                  <span className="text-parchment-500"> / {xp.needed.toLocaleString()}</span>
+                </p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-500">
+                  XP to level {xp.level + 1}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="font-display text-lg leading-none tabular-nums text-parchment-300">
+                  {profile.totalXp.toLocaleString()}
+                </p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-500">
+                  total
+                </p>
+              </div>
             </div>
             <Meter percent={xp.percent} thick />
-            <p className="text-[11px] text-parchment-500">
+            <p className="text-[11px] leading-relaxed text-parchment-500">
               {(xp.needed - xp.intoLevel).toLocaleString()} XP remaining — roughly{" "}
               {Math.max(1, Math.ceil((xp.needed - xp.intoLevel) / 120))} more trials at your
               current rate.
@@ -217,33 +243,49 @@ export default async function EntranceHallPage() {
       </section>
 
       {/* ---- Stats strip ---------------------------------------------------- */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <section className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile
           icon="book"
           label="Lessons"
           value={`${lessonsDone}/${lessonTotal}`}
           hint="Academy"
           href="/academy"
+          accent="#4f63a8"
         />
-        <StatTile icon="sword" label="Trials won" value={challengesDone} href="/library" />
+        <StatTile
+          icon="sword"
+          label="Trials won"
+          value={challengesDone}
+          href="/library"
+          accent="#cc5580"
+        />
         <StatTile
           icon="skull"
           label="Bosses felled"
           value={`${bossesDefeated}/${bossTotal}`}
           href="/bosses"
+          accent="#a03c38"
         />
-        <StatTile icon="quill" label="Compositions" value={compositionCount} href="/library" />
+        <StatTile
+          icon="quill"
+          label="Compositions"
+          value={compositionCount}
+          href="/library"
+          accent="#2fa27c"
+        />
         <StatTile
           icon="chest"
           label="Artifacts"
           value={`${artifactCount}/${artifactTotal}`}
           href="/library"
+          accent="#2f97a0"
         />
         <StatTile
           icon="trophy"
           label="Achievements"
           value={`${achievementCount}/${achievementTotal}`}
           href="/library"
+          accent="#c9a84c"
         />
       </section>
 
@@ -264,7 +306,7 @@ export default async function EntranceHallPage() {
       </section>
 
       {/* ---- Recommendations ------------------------------------------------ */}
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <section className="stagger grid grid-cols-1 gap-4 lg:grid-cols-3">
         {recommendations.map((rec) => {
           const meta = REC_META[rec.kind] ?? REC_META.DUNGEON;
           return (
@@ -386,6 +428,7 @@ export default async function EntranceHallPage() {
                     percent={p.percent}
                     intoLevel={p.intoLevel}
                     needed={p.needed}
+                    accent={skillTheme(s.skill.key).hex}
                   />
                 );
               })}

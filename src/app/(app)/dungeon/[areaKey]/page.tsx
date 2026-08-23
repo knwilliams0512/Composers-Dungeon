@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { tierOrdinal, ROOM_TYPE_INFO, type RoomType } from "@/lib/enums";
 import { Icon, ROOM_ICONS, SKILL_ICONS } from "@/components/ui/Icon";
 import { Meter, DangerRating, Panel } from "@/components/ui/primitives";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export default async function DungeonAreaPage({
   params,
@@ -77,6 +78,7 @@ export default async function DungeonAreaPage({
 
   return (
     <div className="mx-auto max-w-3xl">
+      <ScrollProgress />
       <Link href="/dungeon" className="text-sm text-parchment-500 hover:text-gold-300">
         ← Back to the Dungeon map
       </Link>

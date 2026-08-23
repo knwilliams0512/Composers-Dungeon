@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Icon } from "@/components/ui/Icon";
 import { Meter } from "@/components/ui/primitives";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export const metadata = { title: "The Bosses" };
 
@@ -22,32 +23,42 @@ export default async function BossesPage() {
 
   return (
     <div>
+      <ScrollProgress />
       <SectionHeading
         eyebrow="Intense · Dramatic · Unforgiving"
+        icon="skull"
         title="The Bosses"
         subtitle="Great musical adversaries guard the Dungeon's depths. Wound them with modulations, motifs, and counterpoint — finish them with a completed composition."
       />
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="stagger grid grid-cols-1 gap-5 md:grid-cols-2">
         {bosses.map((boss) => {
           const p = progressByBoss.get(boss.id);
           const locked = profile.level < boss.levelRequirement;
           const hpPercent = p ? (p.currentHp / boss.totalHp) * 100 : 100;
           const inner = (
             <div
-              className={`card lit-edge h-full p-5 transition-all ${
-                boss.final ? "border-crimson-600/60" : ""
-              } ${
+              className={`${
+                boss.final ? "card-crimson" : "card"
+              } lit-edge group relative h-full overflow-hidden p-6 transition-all duration-300 ${
                 locked
-                  ? "opacity-50"
+                  ? "opacity-55 saturate-[0.55]"
                   : p?.defeated
-                    ? "border-emerald-700/50"
-                    : "hover:border-crimson-600/60 hover:shadow-crimson"
+                    ? "border-emerald2-500/40"
+                    : "hover:-translate-y-1 hover:border-crimson-400/50 hover:shadow-crimson"
               }`}
             >
-              <div className="flex items-start gap-4">
-                <span className="text-4xl">{boss.artwork}</span>
+              {!locked && (
+                <div
+                  className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-40"
+                  style={{ background: "radial-gradient(circle, #a03c38, transparent 70%)" }}
+                />
+              )}
+              <div className="relative flex items-start gap-4">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-crimson-500/40 bg-crimson-500/10 text-4xl leading-none backdrop-blur transition-transform duration-300 group-hover:scale-110">
+                  {boss.artwork}
+                </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="flex items-center gap-1.5 heading-display text-lg">
+                  <h2 className="flex items-center gap-1.5 font-display text-xl text-parchment-100">
                     {p?.defeated && <Icon name="check" size={15} className="text-emerald-400" />}
                     {boss.name}
                   </h2>
@@ -72,10 +83,10 @@ export default async function BossesPage() {
                   </span>
                 )}
               </div>
-              <p className="mt-3 line-clamp-2 text-sm text-parchment-400">
+              <p className="relative mt-3 line-clamp-2 text-sm leading-relaxed text-parchment-400">
                 {boss.description}
               </p>
-              <div className="mt-4">
+              <div className="relative mt-4">
                 {p?.defeated ? (
                   <p className="flex items-center gap-2 text-sm text-emerald-300">
                     <Icon name="trophy" size={15} /> Defeated · {boss.xpReward} XP claimed

@@ -4,9 +4,6 @@
 
 :root {
   color-scheme: dark;
-
-  /* Surfaces are layered rather than flat: each level lifts a little further
-     out of the dark and catches a little more of the torchlight. */
   --surface-1: 12 10 20;
   --surface-2: 17 14 28;
   --surface-3: 23 19 38;
@@ -14,39 +11,73 @@
   --edge-lit: 125 98 41;
 }
 
+/* ===========================================================================
+   The world behind the glass: a slow aurora of jewel light drifting under
+   everything, so the dark never reads as flat black.
+   =========================================================================== */
 body {
   @apply bg-abyss-950 text-parchment-200 font-body antialiased;
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(45, 37, 71, 0.55), transparent),
-    radial-gradient(ellipse 60% 45% at 85% 105%, rgba(92, 30, 29, 0.18), transparent),
-    radial-gradient(ellipse 50% 40% at 10% 60%, rgba(42, 54, 95, 0.14), transparent);
-  background-attachment: fixed;
   min-height: 100dvh;
+  position: relative;
+  overflow-x: hidden;
 }
 
-::selection {
-  background: rgba(201, 168, 76, 0.35);
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(38rem 28rem at 12% 8%, rgba(147, 88, 201, 0.20), transparent 60%),
+    radial-gradient(34rem 26rem at 88% 14%, rgba(79, 99, 168, 0.22), transparent 62%),
+    radial-gradient(40rem 30rem at 78% 88%, rgba(160, 60, 56, 0.18), transparent 60%),
+    radial-gradient(30rem 24rem at 22% 82%, rgba(47, 151, 160, 0.16), transparent 60%),
+    radial-gradient(50rem 34rem at 50% 46%, rgba(201, 168, 76, 0.07), transparent 68%);
+  filter: blur(8px) saturate(120%);
+  animation: aurora 34s ease-in-out infinite alternate;
 }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* A fine grain over the whole page kills banding in the big gradients and
+   gives the surfaces a faint parchment tooth. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
-::-webkit-scrollbar-track {
-  background: #0c0a14;
+
+@keyframes aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(1.5%, -1.5%, 0) scale(1.06); }
+  100% { transform: translate3d(-1.5%, 1.5%, 0) scale(1.03); }
 }
+
+::selection { background: rgba(201, 168, 76, 0.35); }
+
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: rgba(12, 10, 20, 0.6); }
 ::-webkit-scrollbar-thumb {
-  background: #2d2547;
-  border-radius: 5px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #3a3155, #241d3a);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3d3459;
+  background: linear-gradient(180deg, #7d6229, #4a3a58);
+  background-clip: padding-box;
 }
+* { scrollbar-color: #3a3155 rgba(12, 10, 20, 0.6); scrollbar-width: thin; }
+
+html { scroll-behavior: smooth; }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -54,163 +85,234 @@ body {
 }
 
 @layer components {
-  /* ---- Surfaces ---------------------------------------------------------- */
+  /* ---- Surfaces: real glass, not flat panels --------------------------- */
   .card {
-    @apply relative rounded-xl border border-abyss-600/50 bg-abyss-850/70 shadow-lg backdrop-blur-sm;
-    background-image: linear-gradient(
-      160deg,
-      rgba(45, 37, 71, 0.28) 0%,
-      rgba(17, 14, 28, 0) 55%
-    );
+    @apply relative rounded-2xl border border-white/[0.07] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.75)] backdrop-blur-xl;
+    background-image:
+      linear-gradient(150deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 40%, transparent 70%),
+      linear-gradient(180deg, rgba(23, 19, 38, 0.82), rgba(12, 10, 20, 0.88));
   }
   .card-gold {
-    @apply relative rounded-xl border border-gold-700/45 bg-abyss-850/75 shadow-glow backdrop-blur-sm;
-    background-image: linear-gradient(
-      160deg,
-      rgba(201, 168, 76, 0.09) 0%,
-      rgba(17, 14, 28, 0) 60%
-    );
+    @apply relative rounded-2xl border border-gold-600/35 shadow-[0_8px_36px_-8px_rgba(201,168,76,0.28)] backdrop-blur-xl;
+    background-image:
+      linear-gradient(150deg, rgba(240, 216, 148, 0.13) 0%, rgba(201, 168, 76, 0.04) 42%, transparent 72%),
+      linear-gradient(180deg, rgba(28, 22, 40, 0.85), rgba(14, 11, 22, 0.9));
   }
   .card-crimson {
-    @apply relative rounded-xl border border-crimson-600/45 bg-abyss-850/75 shadow-crimson backdrop-blur-sm;
-    background-image: linear-gradient(
-      160deg,
-      rgba(160, 60, 56, 0.13) 0%,
-      rgba(17, 14, 28, 0) 60%
-    );
+    @apply relative rounded-2xl border border-crimson-500/35 shadow-[0_8px_36px_-8px_rgba(160,60,56,0.35)] backdrop-blur-xl;
+    background-image:
+      linear-gradient(150deg, rgba(194, 85, 79, 0.15) 0%, rgba(160, 60, 56, 0.05) 42%, transparent 72%),
+      linear-gradient(180deg, rgba(32, 19, 30, 0.85), rgba(14, 10, 18, 0.9));
   }
-  /* Interactive card: lifts and lights its edge on hover. */
-  .card-link {
-    @apply card transition-all duration-200 hover:-translate-y-0.5 hover:border-gold-700/60 hover:shadow-glow;
+  .card-arcane {
+    @apply relative rounded-2xl border border-arcane-500/35 shadow-arcane backdrop-blur-xl;
+    background-image:
+      linear-gradient(150deg, rgba(114, 137, 209, 0.14) 0%, rgba(79, 99, 168, 0.05) 42%, transparent 72%),
+      linear-gradient(180deg, rgba(20, 20, 42, 0.85), rgba(11, 11, 22, 0.9));
   }
 
-  /* A hairline of light along the top edge — reads as torchlight catching stone. */
+  /* Interactive card: lifts, brightens its rim, and throws light. */
+  .card-link {
+    @apply card transition-all duration-300 ease-out;
+  }
+  .card-link:hover {
+    @apply -translate-y-1 border-gold-500/50;
+    box-shadow:
+      0 18px 44px -12px rgba(0, 0, 0, 0.85),
+      0 0 0 1px rgba(201, 168, 76, 0.16),
+      0 0 34px -6px rgba(201, 168, 76, 0.35);
+  }
+
+  /* A hairline of light along the top edge — torchlight catching stone. */
   .lit-edge::before {
     content: "";
-    @apply pointer-events-none absolute inset-x-6 top-0 h-px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(201, 168, 76, 0.45),
-      transparent
-    );
+    @apply pointer-events-none absolute inset-x-8 top-0 h-px;
+    background: linear-gradient(90deg, transparent, rgba(240, 216, 148, 0.6), transparent);
   }
 
-  /* ---- Buttons ----------------------------------------------------------- */
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-abyss-950 disabled:cursor-not-allowed disabled:opacity-40;
+  /* An aura bleeding out from behind a hero element. */
+  .aura::after {
+    content: "";
+    @apply pointer-events-none absolute -inset-px -z-10 rounded-2xl opacity-60 blur-xl;
+    background: linear-gradient(120deg, rgba(201, 168, 76, 0.35), rgba(147, 88, 201, 0.25), rgba(79, 99, 168, 0.3));
   }
+
+  /* ---- Accent-driven cards ---------------------------------------------
+     These read --accent / --accent-light / --accent-deep set inline by
+     categoryVars(), so any colour can drive a card without Tailwind having
+     to know it at build time. */
+  .card-accent {
+    @apply card relative overflow-hidden transition-all duration-300 ease-out;
+  }
+  /* The category spine down the left edge. */
+  .card-accent::before {
+    content: "";
+    @apply pointer-events-none absolute inset-y-0 left-0 w-[3px] opacity-70 transition-opacity duration-300;
+    background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+  }
+  /* Accent light bleeding from the top-left on hover. */
+  .card-accent::after {
+    content: "";
+    @apply pointer-events-none absolute -left-12 -top-14 h-36 w-36 rounded-full opacity-0 blur-2xl transition-opacity duration-500;
+    background: radial-gradient(circle, var(--accent), transparent 70%);
+  }
+  .card-accent:hover::after { opacity: 0.45; }
+  .card-accent:hover::before { opacity: 1; }
+  .card-accent:hover {
+    @apply -translate-y-1;
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    box-shadow:
+      0 18px 44px -12px rgba(0, 0, 0, 0.85),
+      0 0 34px -8px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  .accent-text { color: var(--accent-light); }
+  .accent-chip {
+    @apply inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider;
+    color: var(--accent-light);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .accent-quote {
+    border-left: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+
+  /* ---- Buttons ---------------------------------------------------------- */
+  .btn {
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-abyss-950 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  /* A sheen sweeps across primary buttons on hover. */
   .btn-primary {
-    @apply btn text-abyss-950 shadow-md hover:shadow-glow;
-    background-image: linear-gradient(180deg, #e3c26d, #b8923f);
+    @apply btn text-abyss-950;
+    background-image: linear-gradient(135deg, #f5e2ae 0%, #e3c26d 45%, #b8923f 100%);
+    box-shadow: 0 4px 18px -4px rgba(201, 168, 76, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
   .btn-primary:hover:not(:disabled) {
-    background-image: linear-gradient(180deg, #f0d894, #c9a84c);
+    @apply -translate-y-0.5;
+    box-shadow: 0 10px 28px -6px rgba(201, 168, 76, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.55);
   }
+  .btn-primary::after,
+  .btn-danger::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 -translate-x-full;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transition: transform 0.6s ease;
+  }
+  .btn-primary:hover::after,
+  .btn-danger:hover::after { @apply translate-x-full; }
+
   .btn-secondary {
-    @apply btn border border-abyss-600 bg-abyss-800/80 text-parchment-200 hover:border-gold-700/60 hover:bg-abyss-700/80 hover:text-gold-300;
+    @apply btn border border-white/10 bg-white/[0.04] text-parchment-200 backdrop-blur hover:-translate-y-0.5 hover:border-gold-500/50 hover:bg-white/[0.08] hover:text-gold-200;
   }
   .btn-danger {
-    @apply btn border border-crimson-600/70 text-parchment-100 hover:border-crimson-400;
-    background-image: linear-gradient(180deg, rgba(160, 60, 56, 0.5), rgba(92, 30, 29, 0.5));
+    @apply btn border border-crimson-400/50 text-parchment-100;
+    background-image: linear-gradient(135deg, rgba(194, 85, 79, 0.65), rgba(92, 30, 29, 0.6));
+    box-shadow: 0 4px 18px -4px rgba(160, 60, 56, 0.5);
+  }
+  .btn-danger:hover:not(:disabled) {
+    @apply -translate-y-0.5 border-crimson-400;
+    box-shadow: 0 10px 28px -6px rgba(194, 85, 79, 0.6);
   }
   .btn-ghost {
-    @apply btn text-parchment-400 hover:bg-abyss-800/70 hover:text-gold-300;
+    @apply btn text-parchment-400 hover:bg-white/[0.06] hover:text-gold-300;
   }
 
-  /* ---- Forms ------------------------------------------------------------- */
+  /* ---- Forms ------------------------------------------------------------ */
   .input {
-    @apply w-full rounded-lg border border-abyss-600 bg-abyss-900/90 px-3 py-2 text-parchment-100 transition-colors placeholder:text-parchment-500/60 focus:border-gold-600 focus:outline-none focus:ring-1 focus:ring-gold-600/50;
+    @apply w-full rounded-xl border border-white/10 bg-abyss-950/70 px-3.5 py-2.5 text-parchment-100 backdrop-blur transition-all placeholder:text-parchment-500/60 focus:border-gold-500/70 focus:bg-abyss-950/90 focus:outline-none;
   }
+  .input:focus { box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15), 0 0 22px -6px rgba(201, 168, 76, 0.5); }
   .label {
-    @apply mb-1 block text-xs font-semibold uppercase tracking-widest text-parchment-400;
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-parchment-400;
   }
 
   /* ---- Type -------------------------------------------------------------- */
-  .heading-display {
-    @apply font-display tracking-wide text-gold-300;
+  .heading-display { @apply font-display tracking-wide text-gold-300; }
+
+  /* Molten-gold gradient text for the biggest headings. */
+  .text-gilded {
+    background: linear-gradient(135deg, #fbf1d2 0%, #f0d894 30%, #c9a84c 60%, #e3c26d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
   }
   .eyebrow {
-    @apply flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-parchment-500;
+    @apply flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-600;
   }
-  .prose-lesson p {
-    @apply text-[15px] leading-[1.75] text-parchment-200;
-  }
+  .prose-lesson p { @apply text-[15px] leading-[1.8] text-parchment-200; }
 
   /* ---- Ornaments --------------------------------------------------------- */
   .rune-divider {
-    @apply my-4 flex items-center gap-3 text-gold-700/70 before:h-px before:flex-1 before:bg-gradient-to-r before:from-transparent before:to-gold-700/40 after:h-px after:flex-1 after:bg-gradient-to-l after:from-transparent after:to-gold-700/40;
+    @apply my-5 flex items-center gap-3 text-gold-600/80 before:h-px before:flex-1 before:bg-gradient-to-r before:from-transparent before:to-gold-600/50 after:h-px after:flex-1 after:bg-gradient-to-l after:from-transparent after:to-gold-600/50;
   }
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-abyss-600/80 bg-abyss-800/70 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-parchment-300;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-parchment-300 backdrop-blur transition-colors;
   }
-  .pill-gold {
-    @apply pill border-gold-700/50 bg-abyss-800/80 text-gold-300;
-  }
-  .pill-crimson {
-    @apply pill border-crimson-600/50 text-crimson-400;
-  }
-  .pill-arcane {
-    @apply pill border-arcane-600/50 text-arcane-300;
-  }
+  .pill-gold    { @apply pill border-gold-500/45 bg-gold-500/10 text-gold-300; }
+  .pill-crimson { @apply pill border-crimson-400/45 bg-crimson-500/10 text-crimson-400; }
+  .pill-arcane  { @apply pill border-arcane-400/45 bg-arcane-500/10 text-arcane-300; }
+  .pill-emerald { @apply pill border-emerald2-400/45 bg-emerald2-500/10 text-emerald2-300; }
 
   /* ---- Meters ------------------------------------------------------------ */
   .meter-track {
-    @apply relative h-2 overflow-hidden rounded-full bg-abyss-900 ring-1 ring-inset ring-abyss-600/60;
+    @apply relative h-2.5 overflow-hidden rounded-full bg-abyss-950/80 ring-1 ring-inset ring-white/[0.07];
   }
   .meter-fill {
-    @apply h-full rounded-full transition-[width] duration-700 ease-out;
+    @apply relative h-full rounded-full transition-[width] duration-700 ease-out;
+    box-shadow: 0 0 12px -2px currentColor;
+  }
+  /* A travelling highlight makes a filling meter feel alive. */
+  .meter-fill::after {
+    content: "";
+    @apply absolute inset-0 rounded-full;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 2.6s ease-in-out infinite;
   }
 }
 
 @layer utilities {
-  .animate-flicker {
-    animation: flicker 2.6s ease-in-out infinite;
-  }
-  .animate-rise {
-    animation: rise 0.45s ease-out both;
-  }
-  .animate-pulse-glow {
-    animation: pulse-glow 2.4s ease-in-out infinite;
-  }
-  .text-balance {
-    text-wrap: balance;
-  }
+  .animate-flicker { animation: flicker 2.6s ease-in-out infinite; }
+  .animate-rise { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .text-balance { text-wrap: balance; }
+
+  /* Stagger helpers so lists cascade in rather than snapping. */
+  .stagger > * { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.10s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.14s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.18s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.22s; }
+  .stagger > *:nth-child(7) { animation-delay: 0.26s; }
+  .stagger > *:nth-child(8) { animation-delay: 0.30s; }
+  .stagger > *:nth-child(n + 9) { animation-delay: 0.34s; }
 }
 
 @keyframes flicker {
-  0%,
-  100% {
-    opacity: 1;
-    filter: drop-shadow(0 0 6px rgba(227, 194, 109, 0.55));
-  }
-  45% {
-    opacity: 0.82;
-    filter: drop-shadow(0 0 12px rgba(227, 194, 109, 0.75));
-  }
-  70% {
-    opacity: 0.95;
-    filter: drop-shadow(0 0 4px rgba(227, 194, 109, 0.4));
-  }
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(227, 194, 109, 0.6)); }
+  45%      { opacity: 0.82; filter: drop-shadow(0 0 16px rgba(227, 194, 109, 0.85)); }
+  70%      { opacity: 0.95; filter: drop-shadow(0 0 5px rgba(227, 194, 109, 0.45)); }
 }
 
 @keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.35);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(201, 168, 76, 0);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(201, 168, 76, 0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
 }

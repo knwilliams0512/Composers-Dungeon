@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Workshop } from "@/components/composer/Workshop";
 import { Icon } from "@/components/ui/Icon";
 import { freedomForPlayer } from "@/lib/composer-freedom";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export const metadata = { title: "The Composer's Workshop" };
 
@@ -29,6 +30,7 @@ export default async function WorkshopPage() {
 
   return (
     <div>
+      <ScrollProgress />
       <SectionHeading
         eyebrow="No trial · No judge · Your own brief"
         title="The Composer's Workshop"

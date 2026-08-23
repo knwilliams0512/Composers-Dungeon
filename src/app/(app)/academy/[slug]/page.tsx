@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { LessonFlow } from "@/components/academy/LessonFlow";
 import { Icon, SKILL_ICONS } from "@/components/ui/Icon";
 import { Callout, Panel } from "@/components/ui/primitives";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { categoryTheme, categoryVars } from "@/lib/category-theme";
 import { briefForLesson } from "@/lib/lesson-brief";
 import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
 
@@ -97,9 +99,11 @@ export default async function LessonPage({ params }: { params: { slug: string } 
   const practice = lesson.exercises.filter((e) => e.type === "PRACTICE");
   const composition = lesson.exercises.find((e) => e.type === "COMPOSITION");
   const done = progress?.status === "COMPLETED";
+  const theme = categoryTheme(lesson.category);
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl" style={categoryVars(theme)}>
+      <ScrollProgress />
       <Link
         href="/academy"
         className="inline-flex items-center gap-1.5 text-sm text-parchment-500 transition-colors hover:text-gold-300"
@@ -108,35 +112,54 @@ export default async function LessonPage({ params }: { params: { slug: string } 
       </Link>
 
       {/* ---- Header ---------------------------------------------------------- */}
-      <header className="card-gold lit-edge mt-3 p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="pill-gold">
-            <Icon name="sparkle" size={11} /> {lesson.xpReward} XP
-          </span>
-          <span className="pill">
-            <Icon name="clock" size={11} /> ~{lesson.estimatedMinutes} min
-          </span>
-          <span className="pill">
-            <Icon name="target" size={11} /> Difficulty {lesson.difficulty}/10
-          </span>
-          {done && (
-            <span className="pill border-emerald-700/60 text-emerald-300">
-              <Icon name="check" size={11} /> Completed
+      <header className="card lit-edge relative mt-3 overflow-hidden p-7">
+        {/* Category light washing the header */}
+        <div
+          className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full opacity-30 blur-3xl"
+          style={{ background: `radial-gradient(circle, ${theme.hex}, transparent 70%)` }}
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+          style={{ background: `linear-gradient(90deg, transparent, ${theme.hex}, transparent)` }}
+        />
+
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="accent-chip">
+              <Icon name={theme.icon} size={11} />
+              {theme.label}
             </span>
-          )}
-        </div>
-
-        <h1 className="heading-display mt-3 text-3xl text-balance">{lesson.title}</h1>
-        <p className="mt-1.5 text-parchment-400">{lesson.description}</p>
-
-        {lesson.summary && (
-          <div className="mt-4 border-l-2 border-gold-700/60 pl-4">
-            <p className="eyebrow mb-1">
-              <Icon name="compass" size={11} /> What you walk away with
-            </p>
-            <p className="text-sm leading-relaxed text-parchment-200">{lesson.summary}</p>
+            <span className="pill-gold">
+              <Icon name="sparkle" size={11} /> {lesson.xpReward} XP
+            </span>
+            <span className="pill">
+              <Icon name="clock" size={11} /> ~{lesson.estimatedMinutes} min
+            </span>
+            <span className="pill">
+              <Icon name="target" size={11} /> Difficulty {lesson.difficulty}/10
+            </span>
+            {done && (
+              <span className="pill-emerald">
+                <Icon name="check" size={11} /> Completed
+              </span>
+            )}
           </div>
-        )}
+
+          <h1 className="text-gilded mt-4 font-display text-4xl leading-tight text-balance">
+            {lesson.title}
+          </h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-parchment-400">
+            {lesson.description}
+          </p>
+
+          {lesson.summary && (
+            <div className="accent-quote mt-5 rounded-r-lg bg-white/[0.03] py-3 pl-4 pr-3">
+              <p className="eyebrow mb-1.5">
+                <Icon name="compass" size={11} /> What you walk away with
+              </p>
+              <p className="text-sm leading-relaxed text-parchment-200">{lesson.summary}</p>
+            </div>
+          )}
 
         {lesson.skillRewards.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -149,8 +172,9 @@ export default async function LessonPage({ params }: { params: { slug: string } 
                 {r.skill.name} +{r.xp}
               </span>
             ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </header>
 
       {/* ---- Key terms ------------------------------------------------------- */}
@@ -160,9 +184,9 @@ export default async function LessonPage({ params }: { params: { slug: string } 
             {keyTerms.map((t) => (
               <div
                 key={t.term}
-                className="rounded-lg border border-abyss-600/60 bg-abyss-900/40 p-3"
+                className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3.5 backdrop-blur transition-colors hover:border-white/15"
               >
-                <dt className="font-display text-sm text-gold-300">{t.term}</dt>
+                <dt className="accent-text font-display text-sm">{t.term}</dt>
                 <dd className="mt-1 text-[13px] leading-relaxed text-parchment-400">
                   {t.definition}
                 </dd>
@@ -173,28 +197,51 @@ export default async function LessonPage({ params }: { params: { slug: string } 
       )}
 
       {/* ---- The lesson ------------------------------------------------------ */}
-      <div className="prose-lesson mt-6 space-y-4">
+      {/* A numbered rail runs down the left of the whole reading section, so a
+          long lesson reads as a descent rather than a stack of boxes. */}
+      <div className="prose-lesson relative mt-8 space-y-5 pl-11 before:absolute before:bottom-6 before:left-[18px] before:top-6 before:w-px before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
         {content.map((section, i) => (
-          <section key={section.heading} className="card lit-edge p-5">
-            <div className="mb-2 flex items-baseline gap-3">
-              <span className="font-display text-sm text-gold-700">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h2 className="heading-display text-lg">{section.heading}</h2>
-            </div>
-            <p>{section.body}</p>
+          <section key={section.heading} className="card group relative p-6">
+            {/* Numbered node on the rail */}
+            <span
+              className="absolute -left-11 top-6 flex h-9 w-9 items-center justify-center rounded-full border font-display text-xs backdrop-blur transition-all duration-300 group-hover:scale-110"
+              style={{
+                borderColor: `color-mix(in srgb, ${theme.hex} 55%, transparent)`,
+                background: `color-mix(in srgb, ${theme.hex} 14%, rgba(12,10,20,0.9))`,
+                color: theme.light,
+              }}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+
+            <h2 className="font-display text-xl leading-snug text-parchment-100">
+              {section.heading}
+            </h2>
+            <p className="mt-2.5">{section.body}</p>
+
             {section.example && (
-              <div className="mt-3 rounded-lg border border-gold-700/40 bg-abyss-900/80 p-3">
-                <p className="eyebrow mb-1.5">
+              <figure
+                className="mt-4 overflow-hidden rounded-xl border bg-abyss-950/70 backdrop-blur"
+                style={{ borderColor: `color-mix(in srgb, ${theme.hex} 35%, transparent)` }}
+              >
+                <figcaption
+                  className="flex items-center gap-1.5 border-b px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${theme.hex} 25%, transparent)`,
+                    background: `color-mix(in srgb, ${theme.hex} 10%, transparent)`,
+                    color: theme.light,
+                  }}
+                >
                   <Icon name="note" size={11} /> Example
-                </p>
-                <p className="font-mono text-sm leading-relaxed text-gold-300">
+                </figcaption>
+                <p className="px-3.5 py-3 font-mono text-sm leading-relaxed text-gold-200">
                   {section.example}
                 </p>
-              </div>
+              </figure>
             )}
+
             {section.callout && (
-              <div className="mt-3">
+              <div className="mt-4">
                 <Callout kind={section.callout.kind}>{section.callout.text}</Callout>
               </div>
             )}

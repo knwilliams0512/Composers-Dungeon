@@ -7,6 +7,7 @@ import { RARITY_COLORS, type ArtifactRarity } from "@/lib/enums";
 import { CompositionCard } from "@/components/library/CompositionCard";
 import { NewCompositionForm } from "@/components/library/NewCompositionForm";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export const metadata = { title: "The Library" };
 
@@ -35,6 +36,7 @@ export default async function LibraryPage({
 
   return (
     <div>
+      <ScrollProgress />
       <SectionHeading
         eyebrow="Ancient · Organized · Archival"
         title="The Library"

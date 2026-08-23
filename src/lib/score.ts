@@ -321,6 +321,7 @@ const DEFS: Record<CheckId, CheckDef> = {
     label: () => "Stays in the key",
     hint: "Only use notes from the scale shown on the left of the grid.",
     run: (score, a) => {
+      if (a.noteCount === 0) return { passed: false, detail: "No notes yet" };
       const strays = a.notes.filter((n) => !isDiatonic(n.pitch, score.key, score.mode));
       return {
         passed: strays.length === 0,
@@ -358,10 +359,13 @@ const DEFS: Record<CheckId, CheckDef> = {
   "range-limit": {
     label: (v) => `Range within ${v} semitones`,
     hint: "Keep the melody singable — a wide range is hard to hold together.",
-    run: (_s, a, v) => ({
-      passed: a.rangeSemitones <= v,
-      detail: `${a.rangeSemitones} semitone${a.rangeSemitones === 1 ? "" : "s"} from lowest to highest`,
-    }),
+    run: (_s, a, v) => {
+      if (a.noteCount === 0) return { passed: false, detail: "No notes yet" };
+      return {
+        passed: a.rangeSemitones <= v,
+        detail: `${a.rangeSemitones} semitone${a.rangeSemitones === 1 ? "" : "s"} from lowest to highest`,
+      };
+    },
   },
   "mostly-stepwise": {
     label: (v) => `At least ${Math.round(v * 100)}% stepwise motion`,
@@ -391,15 +395,19 @@ const DEFS: Record<CheckId, CheckDef> = {
   "no-long-repeats": {
     label: (v) => `No note repeated more than ${v} times in a row`,
     hint: "Repetition without change stops being a device and becomes a stutter.",
-    run: (_s, a, v) => ({
-      passed: a.longestRepeat <= v,
-      detail: `Longest run of one pitch: ${a.longestRepeat}`,
-    }),
+    run: (_s, a, v) => {
+      if (a.noteCount === 0) return { passed: false, detail: "No notes yet" };
+      return {
+        passed: a.longestRepeat <= v,
+        detail: `Longest run of one pitch: ${a.longestRepeat}`,
+      };
+    },
   },
   "leap-recovery": {
     label: () => "Leaps are answered by a step back",
     hint: "After a jump of a fourth or more, step back the other way.",
     run: (_s, a) => {
+      if (a.notes.length < 2) return { passed: false, detail: "Not enough melody yet" };
       let bad = 0;
       for (let i = 0; i < a.intervals.length; i++) {
         const leap = a.intervals[i];
@@ -426,10 +434,13 @@ const DEFS: Record<CheckId, CheckDef> = {
   "uses-rests": {
     label: () => "Leaves space for breath",
     hint: "Silence is material. Leave at least one gap.",
-    run: (_s, a) => ({
-      passed: a.restTicks > 0,
-      detail: a.restTicks > 0 ? "There is space between phrases" : "No silence anywhere",
-    }),
+    run: (_s, a) => {
+      if (a.noteCount === 0) return { passed: false, detail: "No notes yet" };
+      return {
+        passed: a.restTicks > 0,
+        detail: a.restTicks > 0 ? "There is space between phrases" : "No silence anywhere",
+      };
+    },
   },
   "chords-every-bar": {
     label: () => "Every bar is harmonised",
