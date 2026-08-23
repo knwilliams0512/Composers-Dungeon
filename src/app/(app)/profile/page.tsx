@@ -5,6 +5,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { levelFromXp, skillLevelFromXp } from "@/lib/xp";
+import { Icon } from "@/components/ui/Icon";
 import {
   avatarGlyph,
   parseJsonArray,
@@ -69,7 +70,7 @@ export default async function ProfilePage() {
                 <h2 className="heading-display text-2xl">{profile.displayName}</h2>
                 <p className="text-sm text-parchment-400">
                   Level {xp.level} Composer · {tierLabel} ·{" "}
-                  {profile.visibility === "PUBLIC" ? "🌐 Public" : "🔒 Private"} profile
+                  {profile.visibility === "PUBLIC" ? "Public" : "Private"} profile
                 </p>
                 {profile.bio && <p className="mt-1 text-parchment-300">{profile.bio}</p>}
                 <ProgressBar
@@ -81,7 +82,7 @@ export default async function ProfilePage() {
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
               {[
-                { label: "Creative Flame", value: `🔥 ${profile.streakCount}d` },
+                { label: "Creative Flame", value: `${profile.streakCount}d` },
                 { label: "Longest Streak", value: `${profile.longestStreak}d` },
                 { label: "Rest Days", value: `⏳ ${profile.restDays}` },
                 { label: "Member Since", value: profile.createdAt.toLocaleDateString() },
@@ -170,7 +171,8 @@ export default async function ProfilePage() {
                     </p>
                     {!unlocked && (
                       <p className="mt-1 text-[11px] text-parchment-500">
-                        🔒 Level {spec.levelRequirement}
+                        <Icon name="lock" size={11} className="mr-1 inline" /> Level{" "}
+                        {spec.levelRequirement}
                         {spec.skillKey &&
                           ` + ${spec.skillKey.toLowerCase()} skill ${spec.requiredSkillLevel}`}
                       </p>

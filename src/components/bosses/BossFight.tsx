@@ -6,6 +6,7 @@ import { startBossFight, completeBossObjective } from "@/server/actions/boss";
 import { AwardBanner } from "@/components/ui/AwardBanner";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { AwardResult } from "@/lib/progression";
+import { Icon } from "@/components/ui/Icon";
 
 interface BossDto {
   key: string;
@@ -141,7 +142,8 @@ export function BossFight({
           />
           {lastHit && !defeated && (
             <p className="mt-1 animate-rise text-sm text-crimson-400">
-              ⚔️ {lastHit.toLocaleString()} damage!
+              <Icon name="sword" size={15} className="mr-1 inline" />
+              {lastHit.toLocaleString()} damage!
             </p>
           )}
         </div>
@@ -166,7 +168,7 @@ export function BossFight({
         <div className="text-center">
           {error && <p className="mb-2 text-sm text-crimson-400">{error}</p>}
           <button onClick={begin} disabled={busy} className="btn-danger px-10 py-3 text-base">
-            {busy ? "Steeling yourself…" : "⚔️ Begin the Encounter"}
+            {busy ? "Steeling yourself…" : <><Icon name="sword" size={16} /> Begin the Encounter</>}
           </button>
         </div>
       )}
@@ -237,7 +239,8 @@ export function BossFight({
                       <p className="mt-1 text-sm text-parchment-400">{obj.description}</p>
                       {!requiredDone && (
                         <p className="mt-2 text-xs text-parchment-500">
-                          🔒 Sealed until every required objective is complete.
+                          <Icon name="lock" size={12} className="mr-1 inline" /> Sealed
+                          until every required objective is complete.
                         </p>
                       )}
                       {requiredDone && !finalOpen && (
@@ -296,7 +299,7 @@ export function BossFight({
                             </select>
                           </div>
                           <button type="submit" disabled={busy} className="btn-danger w-full">
-                            {busy ? "Striking…" : "⚔️ DELIVER THE FINAL BLOW"}
+                            {busy ? "Striking…" : <><Icon name="sword" size={16} /> DELIVER THE FINAL BLOW</>}
                           </button>
                         </form>
                       )}

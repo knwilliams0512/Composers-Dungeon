@@ -6,6 +6,7 @@ import { ensureDailyChallenge } from "@/lib/daily";
 import { ChallengePanel } from "@/components/dungeon/ChallengePanel";
 import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
 import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
+import { Icon } from "@/components/ui/Icon";
 
 export const metadata = { title: "Daily Dungeon Challenge" };
 export const dynamic = "force-dynamic";
@@ -35,7 +36,8 @@ export default async function DailyChallengePage() {
       </Link>
       <header className="mb-6 mt-2">
         <p className="text-xs uppercase tracking-[0.3em] text-parchment-500">
-          🌅 Daily Dungeon Challenge
+          <Icon name="sun" size={13} className="mr-1 inline text-gold-500" />
+          Daily Dungeon Challenge
         </p>
         <h1 className="heading-display mt-1 text-3xl">The Dawn Trial</h1>
         <p className="mt-2 text-parchment-400">
@@ -48,7 +50,7 @@ export default async function DailyChallengePage() {
 
       {done ? (
         <div className="card-gold p-8 text-center">
-          <p className="text-4xl">🌅</p>
+          <Icon name="sun" size={36} className="mx-auto text-gold-400" />
           <h2 className="heading-display mt-3 text-xl">Today&apos;s Trial Is Complete</h2>
           <p className="mt-2 text-parchment-400">
             The flame burns bright. Return after the next dawn — or descend

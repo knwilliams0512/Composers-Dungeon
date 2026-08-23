@@ -2,6 +2,7 @@
 
 import type { AwardResult } from "@/lib/progression";
 import { SKILL_LABELS } from "@/lib/enums";
+import { Icon } from "@/components/ui/Icon";
 
 /** Renders the outcome of a progression award: XP, level-ups, achievements. */
 export function AwardBanner({
@@ -18,15 +19,19 @@ export function AwardBanner({
     <div className="card-gold animate-rise space-y-2 p-4">
       {award && (
         <p className="font-display text-lg text-gold-300">
-          ✦ +{award.xpAwarded} XP
+          <Icon name="sparkle" size={16} className="mr-1 inline text-gold-400" />+
+          {award.xpAwarded} XP
           {award.streakBonusApplied && (
-            <span className="ml-2 text-sm text-crimson-400">🔥 flame bonus</span>
+            <span className="ml-2 inline-flex items-center gap-1 text-sm text-crimson-400">
+              <Icon name="flame" size={13} /> flame bonus
+            </span>
           )}
         </p>
       )}
       {award?.leveledUp && (
         <p className="text-parchment-100">
-          ⬆ You have reached <strong>Composer Level {award.newLevel}</strong>!
+          <Icon name="trophy" size={15} className="mr-1 inline text-gold-400" />
+          You have reached <strong>Composer Level {award.newLevel}</strong>!
         </p>
       )}
       {award?.skillLevelUps.map((s) => (
@@ -36,7 +41,8 @@ export function AwardBanner({
       ))}
       {award?.streak.milestone && (
         <p className="text-sm text-crimson-400">
-          🔥 Creative Flame milestone: {award.streak.milestone} day
+          <Icon name="flame" size={14} className="mr-1 inline text-crimson-400" />
+          Creative Flame milestone: {award.streak.milestone} day
           {award.streak.milestone > 1 ? "s" : ""}!
         </p>
       )}

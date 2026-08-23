@@ -9,6 +9,7 @@ import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
 import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
 import { PuzzlePanel } from "@/components/dungeon/PuzzlePanel";
 import { TreasurePanel } from "@/components/dungeon/TreasurePanel";
+import { Icon } from "@/components/ui/Icon";
 
 export default async function DungeonRoomPage({
   params,
@@ -35,7 +36,7 @@ export default async function DungeonRoomPage({
   if (!unlocked) {
     return (
       <div className="card mx-auto max-w-lg p-8 text-center">
-        <p className="text-3xl">🔒</p>
+        <Icon name="lock" size={30} className="mx-auto text-gold-600" />
         <h1 className="heading-display mt-2 text-xl">The Door Will Not Move</h1>
         <p className="mt-2 text-parchment-400">
           Reach Composer Level {Math.max(room.levelRequirement, room.area.levelRequirement)} to enter.
@@ -170,7 +171,7 @@ export default async function DungeonRoomPage({
 
       {room.type === "REST" && (
         <div className="card p-6 text-center">
-          <p className="animate-flicker text-4xl">🔥</p>
+          <Icon name="flame" size={36} className="mx-auto animate-flicker text-gold-400" />
           <h2 className="heading-display mt-3 text-xl">A Moment of Peace</h2>
           <p className="mx-auto mt-2 max-w-md text-parchment-400">
             The Dungeon cannot reach you here. Rest Days protect your Creative

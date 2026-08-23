@@ -174,7 +174,10 @@ export function LessonFlow({
                   })}
                 </div>
                 {r && !r.correct && (
-                  <p className="mt-1.5 text-xs text-parchment-400">💡 {r.explanation}</p>
+                  <p className="mt-1.5 flex gap-1.5 text-xs text-parchment-400">
+                    <Icon name="insight" size={13} className="mt-px shrink-0 text-gold-600" />
+                    {r.explanation}
+                  </p>
                 )}
               </div>
             );
@@ -194,7 +197,7 @@ export function LessonFlow({
               }`}
             >
               {quizResult.passed
-                ? `✦ ${quizResult.score}% — the Academy nods in approval.`
+                ? `${quizResult.score}% — the Academy nods in approval.`
                 : `${quizResult.score}% — review the lesson and try again.`}
             </p>
             {!quizResult.passed && (
@@ -219,7 +222,12 @@ export function LessonFlow({
             {practiceDone ? "✓ " : ""}Practice · {p.title}
           </h2>
           <p className="text-parchment-200">{p.prompt}</p>
-          {p.hint && <p className="mt-2 text-sm text-parchment-500">💡 {p.hint}</p>}
+          {p.hint && (
+            <p className="mt-2 flex gap-1.5 text-sm text-parchment-500">
+              <Icon name="insight" size={15} className="mt-0.5 shrink-0 text-gold-600" />
+              {p.hint}
+            </p>
+          )}
           {!practiceDone && (
             <button onClick={handlePractice} disabled={busy} className="btn-secondary mt-4">
               I Have Practiced This
@@ -236,11 +244,15 @@ export function LessonFlow({
           </h2>
           <p className="text-parchment-200">{compositionExercise.prompt}</p>
           {compositionExercise.hint && (
-            <p className="mt-2 text-sm text-parchment-500">💡 {compositionExercise.hint}</p>
+            <p className="mt-2 flex gap-1.5 text-sm text-parchment-500">
+              <Icon name="insight" size={15} className="mt-0.5 shrink-0 text-gold-600" />
+              {compositionExercise.hint}
+            </p>
           )}
           {!quizPassed && !completed && (
             <p className="mt-3 text-sm text-crimson-400">
-              🔒 Pass the quiz to unlock this exercise.
+              <Icon name="lock" size={13} className="mr-1 inline" /> Pass the quiz to
+              unlock this exercise.
             </p>
           )}
           {quizPassed && !completed && (

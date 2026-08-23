@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { solvePuzzle } from "@/server/actions/dungeon";
 import { AwardBanner } from "@/components/ui/AwardBanner";
 import type { AwardResult } from "@/lib/progression";
+import { Icon } from "@/components/ui/Icon";
 
 export function PuzzlePanel({
   roomId,
@@ -70,7 +71,9 @@ export function PuzzlePanel({
   return (
     <div className="space-y-4">
       <section className="card p-5">
-        <h2 className="heading-display mb-2 text-lg">🧩 The Puzzle</h2>
+        <h2 className="heading-display mb-2 flex items-center gap-2 text-lg">
+          <Icon name="puzzle" size={18} className="text-arcane-300" /> The Puzzle
+        </h2>
         <p className="text-parchment-200">{puzzle.prompt}</p>
 
         {solved && (

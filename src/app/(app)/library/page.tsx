@@ -6,16 +6,17 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RARITY_COLORS, type ArtifactRarity } from "@/lib/enums";
 import { CompositionCard } from "@/components/library/CompositionCard";
 import { NewCompositionForm } from "@/components/library/NewCompositionForm";
+import { Icon, type IconName } from "@/components/ui/Icon";
 
 export const metadata = { title: "The Library" };
 
-const TABS = [
-  { key: "compositions", label: "Compositions", icon: "🖋️" },
-  { key: "challenges", label: "Challenge History", icon: "⚔️" },
-  { key: "lessons", label: "Completed Lessons", icon: "📖" },
-  { key: "bosses", label: "Boss Victories", icon: "💀" },
-  { key: "artifacts", label: "Artifacts", icon: "🗝️" },
-  { key: "achievements", label: "Achievements", icon: "🏆" },
+const TABS: { key: string; label: string; icon: IconName }[] = [
+  { key: "compositions", label: "Compositions", icon: "quill" },
+  { key: "challenges", label: "Challenge History", icon: "sword" },
+  { key: "lessons", label: "Completed Lessons", icon: "book" },
+  { key: "bosses", label: "Boss Victories", icon: "skull" },
+  { key: "artifacts", label: "Artifacts", icon: "chest" },
+  { key: "achievements", label: "Achievements", icon: "trophy" },
 ] as const;
 
 export default async function LibraryPage({
@@ -52,7 +53,8 @@ export default async function LibraryPage({
                 : "border-abyss-600 text-parchment-400 hover:border-gold-700/50"
             }`}
           >
-            {t.icon} {t.label}
+            <Icon name={t.icon} size={13} className="mr-1.5 inline" />
+            {t.label}
           </Link>
         ))}
       </nav>
@@ -157,7 +159,13 @@ async function ChallengesTab({
       {challenges.map((uc) => (
         <li key={uc.id} className="card flex flex-wrap items-center gap-3 p-4 text-sm">
           <span className="text-lg">
-            {uc.status === "COMPLETED" ? "✓" : uc.status === "ACTIVE" ? "⚔️" : "✕"}
+            {uc.status === "COMPLETED" ? (
+              <Icon name="check" size={14} className="text-emerald-400" />
+            ) : uc.status === "ACTIVE" ? (
+              <Icon name="sword" size={14} className="text-crimson-400" />
+            ) : (
+              "✕"
+            )}
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-parchment-100">{uc.challenge.title}</p>
@@ -175,7 +183,7 @@ async function ChallengesTab({
                   : "text-parchment-500"
             }`}
           >
-            {uc.status.toLowerCase()} · ✦ {uc.challenge.xpReward} XP
+            {uc.status.toLowerCase()} · {uc.challenge.xpReward} XP
           </span>
         </li>
       ))}
@@ -199,7 +207,7 @@ async function LessonsTab({ userId }: { userId: string }) {
             href={`/academy/${p.lesson.slug}`}
             className="card flex items-center gap-3 p-4 text-sm hover:border-gold-700/50"
           >
-            <span>📖</span>
+            <Icon name="book" size={16} className="text-gold-500" />
             <div className="flex-1">
               <p className="text-parchment-100">{p.lesson.title}</p>
               <p className="text-xs text-parchment-500">
@@ -207,7 +215,7 @@ async function LessonsTab({ userId }: { userId: string }) {
                 {p.completedAt?.toLocaleDateString() ?? ""}
               </p>
             </div>
-            <span className="text-xs text-gold-400">✦ {p.lesson.xpReward} XP</span>
+            <span className="text-xs text-gold-400">{p.lesson.xpReward} XP</span>
           </Link>
         </li>
       ))}
@@ -286,12 +294,14 @@ async function AchievementsTab({ userId }: { userId: string }) {
         return (
           <div key={a.id} className={`card p-4 ${e ? "border-gold-700/50" : "opacity-50"}`}>
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{e ? a.icon : "🔒"}</span>
+              <span className="text-2xl">
+                {e ? a.icon : <Icon name="lock" size={20} className="text-abyss-600" />}
+              </span>
               <div>
                 <p className="text-sm font-semibold text-parchment-100">{a.name}</p>
                 <p className="text-xs text-parchment-400">{a.description}</p>
                 <p className="mt-0.5 text-[10px] text-parchment-500">
-                  ✦ {a.xpReward} XP
+                  {a.xpReward} XP
                   {e && ` · unlocked ${e.unlockedAt.toLocaleDateString()}`}
                 </p>
               </div>

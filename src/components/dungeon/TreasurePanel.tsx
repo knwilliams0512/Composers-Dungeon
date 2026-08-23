@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { claimTreasure } from "@/server/actions/dungeon";
 import { RARITY_COLORS, type ArtifactRarity } from "@/lib/enums";
+import { Icon } from "@/components/ui/Icon";
 
 export function TreasurePanel({
   roomId,
@@ -58,7 +59,7 @@ export function TreasurePanel({
           </p>
           {error && <p className="mt-2 text-sm text-crimson-400">{error}</p>}
           <button onClick={claim} disabled={busy} className="btn-primary mt-4">
-            {busy ? "Opening…" : "🗝️ Open the Chest"}
+            {busy ? "Opening…" : <><Icon name="chest" size={16} /> Open the Chest</>}
           </button>
         </>
       )}
