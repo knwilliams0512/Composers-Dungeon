@@ -13,9 +13,11 @@ import {
 } from "@/lib/score";
 import {
   accidentalGlyph,
+  letterForStaffStep,
   pitchForStaffStep,
   restsForGaps,
   sharpsInKey,
+  signatureAlterations,
   staffStep,
   FLAT_STEPS,
   SHARP_STEPS,
@@ -174,7 +176,7 @@ export function StaffView({
   accidentalMode: -1 | 0 | 1 | null;
   /** The same pitch range the grid offers at this freedom tier. */
   allowedPitches: number[];
-  onToggleNote: (pitch: number, tick: number) => void;
+  onToggleNote: (pitch: number, tick: number, spell?: -1 | 0 | 1) => void;
   onSetChord: (barIndex: number, degree: number | null) => void;
 }) {
   const allowed = useMemo(() => new Set(allowedPitches), [allowedPitches]);
@@ -280,7 +282,12 @@ export function StaffView({
   function place(g: Ghost) {
     if (readOnly) return;
     const pitch = pitchForStaffStep(g.step, score.key, score.mode, accidentalMode);
-    onToggleNote(pitch, g.tick);
+    // Record which line the writer actually clicked, as an accidental against
+    // that line's letter. Deep flat keys need it even with no accidental
+    // chosen: Eb minor flattens C to Cb, a pitch the chromatic name table can
+    // only call B, which would redraw the note a line lower than it was put.
+    const sigAlt = signatureAlterations(score.key, score.mode).get(letterForStaffStep(g.step)) ?? 0;
+    onToggleNote(pitch, g.tick, (accidentalMode ?? sigAlt) as -1 | 0 | 1);
   }
 
   /* ---- Render ------------------------------------------------------------- */
@@ -446,14 +453,14 @@ export function StaffView({
 
               {/* Notes */}
               {sysNotes.map((n, i) => {
-                const step = staffStep(n.pitch, score.key);
+                const step = staffStep(n.pitch, score.key, score.mode, n.spell);
                 const x = tickX(n.start, sys);
                 const y = stepY(step, TOP_PAD);
                 const open = n.duration >= 8; // half and longer: open head
                 const whole = n.duration >= 16;
                 const dotted = [3, 6, 12, 24].includes(n.duration);
                 const stemUp = step < midLineStep;
-                const acc = accidentalGlyph(n.pitch, score.key, score.mode);
+                const acc = accidentalGlyph(n.pitch, score.key, score.mode, n.spell);
 
                 /* Ledger lines: every gap-line between the staff and the note */
                 const ledgers: number[] = [];
@@ -545,7 +552,7 @@ export function StaffView({
                     <g pointerEvents="none" opacity={0.45}>
                       <ellipse cx={gx} cy={gy} rx={HEAD_RX} ry={HEAD_RY} transform={`rotate(-18 ${gx} ${gy})`} fill={ACCENT} />
                       <text x={gx} y={TOP_PAD + STAFF_H + GAP * 3.4} textAnchor="middle" fontSize={10} fill={ACCENT} fontFamily="var(--font-display, serif)">
-                        {pitchName(pitch, score.key)}
+                        {pitchName(pitch, score.key, score.mode)}
                       </text>
                     </g>
                   );

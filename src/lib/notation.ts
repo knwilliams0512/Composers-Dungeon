@@ -1,4 +1,4 @@
-import { pitchName, ticksPerBar, type ScoreMeter } from "@/lib/score";
+import { keySignatureCount, pitchName, ticksPerBar, type ScoreMeter } from "@/lib/score";
 
 /**
  * Staff-notation math: everything the engraver needs to place a MIDI pitch on
@@ -11,17 +11,12 @@ import { pitchName, ticksPerBar, type ScoreMeter } from "@/lib/score";
 export const LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
 const LETTER_SEMIS: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-/** Sharps (positive) or flats (negative) in the key signature. */
-const MAJOR_SHARPS: Record<string, number> = {
-  C: 0, G: 1, D: 2, A: 3, E: 4, B: 5,
-  F: -1, Bb: -2, Eb: -3, Ab: -4, Db: -5,
-};
-
+/**
+ * Sharps (positive) or flats (negative) in the key signature. The table lives
+ * in score.ts so note spelling and the engraved signature can never disagree.
+ */
 export function sharpsInKey(key: string, mode: "major" | "minor"): number {
-  const base = MAJOR_SHARPS[key] ?? 0;
-  // The relative major sits three fifths up: A minor shares C major's empty
-  // signature, E minor carries one sharp, C minor three flats.
-  return mode === "minor" ? base - 3 : base;
+  return keySignatureCount(key, mode);
 }
 
 /** Order the accidentals appear in a signature, as letters. */
@@ -38,8 +33,16 @@ export function signatureAlterations(key: string, mode: "major" | "minor"): Map<
 }
 
 /** Staff steps (0 = E4) where the signature's glyphs sit on a treble staff. */
+const E4_INDEX = 4 * 7 + 2; // diatonic index of the treble staff's bottom line
+
 export const SHARP_STEPS = [8, 5, 9, 6, 3, 7, 4];
 export const FLAT_STEPS = [4, 7, 3, 6, 2, 5, 1];
+
+/** The letter a staff line or space carries, independent of any accidental. */
+export function letterForStaffStep(step: number): string {
+  const idx = step + E4_INDEX;
+  return LETTERS[((idx % 7) + 7) % 7];
+}
 
 export interface Spelled {
   letter: string;
@@ -48,20 +51,42 @@ export interface Spelled {
   octave: number;
 }
 
-/** How the key would spell this MIDI pitch: G major writes F#, F major writes Bb. */
-export function spellPitch(pitch: number, key: string): Spelled {
-  const name = pitchName(pitch, key); // e.g. "F#4", "Bb3", "C5"
+/** How the key would spell this MIDI pitch: G major writes F#, D minor writes Bb. */
+export function spellPitch(pitch: number, key: string, mode: "major" | "minor" = "major"): Spelled {
+  const name = pitchName(pitch, key, mode); // e.g. "F#4", "Bb3", "C5"
   const letter = name[0];
   const accidental = name.includes("#") ? 1 : name.includes("b") ? -1 : 0;
   const octave = parseInt(name.replace(/[^-\d]/g, ""), 10);
   return { letter, accidental, octave };
 }
 
-const E4_INDEX = 4 * 7 + 2; // diatonic index of the treble staff's bottom line
-
 /** Line-or-space for a pitch: 0 = bottom line (E4), 8 = top line (F5). */
-export function staffStep(pitch: number, key: string): number {
-  const s = spellPitch(pitch, key);
+/** Semitone offset of each natural letter within its octave. */
+const NATURAL_BY_SEMI: Record<number, string> = {
+  0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B",
+};
+
+/**
+ * Line-or-space for a pitch. When the writer chose an accidental explicitly,
+ * `spell` says which one, and the letter is recovered by undoing it: Eb and D#
+ * are the same key on a piano but different lines on a staff, and a note must
+ * be drawn where its author put it.
+ */
+export function staffStep(
+  pitch: number,
+  key: string,
+  mode: "major" | "minor" = "major",
+  spell?: -1 | 0 | 1
+): number {
+  if (spell !== undefined) {
+    const natural = pitch - spell;
+    const letter = NATURAL_BY_SEMI[((natural % 12) + 12) % 12];
+    if (letter) {
+      const octave = Math.floor(natural / 12) - 1;
+      return octave * 7 + LETTERS.indexOf(letter as (typeof LETTERS)[number]) - E4_INDEX;
+    }
+  }
+  const s = spellPitch(pitch, key, mode);
   return s.octave * 7 + LETTERS.indexOf(s.letter as (typeof LETTERS)[number]) - E4_INDEX;
 }
 
@@ -73,13 +98,23 @@ export function staffStep(pitch: number, key: string): number {
 export function accidentalGlyph(
   pitch: number,
   key: string,
-  mode: "major" | "minor"
+  mode: "major" | "minor",
+  spell?: -1 | 0 | 1
 ): "sharp" | "flat" | "natural" | null {
-  const s = spellPitch(pitch, key);
-  const sig = signatureAlterations(key, mode).get(s.letter) ?? 0;
-  if (s.accidental === sig) return null;
-  if (s.accidental === 1) return "sharp";
-  if (s.accidental === -1) return "flat";
+  let letter: string;
+  let accidental: -1 | 0 | 1;
+  if (spell !== undefined && NATURAL_BY_SEMI[(((pitch - spell) % 12) + 12) % 12]) {
+    letter = NATURAL_BY_SEMI[(((pitch - spell) % 12) + 12) % 12];
+    accidental = spell;
+  } else {
+    const s = spellPitch(pitch, key, mode);
+    letter = s.letter;
+    accidental = s.accidental;
+  }
+  const sig = signatureAlterations(key, mode).get(letter) ?? 0;
+  if (accidental === sig) return null;
+  if (accidental === 1) return "sharp";
+  if (accidental === -1) return "flat";
   return "natural";
 }
 

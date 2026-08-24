@@ -303,7 +303,7 @@ export function ScoreEditor({
     void p.resume().then(() => p.note(pitch, p.now() + 0.01, 0.25, score.instrument));
   }
 
-  function toggle(pitch: number, tick: number) {
+  function toggle(pitch: number, tick: number, spell?: -1 | 0 | 1) {
     if (readOnly) return;
     const existing = noteAt(pitch, tick);
     if (existing) {
@@ -316,7 +316,7 @@ export function ScoreEditor({
     const melody = score.melody.filter(
       (n) => n.start + n.duration <= tick || n.start >= tick + len
     );
-    melody.push({ start: tick, duration: len, pitch });
+    melody.push(spell === undefined ? { start: tick, duration: len, pitch } : { start: tick, duration: len, pitch, spell });
     change({ ...score, melody: melody.sort((a, b) => a.start - b.start) });
     preview(pitch);
   }
@@ -712,7 +712,7 @@ export function ScoreEditor({
                       <button
                         type="button"
                         onClick={() => preview(pitch)}
-                        title={`Hear ${pitchName(pitch, score.key)}`}
+                        title={`Hear ${pitchName(pitch, score.key, score.mode)}`}
                         className={`flex w-14 shrink-0 items-center justify-between border-b border-r border-abyss-700/60 px-1.5 text-[10px] transition-colors hover:bg-abyss-700 ${
                           isTonic
                             ? "bg-abyss-700/70 text-gold-300"
@@ -721,7 +721,7 @@ export function ScoreEditor({
                               : "bg-abyss-900/70 text-parchment-500"
                         }`}
                       >
-                        <span>{pitchName(pitch, score.key).replace(/\d/, "")}</span>
+                        <span>{pitchName(pitch, score.key, score.mode).replace(/\d/, "")}</span>
                         <span className={isTonic ? "text-gold-400" : "text-parchment-500/70"}>
                           {degree ?? "♯"}
                         </span>
@@ -740,10 +740,10 @@ export function ScoreEditor({
                             type="button"
                             onClick={() => toggle(pitch, tick)}
                             disabled={readOnly}
-                            aria-label={`${pitchName(pitch, score.key)} at bar ${
+                            aria-label={`${pitchName(pitch, score.key, score.mode)} at bar ${
                               Math.floor(tick / barTicks) + 1
                             }`}
-                            title={`${pitchName(pitch, score.key)} · bar ${
+                            title={`${pitchName(pitch, score.key, score.mode)} · bar ${
                               Math.floor(tick / barTicks) + 1
                             }, beat ${Math.floor((tick % barTicks) / beatTicks) + 1}`}
                             className={`relative border-b border-abyss-700/40 transition-colors ${

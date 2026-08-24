@@ -20,6 +20,14 @@ export interface ScoreNote {
   duration: number;
   /** MIDI note number: 60 is middle C. */
   pitch: number;
+  /**
+   * How the writer spelled this note: -1 flat, 0 natural, +1 sharp. A MIDI
+   * number alone cannot say whether 63 is D# or Eb, and the two sit on
+   * different lines of the staff — so when someone picks an accidental and
+   * clicks a line, that intent is recorded here and the engraver honours it.
+   * Absent for notes written on the grid, which are spelled to suit the key.
+   */
+  spell?: -1 | 0 | 1;
 }
 
 export type ChordQuality = "maj" | "min" | "dim";
@@ -72,8 +80,21 @@ const PITCH_CLASSES: Record<string, number> = {
 const SHARP_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const FLAT_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 
-/** Keys conventionally spelled with flats. */
-const FLAT_KEYS = new Set(["F", "Bb", "Eb", "Ab", "Db", "Gb", "d", "g", "c", "f", "bb", "eb"]);
+/**
+ * Sharps (positive) or flats (negative) in a major key's signature. Minor keys
+ * derive from this: a minor key carries three fewer sharps than the major of
+ * the same letter, so D minor is one flat where D major is two sharps.
+ */
+const MAJOR_SHARPS: Record<string, number> = {
+  C: 0, G: 1, D: 2, A: 3, E: 4, B: 5, "F#": 6, "C#": 7,
+  F: -1, Bb: -2, Eb: -3, Ab: -4, Db: -5, Gb: -6, Cb: -7,
+};
+
+/** How many sharps (+) or flats (-) this key and mode take. */
+export function keySignatureCount(key: string, mode: "major" | "minor" = "major"): number {
+  const base = MAJOR_SHARPS[key] ?? 0;
+  return mode === "minor" ? base - 3 : base;
+}
 
 export const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11];
 export const MINOR_STEPS = [0, 2, 3, 5, 7, 8, 10];
@@ -86,9 +107,15 @@ export function scaleSteps(mode: "major" | "minor"): number[] {
   return mode === "major" ? MAJOR_STEPS : MINOR_STEPS;
 }
 
-/** Note name for display, spelled to suit the key. */
-export function pitchName(pitch: number, key = "C"): string {
-  const names = FLAT_KEYS.has(key) ? FLAT_NAMES : SHARP_NAMES;
+/**
+ * Note name for display, spelled to suit the key *signature* — not the key
+ * letter. The distinction matters in minor: D minor takes one flat, so its
+ * sixth degree is Bb, even though D major would spell that pitch A#. Getting
+ * this wrong puts a note on the wrong staff line, contradicting the very
+ * signature drawn beside it.
+ */
+export function pitchName(pitch: number, key = "C", mode: "major" | "minor" = "major"): string {
+  const names = keySignatureCount(key, mode) < 0 ? FLAT_NAMES : SHARP_NAMES;
   return `${names[((pitch % 12) + 12) % 12]}${Math.floor(pitch / 12) - 1}`;
 }
 

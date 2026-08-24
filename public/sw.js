@@ -40,13 +40,22 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-function isHashedAsset(url) {
-  return (
-    url.origin === self.location.origin &&
-    (url.pathname.startsWith("/_next/static/") ||
-      url.pathname.startsWith("/icons/") ||
-      url.pathname === "/manifest.webmanifest")
-  );
+/**
+ * Build assets carry a content hash in their filename, so a given URL's bytes
+ * can never change: caching them forever is safe and makes launches instant.
+ */
+function isImmutableAsset(url) {
+  return url.pathname.startsWith("/_next/static/");
+}
+
+/**
+ * Icons and the manifest live at fixed URLs, so their bytes CAN change when the
+ * app updates itself. Caching those the same way would freeze the app's icon
+ * and name on whatever shipped first, with no way for a later release to
+ * correct them — the cache key never changes, so nothing would ever evict it.
+ */
+function isRevalidatedAsset(url) {
+  return url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest";
 }
 
 self.addEventListener("fetch", (event) => {
@@ -56,7 +65,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (isHashedAsset(url)) {
+  if (isImmutableAsset(url)) {
     event.respondWith(
       (async () => {
         const cache = await caches.open(ASSET_CACHE);
@@ -65,6 +74,25 @@ self.addEventListener("fetch", (event) => {
         const res = await fetch(request);
         if (res.ok) cache.put(request, res.clone());
         return res;
+      })()
+    );
+    return;
+  }
+
+  // Serve the cached copy at once, then quietly refresh it for next time, so an
+  // updated icon costs one launch to appear rather than never appearing.
+  if (isRevalidatedAsset(url)) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(SHELL_CACHE);
+        const hit = await cache.match(request);
+        const network = fetch(request)
+          .then((res) => {
+            if (res.ok) cache.put(request, res.clone());
+            return res;
+          })
+          .catch(() => null);
+        return hit || (await network) || Response.error();
       })()
     );
     return;

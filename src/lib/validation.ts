@@ -60,6 +60,10 @@ export const scoreSchema = z.object({
         start: z.number().int().min(0).max(4096),
         duration: z.number().int().min(1).max(256),
         pitch: z.number().int().min(21).max(108),
+        // How the writer spelled the note, so a saved piece is re-engraved on
+        // the lines it was written on. Zod strips unknown keys, so leaving
+        // this out would quietly discard it at the moment of saving.
+        spell: z.union([z.literal(-1), z.literal(0), z.literal(1)]).optional(),
       })
     )
     .max(2000),
