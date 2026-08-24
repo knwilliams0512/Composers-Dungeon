@@ -191,6 +191,7 @@ if ($browser) {
         "--app=$url/hall",
         "--user-data-dir=`"$(Join-Path $DataDir 'window')`"",
         "--no-first-run",
+        "--autoplay-policy=no-user-gesture-required",
         "--no-default-browser-check",
         "--window-size=1280,860"
     )

@@ -36,6 +36,9 @@ export function ScorePlayer({ score, compact = false }: { score: Score; compact?
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctor();
     ctxRef.current = ctx;
+    // A fresh browser profile can hand out a suspended context even inside a
+    // click handler; without this the piece "plays" silently.
+    if (ctx.state === "suspended") await ctx.resume().catch(() => {});
 
     const secondsPerTick = 60 / score.tempo / ticksPerBeat(score.meter);
     const t0 = ctx.currentTime + 0.06;

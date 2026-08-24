@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { StaffView } from "@/components/composer/StaffView";
 import type { Freedom } from "@/lib/composer-freedom";
 import {
   analyze,
@@ -203,6 +204,25 @@ export function ScoreEditor({
   });
   const [playing, setPlaying] = useState(false);
   const [playhead, setPlayhead] = useState<number | null>(null);
+  // Two ways to see the same music: the piano-roll grid, or engraved
+  // notation a la Flat.io / MuseScore. The choice sticks between visits.
+  const [view, setView] = useState<"grid" | "staff">(() => {
+    try {
+      return localStorage.getItem("cd-editor-view") === "staff" ? "staff" : "grid";
+    } catch {
+      return "grid";
+    }
+  });
+  const [accidentalMode, setAccidentalMode] = useState<-1 | 0 | 1 | null>(null);
+
+  function switchView(v: "grid" | "staff") {
+    setView(v);
+    try {
+      localStorage.setItem("cd-editor-view", v);
+    } catch {
+      /* private mode */
+    }
+  }
   const [showHelp, setShowHelp] = useState(false);
   const [metronome, setMetronome] = useState(false);
   const [loop, setLoop] = useState(false);
@@ -422,6 +442,31 @@ export function ScoreEditor({
           {playing ? "Stop" : "Play"}
         </button>
 
+        <div className="flex items-center rounded-lg border border-abyss-600 bg-abyss-900/60 p-1">
+          {(
+            [
+              { v: "grid", icon: "grid", label: "Roll" },
+              { v: "staff", icon: "staff", label: "Score" },
+            ] as const
+          ).map((o) => (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => switchView(o.v)}
+              title={o.v === "grid" ? "Piano-roll grid" : "Sheet-music notation"}
+              aria-pressed={view === o.v}
+              className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors ${
+                view === o.v
+                  ? "bg-gold-600 text-abyss-950"
+                  : "text-parchment-300 hover:bg-abyss-700"
+              }`}
+            >
+              <Icon name={o.icon} size={13} />
+              {o.label}
+            </button>
+          ))}
+        </div>
+
         {!readOnly && (
           <div className="flex items-center gap-1 rounded-lg border border-abyss-600 bg-abyss-900/60 p-1">
             <span className="px-1.5 text-[10px] uppercase tracking-widest text-parchment-500">
@@ -469,6 +514,33 @@ export function ScoreEditor({
             >
               <Icon name="redo" size={14} />
             </button>
+          </div>
+        )}
+
+        {view === "staff" && freedom.chromatic && !readOnly && (
+          <div className="flex items-center rounded-lg border border-abyss-600 bg-abyss-900/60 p-1">
+            {(
+              [
+                { m: -1, glyph: "♭", name: "flat" },
+                { m: 0, glyph: "♮", name: "natural" },
+                { m: 1, glyph: "♯", name: "sharp" },
+              ] as const
+            ).map((o) => (
+              <button
+                key={o.m}
+                type="button"
+                onClick={() => setAccidentalMode((cur) => (cur === o.m ? null : o.m))}
+                title={`Write the next note ${o.name} (click again to follow the key)`}
+                aria-pressed={accidentalMode === o.m}
+                className={`min-w-[2rem] rounded px-2 py-1 text-sm leading-none transition-colors ${
+                  accidentalMode === o.m
+                    ? "bg-gold-600 text-abyss-950"
+                    : "text-parchment-300 hover:bg-abyss-700"
+                }`}
+              >
+                {o.glyph}
+              </button>
+            ))}
           </div>
         )}
 
@@ -553,6 +625,14 @@ export function ScoreEditor({
             Pick a note length, then click a square to place a note. Click it again to remove
             it. Every row is a note that belongs to this key, so you cannot play a wrong one.
           </p>
+          <p className="flex gap-2">
+            <Icon name="staff" size={15} className="mt-0.5 shrink-0 text-gold-500" />
+            <span>
+              <strong>Roll / Score</strong> switches between the grid and real sheet music.
+              They are the same piece — write in whichever you like. On the score, click a
+              line or space to write there; the key signature spells the notes for you.
+            </span>
+          </p>
           {freedom.chords && (
             <p className="flex gap-2">
               <Icon name="chord" size={15} className="mt-0.5 shrink-0 text-gold-500" />
@@ -579,9 +659,23 @@ export function ScoreEditor({
       )}
 
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_19rem]">
-        {/* ---- Grid -------------------------------------------------------- */}
+        {/* ---- Grid or engraved score -------------------------------------- */}
         <div className="card overflow-hidden">
-          <div ref={gridRef} className="overflow-x-auto">
+          {view === "staff" && (
+            <div className="p-3">
+              <StaffView
+                score={score}
+                freedom={freedom}
+                playhead={playhead}
+                readOnly={readOnly}
+                accidentalMode={accidentalMode}
+                allowedPitches={rows}
+                onToggleNote={toggle}
+                onSetChord={setChord}
+              />
+            </div>
+          )}
+          <div ref={gridRef} className={view === "staff" ? "hidden" : "overflow-x-auto"}>
             <div className="inline-block min-w-full p-3">
               {/* Bar numbers */}
               <div className="flex" style={{ paddingLeft: 56 }}>

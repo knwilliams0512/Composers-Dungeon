@@ -53,7 +53,9 @@ export type IconName =
   | "redo"
   | "metronome"
   | "loop"
-  | "star";
+  | "star"
+  | "grid"
+  | "staff";
 
 const PATHS: Record<IconName, JSX.Element> = {
   hall: (
@@ -109,6 +111,26 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M18 3h3v3l-9 9-3-3z" />
       <path d="M9 12l-4.5 4.5a1.5 1.5 0 0 0 0 2.1l.9.9a1.5 1.5 0 0 0 2.1 0L12 15M4 20l-1 1" />
+    </>
+  ),
+  grid: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="3" y1="9.3" x2="21" y2="9.3" />
+      <line x1="3" y1="14.6" x2="21" y2="14.6" />
+      <line x1="9" y1="4" x2="9" y2="20" />
+      <line x1="15" y1="4" x2="15" y2="20" />
+      <rect x="9.8" y="10.2" width="4.4" height="3.4" rx="0.8" fill="currentColor" stroke="none" />
+    </>
+  ),
+  staff: (
+    <>
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="9.5" x2="21" y2="9.5" />
+      <line x1="3" y1="13" x2="21" y2="13" />
+      <line x1="3" y1="16.5" x2="21" y2="16.5" />
+      <ellipse cx="14.5" cy="13" rx="2.2" ry="1.7" fill="currentColor" stroke="none" />
+      <line x1="16.6" y1="13" x2="16.6" y2="5" />
     </>
   ),
   note: (
