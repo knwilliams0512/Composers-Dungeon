@@ -21,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dungeon", label: "Dungeon", short: "Dungeon", icon: "candle", mobile: true },
   { href: "/workshop", label: "Workshop", short: "Write", icon: "quill", mobile: true },
   { href: "/bosses", label: "Bosses", short: "Bosses", icon: "skull" },
+  { href: "/studio", label: "Studio", short: "Studio", icon: "staff", mobile: true },
   { href: "/library", label: "Library", short: "Library", icon: "scroll", mobile: true },
   { href: "/guild", label: "Guild", short: "Guild", icon: "shield" },
   { href: "/profile", label: "Profile", short: "Profile", icon: "feather", mobile: true },

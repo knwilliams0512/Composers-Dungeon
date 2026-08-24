@@ -45,6 +45,31 @@ export type IconName =
   | "quill"
   | "heart"
   | "users"
+  | "eye"
+  | "eyeOff"
+  | "close"
+  | "search"
+  | "pause"
+  | "share"
+  | "print"
+  | "save"
+  | "upload"
+  | "history"
+  | "comment"
+  | "sliders"
+  | "piano"
+  | "zoomIn"
+  | "zoomOut"
+  | "expand"
+  | "panelLeft"
+  | "panelRight"
+  | "skipBack"
+  | "skipForward"
+  | "rewind"
+  | "trash"
+  | "copy"
+  | "pencil"
+  | "midi"
   | "settings"
   | "plus"
   | "play"
@@ -314,6 +339,147 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   star: (
     <path d="M12 3.5l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8z" />
+  ),
+
+  /* ---- Studio ---------------------------------------------------------- */
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M4 4l16 16" />
+      <path d="M9.9 5.9A9.3 9.3 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.3 4M6.5 7.9A17 17 0 0 0 2.5 12S6 18.5 12 18.5a9 9 0 0 0 3.4-.65" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </>
+  ),
+  close: <path d="M6 6l12 12M18 6L6 18" />,
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="M15 15l5 5" />
+    </>
+  ),
+  pause: (
+    <>
+      <rect x="7" y="5.5" width="3.5" height="13" rx="1" />
+      <rect x="13.5" y="5.5" width="3.5" height="13" rx="1" />
+    </>
+  ),
+  share: (
+    <>
+      <circle cx="18" cy="5.5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="18.5" r="2.5" />
+      <path d="M8.2 10.8l7.6-4M8.2 13.2l7.6 4" />
+    </>
+  ),
+  print: (
+    <>
+      <path d="M7 8.5V3.5h10v5" />
+      <rect x="3.5" y="8.5" width="17" height="7.5" rx="1.5" />
+      <path d="M7 14h10v6.5H7z" />
+    </>
+  ),
+  save: (
+    <>
+      <path d="M4.5 4.5h11l4 4v11h-15z" />
+      <path d="M8 4.5v5h6v-5M8 19.5v-5h8v5" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V4.5M7.5 9L12 4.5 16.5 9" />
+      <path d="M4 15.5v3a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-3" />
+    </>
+  ),
+  history: (
+    <>
+      <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4v4h4" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  comment: (
+    <path d="M20.5 15a2.5 2.5 0 0 1-2.5 2.5H8L4 21V6a2.5 2.5 0 0 1 2.5-2.5H18A2.5 2.5 0 0 1 20.5 6z" />
+  ),
+  sliders: (
+    <>
+      <path d="M5 20V14M5 10V4M12 20v-9M12 7V4M19 20v-5M19 11V4" />
+      <path d="M2.5 14h5M9.5 7h5M16.5 15h5" />
+    </>
+  ),
+  piano: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="1.5" />
+      <path d="M8 5v9M13 5v9M18 5v9M3 14h18" />
+    </>
+  ),
+  zoomIn: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="M15 15l5 5M8 10.5h5M10.5 8v5" />
+    </>
+  ),
+  zoomOut: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="M15 15l5 5M8 10.5h5" />
+    </>
+  ),
+  expand: <path d="M8.5 3.5h-5v5M15.5 3.5h5v5M15.5 20.5h5v-5M8.5 20.5h-5v-5" />,
+  panelLeft: (
+    <>
+      <rect x="3" y="4.5" width="18" height="15" rx="1.5" />
+      <path d="M9.5 4.5v15" />
+    </>
+  ),
+  panelRight: (
+    <>
+      <rect x="3" y="4.5" width="18" height="15" rx="1.5" />
+      <path d="M14.5 4.5v15" />
+    </>
+  ),
+  skipBack: (
+    <>
+      <path d="M18 5.5v13L8 12z" />
+      <path d="M6 5.5v13" />
+    </>
+  ),
+  skipForward: (
+    <>
+      <path d="M6 5.5v13L16 12z" />
+      <path d="M18 5.5v13" />
+    </>
+  ),
+  rewind: <path d="M12 5.5v13L3.5 12zM21 5.5v13L12.5 12z" />,
+  trash: (
+    <>
+      <path d="M4 6.5h16M9.5 6.5V4h5v2.5" />
+      <path d="M6 6.5l1 13.5h10l1-13.5M10 10v7M14 10v7" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="12" height="12" rx="1.5" />
+      <path d="M15.5 8.5v-3a1.5 1.5 0 0 0-1.5-1.5H5a1.5 1.5 0 0 0-1.5 1.5V14A1.5 1.5 0 0 0 5 15.5h3" />
+    </>
+  ),
+  pencil: (
+    <>
+      <path d="M4 20l.9-4.2L16 4.7a2 2 0 0 1 2.8 0l.5.5a2 2 0 0 1 0 2.8L8.2 19.1z" />
+      <path d="M14.5 6.5l3 3" />
+    </>
+  ),
+  midi: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="8.5" cy="10" r="1" />
+      <circle cx="15.5" cy="10" r="1" />
+      <circle cx="12" cy="8.5" r="1" />
+      <path d="M8 17h8" />
+    </>
   ),
 };
 
