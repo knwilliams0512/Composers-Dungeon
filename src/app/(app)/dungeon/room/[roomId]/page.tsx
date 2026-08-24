@@ -118,6 +118,12 @@ export default async function DungeonRoomPage({
             trials regenerate endlessly.
           </p>
         )}
+        {ownsArtifact && room.type === "TREASURE" && (
+          <p className="mt-1 text-xs text-emerald-300">✓ CLEARED</p>
+        )}
+        {ownsArtifact && room.type === "REST" && room.artifact && (
+          <p className="mt-1 text-xs text-emerald-300">✓ CLEARED</p>
+        )}
       </header>
 
       {(room.type === "CHALLENGE" || room.type === "CURSE" || room.type === "EVENT") &&
