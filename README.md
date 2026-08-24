@@ -2,6 +2,8 @@
 
 **The Academy teaches you. The Dungeon tests you.**
 
+⚠️ Beta Notice: This app is still under heavy development. Expect bugs, glitches, and unfinished features as we continue building and improving the experience.
+
 ### ⬇ [Download for Windows](https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest) · 📖 [Full installation guide](INSTALL.md)
 
 > One file, double-click, done — no Node, no Git, no build step, no internet
