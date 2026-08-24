@@ -47,10 +47,10 @@ const STEM_LEN = GAP * 3.4;
 /** Fallback page width, used only until the sheet has measured itself. */
 const PAGE_W = 920;
 
-const INK = "#2b2115"; // sepia ink on parchment
-const INK_SOFT = "rgba(43,33,21,0.55)";
-const INK_FAINT = "rgba(43,33,21,0.3)";
-const ACCENT = "#8a6b23"; // gilded ink for the playhead and highlights
+const INK = "#161616"; // engraved black on a white page
+const INK_SOFT = "rgba(22,22,22,0.6)";
+const INK_FAINT = "rgba(22,22,22,0.28)";
+const ACCENT = "#e8710a"; // the playhead, warm against the black
 
 /* ---- Small glyphs, drawn rather than fonted ------------------------------- */
 
@@ -192,8 +192,8 @@ export function StaffView({
     const el = sheetRef.current;
     if (!el) return;
     const measure = () => {
-      // Padding is 16px either side at the small breakpoint, 24px above it.
-      const pad = window.innerWidth >= 640 ? 48 : 32;
+      // Padding is 20px either side at the small breakpoint, 32px above it.
+      const pad = window.innerWidth >= 640 ? 64 : 40;
       setPageW(Math.max(280, el.clientWidth - pad));
     };
     measure();
@@ -293,23 +293,21 @@ export function StaffView({
   /* ---- Render ------------------------------------------------------------- */
 
   return (
-    <div
-      ref={sheetRef}
-      data-staff-sheet
-      className="overflow-x-auto rounded-lg p-4 sm:p-6"
-      style={{
-        background: "linear-gradient(160deg, #efe3c4, #e6d5ae 55%, #dfcaa0)",
-        boxShadow: "inset 0 0 60px rgba(120,90,40,0.25), 0 2px 12px rgba(0,0,0,0.5)",
-      }}
-    >
-      <div className="mb-1 flex items-baseline justify-between px-1">
-        <p className="font-display text-sm tracking-wide" style={{ color: INK }}>
-          {score.key} {score.mode} · {score.meter.beats}/{score.meter.unit} · ♩ = {score.tempo}
-        </p>
-        <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: INK_SOFT }}>
-          {readOnly ? "score" : "click a line or space to write"}
-        </p>
-      </div>
+    <div className="rounded-lg bg-[#3a3a3c] px-3 py-5 sm:px-6 sm:py-7">
+      <div
+        ref={sheetRef}
+        data-staff-sheet
+        className="mx-auto max-w-3xl overflow-x-auto rounded-sm bg-white px-5 py-6 sm:px-8 sm:py-8"
+        style={{ boxShadow: "0 2px 14px rgba(0,0,0,0.32)" }}
+      >
+        <div className="mb-4 flex items-baseline justify-between border-b border-black/10 pb-2">
+          <p className="font-serif text-sm" style={{ color: INK }}>
+            {score.key} {score.mode} · {score.meter.beats}/{score.meter.unit} · ♩ = {score.tempo}
+          </p>
+          <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: INK_SOFT }}>
+            {readOnly ? "score" : "click a line or space to write"}
+          </p>
+        </div>
 
       {Array.from({ length: systems }).map((_, sys) => {
         const { startBar, bars, startTick, width, lead } = systemMeta(sys);
@@ -459,8 +457,23 @@ export function StaffView({
                 const open = n.duration >= 8; // half and longer: open head
                 const whole = n.duration >= 16;
                 const dotted = [3, 6, 12, 24].includes(n.duration);
-                const stemUp = step < midLineStep;
                 const acc = accidentalGlyph(n.pitch, score.key, score.mode, n.spell);
+
+                /* Notes sharing a beat are one chord: they take a single stem,
+                   pointing away from the middle line on average, drawn from the
+                   note furthest along it. */
+                const chordSteps = sysNotes
+                  .filter((o) => o.start === n.start)
+                  .map((o) => staffStep(o.pitch, score.key, score.mode, o.spell));
+                const lowest = Math.min(...chordSteps);
+                const highest = Math.max(...chordSteps);
+                const avg = chordSteps.reduce((a, b) => a + b, 0) / chordSteps.length;
+                const stemUp = avg < midLineStep;
+                // Only the outermost note carries the stem and its flags.
+                const ownsStem = step === (stemUp ? lowest : highest);
+                const stemFrom = stepY(stemUp ? lowest : highest, TOP_PAD);
+                const stemTo =
+                  stepY(stemUp ? highest : lowest, TOP_PAD) + (stemUp ? -STEM_LEN : STEM_LEN);
 
                 /* Ledger lines: every gap-line between the staff and the note */
                 const ledgers: number[] = [];
@@ -491,21 +504,21 @@ export function StaffView({
                       stroke={INK}
                       strokeWidth={open ? 1.8 : 0}
                     />
-                    {!whole && (
+                    {!whole && ownsStem && (
                       <line
                         x1={stemUp ? x + HEAD_RX - 0.8 : x - HEAD_RX + 0.8}
                         x2={stemUp ? x + HEAD_RX - 0.8 : x - HEAD_RX + 0.8}
-                        y1={y}
-                        y2={stemUp ? y - STEM_LEN : y + STEM_LEN}
+                        y1={stemFrom}
+                        y2={stemTo}
                         stroke={INK}
                         strokeWidth={1.5}
                       />
                     )}
                     {/* Flags for eighths and shorter */}
-                    {[1, 2, 3].includes(n.duration) &&
+                    {ownsStem && [1, 2, 3].includes(n.duration) &&
                       Array.from({ length: n.duration === 1 ? 2 : 1 }).map((_, f) => {
                         const sx = stemUp ? x + HEAD_RX - 0.8 : x - HEAD_RX + 0.8;
-                        const sy = stemUp ? y - STEM_LEN + f * 6 : y + STEM_LEN - f * 6;
+                        const sy = stemTo + (stemUp ? f * 6 : -f * 6);
                         return (
                           <path
                             key={f}
@@ -524,12 +537,17 @@ export function StaffView({
                     {dotted && (
                       <circle cx={x + HEAD_RX + 5} cy={step % 2 === 0 ? y - HALF : y} r={1.9} fill={INK} />
                     )}
-                    {/* Invisible hit target for removal */}
+                    {/* Hit target for removal. It hugs the notehead rather than
+                        overreaching: lines and spaces are only half a gap apart,
+                        so a generous circle would swallow clicks meant for the
+                        note above or below — and stacking those is how a chord
+                        gets written. */}
                     {!readOnly && (
-                      <circle
+                      <ellipse
                         cx={x}
                         cy={y}
-                        r={GAP * 0.9}
+                        rx={HEAD_RX}
+                        ry={HEAD_RY}
                         fill="transparent"
                         className="cursor-pointer"
                         onClick={(e) => {
@@ -607,9 +625,10 @@ export function StaffView({
         );
       })}
 
-      <p className="mt-1 px-1 text-right text-[10px] italic" style={{ color: INK_FAINT }}>
-        — Composer&apos;s Dungeon manuscript —
-      </p>
+        <p className="mt-2 border-t border-black/10 pt-2 text-right text-[10px]" style={{ color: INK_FAINT }}>
+          {score.bars} bars
+        </p>
+      </div>
     </div>
   );
 }

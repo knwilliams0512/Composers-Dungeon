@@ -312,9 +312,11 @@ export function ScoreEditor({
     }
     const len = Math.min(duration, total - tick);
     if (len <= 0) return;
-    // One line of melody: clear anything this note would sound over.
+    // Notes that begin on this very beat are the chord being built, so they
+    // stay; anything the new note would merely sound over is cleared, which
+    // keeps a single line of melody readable.
     const melody = score.melody.filter(
-      (n) => n.start + n.duration <= tick || n.start >= tick + len
+      (n) => n.start === tick || n.start + n.duration <= tick || n.start >= tick + len
     );
     melody.push(spell === undefined ? { start: tick, duration: len, pitch } : { start: tick, duration: len, pitch, spell });
     change({ ...score, melody: melody.sort((a, b) => a.start - b.start) });
@@ -662,7 +664,7 @@ export function ScoreEditor({
         {/* ---- Grid or engraved score -------------------------------------- */}
         <div className="card overflow-hidden">
           {view === "staff" && (
-            <div className="p-3">
+            <div>
               <StaffView
                 score={score}
                 freedom={freedom}
