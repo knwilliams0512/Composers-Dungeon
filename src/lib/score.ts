@@ -90,10 +90,21 @@ const MAJOR_SHARPS: Record<string, number> = {
   F: -1, Bb: -2, Eb: -3, Ab: -4, Db: -5, Gb: -6, Cb: -7,
 };
 
-/** How many sharps (+) or flats (-) this key and mode take. */
+/**
+ * How many sharps (+) or flats (-) this key and mode take.
+ *
+ * A signature can hold at most seven of either, so keys that would ask for
+ * more are written as the enharmonic key a player would actually read: D♭
+ * minor wants eight flats and is written as C♯ minor's four sharps. Without
+ * this the extra accidentals fall off the end of the signature and the notes
+ * are spelled against a signature that was never printed.
+ */
 export function keySignatureCount(key: string, mode: "major" | "minor" = "major"): number {
   const base = MAJOR_SHARPS[key] ?? 0;
-  return mode === "minor" ? base - 3 : base;
+  const raw = mode === "minor" ? base - 3 : base;
+  if (raw < -7) return raw + 12;
+  if (raw > 7) return raw - 12;
+  return raw;
 }
 
 export const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11];
@@ -107,16 +118,51 @@ export function scaleSteps(mode: "major" | "minor"): number[] {
   return mode === "major" ? MAJOR_STEPS : MINOR_STEPS;
 }
 
+/** Semitone each natural letter sits at within its octave. */
+const LETTER_SEMIS: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const LETTER_ORDER = ["C", "D", "E", "F", "G", "A", "B"] as const;
+
+/** Letters this key's signature sharpens or flattens, in signature order. */
+const SHARP_LETTERS = ["F", "C", "G", "D", "A", "E", "B"];
+const FLAT_LETTERS = ["B", "E", "A", "D", "G", "C", "F"];
+
+function keyLetterAlterations(key: string, mode: "major" | "minor"): Map<string, 1 | -1> {
+  const n = keySignatureCount(key, mode);
+  const out = new Map<string, 1 | -1>();
+  if (n > 0) for (const l of SHARP_LETTERS.slice(0, n)) out.set(l, 1);
+  if (n < 0) for (const l of FLAT_LETTERS.slice(0, -n)) out.set(l, -1);
+  return out;
+}
+
 /**
  * Note name for display, spelled to suit the key *signature* — not the key
  * letter. The distinction matters in minor: D minor takes one flat, so its
  * sixth degree is Bb, even though D major would spell that pitch A#. Getting
  * this wrong puts a note on the wrong staff line, contradicting the very
  * signature drawn beside it.
+ *
+ * The signature's own letters are tried first, so a key gets the seven
+ * distinct letters it is entitled to: F# major's seventh degree is E#, not the
+ * F that a plain sharp table would return — which would spell two different
+ * degrees with the same letter and stack them on one staff line. Notes outside
+ * the key fall back to the ordinary sharp or flat table.
  */
 export function pitchName(pitch: number, key = "C", mode: "major" | "minor" = "major"): string {
+  const pc = ((pitch % 12) + 12) % 12;
+  const alterations = keyLetterAlterations(key, mode);
+
+  for (const letter of LETTER_ORDER) {
+    const alt = alterations.get(letter) ?? 0;
+    if (((LETTER_SEMIS[letter] + alt + 12) % 12) !== pc) continue;
+    // The letter's own octave, not the sounding pitch's: B# sounds with the C
+    // above it but belongs to the octave below.
+    const octave = Math.floor((pitch - alt) / 12) - 1;
+    const suffix = alt === 1 ? "#" : alt === -1 ? "b" : "";
+    return `${letter}${suffix}${octave}`;
+  }
+
   const names = keySignatureCount(key, mode) < 0 ? FLAT_NAMES : SHARP_NAMES;
-  return `${names[((pitch % 12) + 12) % 12]}${Math.floor(pitch / 12) - 1}`;
+  return `${names[pc]}${Math.floor(pitch / 12) - 1}`;
 }
 
 /** Scale degree 1–7 for a pitch in the key, or null when chromatic. */

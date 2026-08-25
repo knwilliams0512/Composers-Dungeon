@@ -97,6 +97,8 @@ export function StudioEditor({
   const [zoom, setZoom] = useState(3.4);
   const [showLeft, setShowLeft] = useState(true);
   const [showRight, setShowRight] = useState(true);
+  /** Narrow enough that a panel beside the score would leave no score. */
+  const [narrow, setNarrow] = useState(false);
   const [showTools, setShowTools] = useState(true);
   const [bottomPanel, setBottomPanel] = useState<"none" | "piano" | "fretboard" | "drums">("piano");
   const [baseOctave, setBaseOctave] = useState(3);
@@ -113,6 +115,25 @@ export function StudioEditor({
   /* ---- Saving ----------------------------------------------------------- */
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  // Two docked panels are wider than a phone, which would squeeze the score to
+  // nothing. Below that width they start closed and open over the canvas
+  // instead of beside it, so the music always has the screen.
+  useEffect(() => {
+    const measure = () => {
+      const isNarrow = window.innerWidth < 1024;
+      setNarrow(isNarrow);
+      if (isNarrow) {
+        setShowLeft(false);
+        setShowRight(false);
+        setBottomPanel("none");
+        setZoom((z) => Math.min(z, (window.innerWidth - 24) / 210));
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   const undoStack = useRef<StudioScore[]>([]);
   const redoStack = useRef<StudioScore[]>([]);
@@ -624,9 +645,13 @@ export function StudioEditor({
         />
       )}
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         {showLeft && (
-          <aside className="w-60 shrink-0 border-r border-abyss-700">
+          <aside
+            className={`w-60 shrink-0 border-r border-abyss-700 ${
+              narrow ? "absolute inset-y-0 left-0 z-30 shadow-2xl" : ""
+            }`}
+          >
             <InstrumentPanel
               score={score}
               selectedPartId={selection.partId ?? null}
@@ -679,7 +704,11 @@ export function StudioEditor({
         </main>
 
         {showRight && (
-          <aside className="w-64 shrink-0 border-l border-abyss-700">
+          <aside
+            className={`w-64 shrink-0 border-l border-abyss-700 ${
+              narrow ? "absolute inset-y-0 right-0 z-30 shadow-2xl" : ""
+            }`}
+          >
             <Inspector
               score={score}
               selection={selection}

@@ -75,39 +75,13 @@ export function stepForPitch(
     letter = NATURAL_BY_SEMI[((natural % 12) + 12) % 12];
     octave = Math.floor(natural / 12) - 1;
   } else {
-    const spelled = spellByKey(pitch, key, mode);
-    letter = spelled.letter;
-    octave = spelled.octave;
+    // `pitchName` already spells to the key signature's own letters, so it is
+    // the single authority on how a pitch is written.
+    const name = pitchName(pitch, key, mode);
+    letter = name[0];
+    octave = parseInt(name.replace(/[^-\d]/g, ""), 10);
   }
   return octave * 7 + LETTERS.indexOf(letter as (typeof LETTERS)[number]) - BOTTOM_LINE[clef];
-}
-
-/**
- * Spell a pitch using the key signature's own letters.
- *
- * `pitchName` picks from a fixed sharp or flat table, which is right for
- * ordinary keys but wrong at the edges: in F♯ major the sixth degree is E♯,
- * and calling it F would draw it a line too high. Trying the signature's
- * letters first keeps every note on the line its key puts it on, and the
- * table remains the fallback for notes outside the key.
- */
-function spellByKey(
-  pitch: number,
-  key: string,
-  mode: "major" | "minor"
-): { letter: string; octave: number } {
-  const alterations = signatureAlterations(key, mode);
-  const pc = ((pitch % 12) + 12) % 12;
-  for (const letter of LETTERS) {
-    const sounding = (LETTER_SEMIS[letter] + (alterations.get(letter) ?? 0) + 12) % 12;
-    if (sounding !== pc) continue;
-    // The letter's own octave, not the pitch's: B♯ sounds with the C above it
-    // but is written in the octave below.
-    const natural = pitch - (alterations.get(letter) ?? 0);
-    return { letter, octave: Math.floor(natural / 12) - 1 };
-  }
-  const name = pitchName(pitch, key, mode);
-  return { letter: name[0], octave: parseInt(name.replace(/[^-\d]/g, ""), 10) };
 }
 
 /** The pitch a click on a staff step should write, spelled by the key. */
@@ -143,11 +117,9 @@ export function accidentalFor(
     letter = NATURAL_BY_SEMI[(((pitch - spell) % 12) + 12) % 12];
     accidental = spell;
   } else {
-    const spelled = spellByKey(pitch, key, mode);
-    letter = spelled.letter;
-    const natural = (LETTER_SEMIS[letter] + 12) % 12;
-    const diff = ((((pitch % 12) + 12) % 12) - natural + 18) % 12 - 6;
-    accidental = Math.max(-1, Math.min(1, diff)) as -1 | 0 | 1;
+    const name = pitchName(pitch, key, mode);
+    letter = name[0];
+    accidental = name.includes("#") ? 1 : name.includes("b") ? -1 : 0;
   }
   const sig = signatureAlterations(key, mode).get(letter) ?? 0;
   if (accidental === sig) return null;

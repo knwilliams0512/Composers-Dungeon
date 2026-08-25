@@ -64,7 +64,11 @@ const TIERS: Freedom[] = [
     name: "Adept",
     blurb: "Two octaves, dotted and long values, and all seven diatonic chords.",
     gridStep: 2,
-    durations: [1, 2, 3, 4, 6, 8, 12, 16],
+    // Nothing shorter than an eighth, and no dotted eighth: the grid is still
+    // in eighths, so those can only land on an eighth boundary and leave a gap
+    // no note at this tier can fill. Dotted quarters and halves sit on the
+    // grid cleanly. The finer values arrive with the finer grid at Master.
+    durations: [2, 4, 6, 8, 12, 16],
     rows: 15,
     chromatic: false,
     chords: true,
