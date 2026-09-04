@@ -54,7 +54,7 @@ export function AppNav({
             Dungeon
           </p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-parchment-500">
-            Learn · Descend
+            Learn · Create · Ascend
           </p>
           </div>
         </Link>
@@ -97,6 +97,9 @@ export function AppNav({
           >
             Leave the Dungeon
           </button>
+          <p className="mt-3 text-center font-display text-[11px] italic leading-snug text-parchment-600">
+            &ldquo;Better composers build habits.&rdquo;
+          </p>
         </div>
       </aside>
 

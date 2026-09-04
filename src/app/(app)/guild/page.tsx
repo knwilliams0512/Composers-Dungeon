@@ -79,6 +79,38 @@ export default async function GuildPage() {
         eyebrow="Fellowship · Craft · Renown"
         title="The Composer's Guild"
         subtitle="Share your victories, post your public compositions, and follow the composers whose work lights your way."
+        icon="shield"
+        accent="#3c9ad1"
+        motif="tower"
+        aside={
+          <div className="grid grid-cols-3 gap-2.5 text-center lg:w-72">
+            {[
+              { n: feed.length, label: "Posts", cls: "text-teal-300", ring: "ring-teal-500/30" },
+              {
+                n: myPublicCompositions.length,
+                label: "Shared",
+                cls: "text-arcane-300",
+                ring: "ring-arcane-500/30",
+              },
+              {
+                n: followingIds.size,
+                label: "Following",
+                cls: "text-parchment-300",
+                ring: "ring-white/10",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className={`rounded-xl bg-white/[0.05] px-4 py-3 ring-1 ring-inset backdrop-blur ${s.ring}`}
+              >
+                <p className={`font-display text-2xl leading-none ${s.cls}`}>{s.n}</p>
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-400">
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        }
       />
       <GuildFeed
         posts={feed}

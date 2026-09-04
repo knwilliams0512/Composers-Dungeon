@@ -148,7 +148,7 @@ export function SkillMeter({
         style={{
           borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
           background: `color-mix(in srgb, ${accent} 10%, transparent)`,
-          color: accent,
+          color: `color-mix(in srgb, ${accent} 55%, #f5ecd7)`,
         }}
       >
         {level}
@@ -202,7 +202,7 @@ export function XpRing({
         </defs>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[9px] uppercase tracking-[0.2em] text-parchment-500">Level</span>
+        <span className="text-[9px] uppercase tracking-[0.2em] text-parchment-300">Level</span>
         <span className="font-display text-2xl leading-none text-gold-300">{level}</span>
       </div>
     </div>
@@ -404,7 +404,7 @@ export function FlameBadge({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+      className={`flex shrink-0 items-center gap-3 rounded-xl border px-4 py-3 ${
         alive
           ? "border-gold-700/50 bg-abyss-900/50"
           : "border-abyss-600/60 bg-abyss-900/30 opacity-60"
@@ -419,7 +419,7 @@ export function FlameBadge({
         <p className="font-display text-lg text-gold-300">
           {days} <span className="text-xs tracking-widest text-parchment-400">DAY FLAME</span>
         </p>
-        <p className="text-[11px] text-parchment-500">
+        <p className="text-[11px] text-parchment-400">
           {alive ? "burning" : "gone cold"} · {restDays} rest day{restDays === 1 ? "" : "s"}
           {best !== undefined && best > days ? ` · best ${best}` : ""}
         </p>

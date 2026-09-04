@@ -36,6 +36,14 @@ export default async function DungeonMapPage() {
   const mainAreas = areas.filter((a) => !a.special);
   const specialAreas = areas.filter((a) => a.special);
 
+  // How far down the whole dungeon you have actually got.
+  const allRooms = areas.flatMap((a) => a.rooms);
+  const roomsCleared = allRooms.filter((r) => completedRoomIds.has(r.id)).length;
+  const areasOpen = areas.filter(
+    (a) => profile.level >= a.levelRequirement && userOrdinal >= tierOrdinal(a.tierRequirement) - 2
+  ).length;
+  const descentPercent = allRooms.length ? (roomsCleared / allRooms.length) * 100 : 0;
+
   function AreaCard({ area }: { area: (typeof areas)[number] }) {
     const unlocked =
       profile!.level >= area.levelRequirement &&
@@ -143,6 +151,48 @@ export default async function DungeonMapPage() {
         icon="candle"
         title="The Dungeon"
         subtitle="Connected halls descend beneath the Academy. Each area trains a different craft; each room holds a trial, a puzzle, a curse, or worse."
+        accent="#d4455f"
+        motif="arch"
+        aside={
+          <div className="grid grid-cols-3 gap-2.5 text-center lg:w-72">
+            {[
+              { n: areasOpen, label: "Open", cls: "text-crimson-300", ring: "ring-crimson-500/30" },
+              { n: roomsCleared, label: "Cleared", cls: "text-emerald2-300", ring: "ring-emerald2-500/30" },
+              {
+                n: allRooms.length - roomsCleared,
+                label: "Ahead",
+                cls: "text-parchment-300",
+                ring: "ring-white/10",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className={`rounded-xl bg-white/[0.05] px-4 py-3 ring-1 ring-inset backdrop-blur ${s.ring}`}
+              >
+                <p className={`font-display text-2xl leading-none ${s.cls}`}>{s.n}</p>
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-400">
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        }
+        footer={
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <p className="font-display text-2xl leading-none">
+                <span className="text-gilded">{roomsCleared}</span>
+                <span className="ml-2 text-base text-parchment-400">
+                  of {allRooms.length} rooms cleared
+                </span>
+              </p>
+              <p className="text-xs text-parchment-400">
+                {areasOpen} of {areas.length} areas open to you
+              </p>
+            </div>
+            <Meter percent={descentPercent} thick />
+          </div>
+        }
       />
 
       <Link

@@ -5,6 +5,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { levelFromXp, skillLevelFromXp } from "@/lib/xp";
+import { skillTheme } from "@/lib/category-theme";
 import { Icon } from "@/components/ui/Icon";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import {
@@ -57,7 +58,11 @@ export default async function ProfilePage() {
       <ScrollProgress />
       <SectionHeading
         eyebrow="Prestigious · Collectible · Yours"
+        icon="star"
         title="Composer Profile"
+        subtitle="Your title, your avatar, and every mark the Dungeon has left on you."
+        accent="#e0b53c"
+        motif="trophy"
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -125,6 +130,8 @@ export default async function ProfilePage() {
               {skills.map((s) => {
                 const p = skillLevelFromXp(s.xp);
                 const rank = rankedSkills.findIndex((r) => r.id === s.id) + 1;
+                // Each skill keeps its own jewel tone here, as it does everywhere else.
+                const theme = skillTheme(s.skill.key);
                 return (
                   <div key={s.id}>
                     <div className="mb-1 flex items-baseline justify-between text-sm">
@@ -134,14 +141,23 @@ export default async function ProfilePage() {
                           #{rank} strongest
                         </span>
                       </span>
-                      <span className="font-display text-gold-400">
+                      <span className="font-display" style={{ color: theme.light }}>
                         Lv {p.level}
                         <span className="ml-1 text-xs text-parchment-500">
                           {p.intoLevel}/{p.needed} XP
                         </span>
                       </span>
                     </div>
-                    <ProgressBar percent={p.percent} color="arcane" />
+                    <div className="meter-track">
+                      <div
+                        className="meter-fill"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, p.percent))}%`,
+                          background: `linear-gradient(90deg, ${theme.deep}, ${theme.hex}, ${theme.light})`,
+                          color: theme.hex,
+                        }}
+                      />
+                    </div>
                   </div>
                 );
               })}

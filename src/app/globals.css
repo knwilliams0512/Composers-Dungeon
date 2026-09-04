@@ -253,7 +253,7 @@ html { scroll-behavior: smooth; }
     -webkit-text-fill-color: transparent;
   }
   .eyebrow {
-    @apply flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-600;
+    @apply flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold-500;
   }
   .prose-lesson p { @apply text-[15px] leading-[1.8] text-parchment-200; }
 

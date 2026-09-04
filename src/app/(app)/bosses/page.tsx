@@ -21,6 +21,10 @@ export default async function BossesPage() {
   if (!profile) redirect("/login");
   const progressByBoss = new Map(progress.map((p) => [p.bossId, p]));
 
+  const felled = progress.filter((p) => p.defeated).length;
+  const wounded = progress.filter((p) => !p.defeated && p.currentHp > 0).length;
+  const bossPercent = bosses.length ? (felled / bosses.length) * 100 : 0;
+
   return (
     <div>
       <ScrollProgress />
@@ -29,6 +33,50 @@ export default async function BossesPage() {
         icon="skull"
         title="The Bosses"
         subtitle="Great musical adversaries guard the Dungeon's depths. Wound them with modulations, motifs, and counterpoint — finish them with a completed composition."
+        accent="#e0803a"
+        motif="crown"
+        aside={
+          <div className="grid grid-cols-3 gap-2.5 text-center lg:w-72">
+            {[
+              { n: felled, label: "Felled", cls: "text-emerald2-300", ring: "ring-emerald2-500/30" },
+              { n: wounded, label: "Wounded", cls: "text-rose-300", ring: "ring-rose-500/30" },
+              {
+                n: bosses.length - felled,
+                label: "Standing",
+                cls: "text-parchment-300",
+                ring: "ring-white/10",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className={`rounded-xl bg-white/[0.05] px-4 py-3 ring-1 ring-inset backdrop-blur ${s.ring}`}
+              >
+                <p className={`font-display text-2xl leading-none ${s.cls}`}>{s.n}</p>
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-400">
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        }
+        footer={
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <p className="font-display text-2xl leading-none">
+                <span className="text-gilded">{felled}</span>
+                <span className="ml-2 text-base text-parchment-400">
+                  of {bosses.length} adversaries felled
+                </span>
+              </p>
+              <p className="text-xs text-parchment-400">
+                {bosses.length - felled === 0
+                  ? "The depths hold nothing left to fight."
+                  : `${bosses.length - felled} still guard the depths.`}
+              </p>
+            </div>
+            <Meter percent={bossPercent} thick />
+          </div>
+        }
       />
       <div className="stagger grid grid-cols-1 gap-5 md:grid-cols-2">
         {bosses.map((boss) => {

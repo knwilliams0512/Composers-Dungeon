@@ -41,6 +41,9 @@ export default async function LibraryPage({
         eyebrow="Ancient · Organized · Archival"
         title="The Library"
         subtitle="Everything you have written, solved, defeated, and unearthed — shelved in the dark and waiting."
+        icon="scroll"
+        accent="#9358c9"
+        motif="crystal"
       />
 
       {/* Tabs */}

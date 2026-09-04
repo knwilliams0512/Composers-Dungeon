@@ -181,68 +181,90 @@ export default async function EntranceHallPage() {
           className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full opacity-20 blur-3xl"
           style={{ background: "radial-gradient(circle, #9358c9, transparent 70%)" }}
         />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-5">
-            <div className="relative">
-              <XpRing percent={xp.percent} level={xp.level} />
-              <span className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border border-gold-500/60 bg-abyss-900/90 text-lg shadow-[0_0_18px_-2px_rgba(201,168,76,0.8)] backdrop-blur">
-                {avatarGlyph(profile.avatar)}
-              </span>
+        {/* A page of music behind the name, where a photograph would sit. */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/3 opacity-[0.28] sm:block">
+          <Motif name="sheet" tint="#e3c26d" opacity={1} />
+        </div>
+        <div className="relative space-y-6">
+          {/* Who you are, and how the flame is doing — one line at the top. */}
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-5">
+              <div className="relative shrink-0">
+                <XpRing percent={xp.percent} level={xp.level} />
+                <span className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border border-gold-500/60 bg-abyss-900/90 text-lg shadow-[0_0_18px_-2px_rgba(201,168,76,0.8)] backdrop-blur">
+                  {avatarGlyph(profile.avatar)}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="eyebrow">
+                  <Icon name="hall" size={12} /> The Entrance Hall
+                </p>
+                <h1 className="text-gilded mt-1 truncate font-display text-3xl leading-tight sm:text-4xl">
+                  {profile.displayName}
+                </h1>
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-parchment-400">
+                  <span className="text-parchment-300">Composer in Progress</span>
+                  <span className="text-parchment-600">·</span>
+                  <span>{tierLabel}</span>
+                  {specTitle && (
+                    <span className="pill-arcane">
+                      <Icon name="star" size={10} /> {specTitle}
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="eyebrow">
-                <Icon name="hall" size={12} /> The Entrance Hall
-              </p>
-              <h1 className="text-gilded mt-1 truncate font-display text-4xl leading-tight">
-                {profile.displayName}
-              </h1>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-parchment-400">
-                <span>{tierLabel}</span>
-                {specTitle && (
-                  <span className="pill-arcane">
-                    <Icon name="star" size={10} /> {specTitle}
-                  </span>
-                )}
-              </p>
-            </div>
+
+            <FlameBadge
+              days={profile.streakCount}
+              alive={flame}
+              restDays={profile.restDays}
+              best={profile.longestStreak}
+            />
+
+            {/* What the whole app is for, in the order you meet it. */}
+            <ul className="hidden shrink-0 flex-col gap-1 border-l border-gold-700/30 pl-5 text-right xl:flex">
+              {["Create", "Practice", "Explore", "Ascend"].map((word) => (
+                <li
+                  key={word}
+                  className="font-display text-[15px] italic leading-tight text-gold-300/85"
+                >
+                  {word}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-2.5 lg:min-w-[18rem]">
-            <div className="flex items-end justify-between gap-4">
+          {/* The climb to the next level, given the full width beneath. */}
+          <div className="space-y-2.5 border-t border-gold-700/20 pt-5">
+            <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
               <div className="min-w-0">
                 <p className="font-display text-lg leading-none text-parchment-100">
                   <span className="tabular-nums text-gold-300">
                     {xp.intoLevel.toLocaleString()}
                   </span>
-                  <span className="text-parchment-500"> / {xp.needed.toLocaleString()}</span>
+                  <span className="text-parchment-400"> / {xp.needed.toLocaleString()}</span>
                 </p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-500">
+                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-400">
                   XP to level {xp.level + 1}
                 </p>
               </div>
+              <p className="text-[11px] leading-relaxed text-parchment-400">
+                {(xp.needed - xp.intoLevel).toLocaleString()} XP remaining — roughly{" "}
+                {Math.max(1, Math.ceil((xp.needed - xp.intoLevel) / 120))} more trials at your
+                current rate.
+              </p>
               <div className="shrink-0 text-right">
                 <p className="font-display text-lg leading-none tabular-nums text-parchment-300">
                   {profile.totalXp.toLocaleString()}
                 </p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-500">
+                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-400">
                   total
                 </p>
               </div>
             </div>
             <Meter percent={xp.percent} thick />
-            <p className="text-[11px] leading-relaxed text-parchment-500">
-              {(xp.needed - xp.intoLevel).toLocaleString()} XP remaining — roughly{" "}
-              {Math.max(1, Math.ceil((xp.needed - xp.intoLevel) / 120))} more trials at your
-              current rate.
-            </p>
           </div>
-
-          <FlameBadge
-            days={profile.streakCount}
-            alive={flame}
-            restDays={profile.restDays}
-            best={profile.longestStreak}
-          />
         </div>
       </section>
 
@@ -307,15 +329,27 @@ export default async function EntranceHallPage() {
 
       {/* ---- Quick actions -------------------------------------------------- */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Link href="/dungeon" className="btn-danger justify-between px-5 py-4 text-base">
-          <span className="flex items-center gap-2.5">
-            <Icon name="candle" size={20} /> Enter the Dungeon
+        <Link href="/dungeon" className="btn-danger justify-between px-5 py-3.5 text-left">
+          <span className="flex items-center gap-3">
+            <Icon name="candle" size={22} />
+            <span className="flex flex-col leading-tight">
+              <span className="text-base">Enter the Dungeon</span>
+              <span className="text-[11px] font-normal normal-case tracking-normal opacity-75">
+                Face challenges. Grow stronger.
+              </span>
+            </span>
           </span>
           <Icon name="arrow" size={18} />
         </Link>
-        <Link href="/academy" className="btn-primary justify-between px-5 py-4 text-base">
-          <span className="flex items-center gap-2.5">
-            <Icon name="book" size={20} /> Continue Learning
+        <Link href="/academy" className="btn-primary justify-between px-5 py-3.5 text-left">
+          <span className="flex items-center gap-3">
+            <Icon name="book" size={22} />
+            <span className="flex flex-col leading-tight">
+              <span className="text-base">Continue Learning</span>
+              <span className="text-[11px] font-normal normal-case tracking-normal opacity-75">
+                Pick up where you left off.
+              </span>
+            </span>
           </span>
           <Icon name="arrow" size={18} />
         </Link>

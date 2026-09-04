@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Icon } from "@/components/ui/Icon";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { StudioLibrary } from "@/components/studio/StudioLibrary";
 import { instrumentById } from "@/lib/studio/instruments";
 import type { StudioScore } from "@/lib/studio/model";
@@ -59,16 +59,32 @@ export default async function StudioLibraryPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <header className="mb-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-parchment-500">
-          <Icon name="staff" size={12} /> The Studio
-        </p>
-        <h1 className="heading-display mt-1 text-3xl">Your Scores</h1>
-        <p className="mt-2 max-w-2xl text-parchment-400">
-          Full notation, as many instruments as the music asks for. Write anything from a solo
-          line to a full orchestral score.
-        </p>
-      </header>
+      <SectionHeading
+        eyebrow="Full notation · Any ensemble · No limits"
+        icon="staff"
+        title="Your Scores"
+        subtitle="Full notation, as many instruments as the music asks for. Write anything from a solo line to a full orchestral score."
+        accent="#2f9fb3"
+        motif="keys"
+        aside={
+          <div className="grid grid-cols-2 gap-2.5 text-center lg:w-48">
+            <div className="rounded-xl bg-white/[0.05] px-4 py-3 ring-1 ring-inset ring-teal-500/30">
+              <p className="font-display text-2xl leading-none text-teal-300">{scores.length}</p>
+              <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-400">
+                Scores
+              </p>
+            </div>
+            <div className="rounded-xl bg-white/[0.05] px-4 py-3 ring-1 ring-inset ring-white/10">
+              <p className="font-display text-2xl leading-none text-parchment-300">
+                {scores.reduce((n, s) => n + s.parts, 0)}
+              </p>
+              <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-400">
+                Parts
+              </p>
+            </div>
+          </div>
+        }
+      />
 
       <StudioLibrary scores={scores} />
 

@@ -35,6 +35,9 @@ export default async function WorkshopPage() {
         eyebrow="No trial · No judge · Your own brief"
         title="The Composer's Workshop"
         subtitle="The dungeon hands you a brief and grades what you write. Here nobody does. Set the piece up how you like, write it, keep it — and take as long as you want."
+        icon="quill"
+        accent="#2fb37f"
+        motif="quill"
       />
 
       <Workshop freedom={freedom} />

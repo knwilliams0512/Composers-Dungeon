@@ -31,6 +31,9 @@ export default async function SettingsPage() {
         eyebrow="Housekeeping"
         title="Settings"
         subtitle="Version, updates, your data, and where everything lives."
+        icon="settings"
+        accent="#6d7db0"
+        motif="keys"
       />
 
       <div className="space-y-6">

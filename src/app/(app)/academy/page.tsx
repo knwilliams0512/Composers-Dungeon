@@ -41,48 +41,49 @@ export default async function AcademyPage() {
         icon="book"
         title="The Academy of Musical Arts"
         subtitle="Every lesson: learn the concept, study examples, pass the quiz, practice, then compose. Knowledge here becomes power below."
-      />
-
-      {/* ---- Curriculum progress ------------------------------------------ */}
-      <section className="card-gold aura lit-edge relative mb-10 overflow-hidden p-6">
-        {/* A gilded arc behind the numbers */}
-        <div
-          className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full opacity-25 blur-3xl"
-          style={{ background: "radial-gradient(circle, #c9a84c, transparent 70%)" }}
-        />
-        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="flex-1">
-            <p className="eyebrow">
-              <Icon name="book" size={12} /> Curriculum progress
-            </p>
-            <p className="mt-2 font-display text-4xl leading-none">
-              <span className="text-gilded">{completedIds.size}</span>
-              <span className="ml-2 text-lg text-parchment-400">of {lessons.length} lessons</span>
-            </p>
-            <Meter percent={overallPercent} className="mt-4" thick />
-            <p className="mt-2 text-xs text-parchment-500">
-              {Math.round(overallPercent)}% of the Academy behind you
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2.5 text-center sm:w-72">
+        accent="#4f7fd4"
+        motif="book"
+        aside={
+          <div className="grid grid-cols-3 gap-2.5 text-center lg:w-72">
             {[
               { n: completedIds.size, label: "Done", cls: "text-emerald2-300", ring: "ring-emerald2-500/30" },
               { n: inProgress, label: "Open", cls: "text-arcane-300", ring: "ring-arcane-500/30" },
-              { n: lessons.length - completedIds.size, label: "Left", cls: "text-parchment-300", ring: "ring-white/10" },
+              {
+                n: lessons.length - completedIds.size,
+                label: "Left",
+                cls: "text-parchment-300",
+                ring: "ring-white/10",
+              },
             ].map((s) => (
               <div
                 key={s.label}
-                className={`rounded-xl bg-white/[0.04] px-2 py-3 ring-1 ring-inset backdrop-blur ${s.ring}`}
+                className={`rounded-xl bg-white/[0.05] px-4 py-3 ring-1 ring-inset backdrop-blur ${s.ring}`}
               >
                 <p className={`font-display text-2xl leading-none ${s.cls}`}>{s.n}</p>
-                <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-500">
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-400">
                   {s.label}
                 </p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        }
+        footer={
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <p className="font-display text-2xl leading-none">
+                <span className="text-gilded">{completedIds.size}</span>
+                <span className="ml-2 text-base text-parchment-400">
+                  of {lessons.length} lessons
+                </span>
+              </p>
+              <p className="text-xs text-parchment-400">
+                {Math.round(overallPercent)}% of the Academy behind you
+              </p>
+            </div>
+            <Meter percent={overallPercent} thick />
+          </div>
+        }
+      />
 
       {/* ---- The curriculum, tier by tier ---------------------------------- */}
       <div className="space-y-12">
