@@ -1,6 +1,6 @@
 {
   "name": "composers-dungeon",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "private": true,
   "description": "An educational music theory & composition platform fused with an RPG dungeon crawler.",
   "scripts": {
