@@ -51,6 +51,28 @@ flat black. Both are fixed, the text ramp reaches the shades the app was
 already asking for, and the entrance hall's stat tiles carry their own colour
 and show progress instead of a grey number.
 
+## What's new in v1.5.2
+
+**Every subject has its colour back.** The app was one colour: six identical
+grey tiles on the entrance hall, twenty-five identical cards in the Academy,
+and a palette underneath that was keyed by subject but never allowed to show.
+Melody is pink, Rhythm teal, Harmony blue, Form purple — on the cards
+themselves now, not just a hairline on the edge.
+
+**Cards have scenes behind them.** Twelve drawn vector scenes — a book, a
+dungeon arch, a crown, a sheet of music, a crystal, a trophy, a keyboard, a
+candle — each tinted to its card's own colour and faded out before it reaches
+the text.
+
+**The entrance hall's stat tiles** carry their colour through the border, the
+ground and the icon, show progress as a bar rather than a number to read, and
+name where they go on their face instead of leaving it to a hover.
+
+**Locked things no longer drain.** Locked lessons, rooms, areas and bosses
+were drawn desaturated, and since almost everything is locked early on, nearly
+every page was grey on purpose. They step back on opacity now and keep the
+colour that says what they are.
+
 ## Install on Windows
 
 1. Download **`ComposersDungeonSetup.exe`** from **Assets** below.
