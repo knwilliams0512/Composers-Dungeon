@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "./Icon";
+import { Motif, type MotifName } from "./Motif";
 
 /* -------------------------------------------------------------------------- */
 /* Panels                                                                      */
@@ -219,14 +220,20 @@ export function StatTile({
   hint,
   href,
   accent = "#c9a84c",
+  motif,
+  linkLabel,
 }: {
   icon: IconName;
   label: string;
   value: string | number;
   hint?: string;
   href?: string;
-  /** Jewel tone for the icon, the rule, the bloom and the progress bar. */
+  /** Jewel tone the whole tile is built from. */
   accent?: string;
+  /** Scene drawn behind the numbers. */
+  motif?: MotifName;
+  /** Where the tile goes, named on its face rather than left to a hover. */
+  linkLabel?: string;
 }) {
   // A value written "3/25" is a score out of something, and a score out of
   // something deserves to be shown as a proportion rather than read as text.
@@ -241,35 +248,42 @@ export function StatTile({
 
   const body = (
     <>
-      {/* The tile is lit by its own colour rather than being another grey box. */}
-      <span
-        className="pointer-events-none absolute -left-8 -top-10 h-28 w-28 rounded-full opacity-25 blur-2xl transition-opacity duration-500 group-hover:opacity-60"
-        style={{ background: `radial-gradient(circle, ${accent}, transparent 70%)` }}
-      />
+      {motif && (
+        <>
+          <Motif name={motif} tint={accent} opacity={0.34} />
+          {/* Keeps the figures readable wherever the scene happens to fall. */}
+          <span
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(100deg, rgba(8,6,14,0.82) 0%, rgba(8,6,14,0.55) 42%, transparent 78%)",
+            }}
+          />
+        </>
+      )}
+
+      {/* A lit rim along the top, the way each tile is separated in a rack. */}
       <span
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
         style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
       />
 
-      <span className="relative flex items-center gap-2">
+      <span className="relative flex items-start gap-2">
         <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border backdrop-blur transition-transform duration-300 group-hover:scale-110"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-110"
           style={{
-            borderColor: `color-mix(in srgb, ${accent} 55%, transparent)`,
-            background: `color-mix(in srgb, ${accent} 18%, transparent)`,
-            color: accent,
-            boxShadow: `0 0 18px -6px ${accent}`,
+            borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`,
+            background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 34%, transparent), color-mix(in srgb, ${accent} 12%, transparent))`,
+            color: `color-mix(in srgb, ${accent} 55%, white)`,
+            boxShadow: `0 0 22px -6px ${accent}`,
           }}
         >
-          <Icon name={icon} size={15} />
+          <Icon name={icon} size={17} />
         </span>
         {complete && (
           <span
             className="ml-auto rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-            style={{
-              borderColor: `color-mix(in srgb, ${accent} 55%, transparent)`,
-              color: accent,
-            }}
+            style={{ borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`, color: accent }}
           >
             Done
           </span>
@@ -277,26 +291,40 @@ export function StatTile({
       </span>
 
       <span
-        className="relative mt-2.5 block font-display text-[1.7rem] leading-none"
-        style={{ color: ratio !== null && ratio > 0 ? accent : undefined }}
+        className="relative mt-3 block font-display text-[1.85rem] leading-none"
+        style={{ color: `color-mix(in srgb, ${accent} 40%, white)` }}
       >
-        <span className={ratio !== null && ratio > 0 ? "" : "text-parchment-100"}>{value}</span>
+        {value}
       </span>
 
-      <span className="relative mt-1.5 block text-[10px] uppercase tracking-[0.18em] text-parchment-400">
+      <span className="relative mt-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-parchment-300">
         {label}
       </span>
-      {hint && <span className="relative mt-1 block text-[10px] text-parchment-500">{hint}</span>}
+      {hint && <span className="relative mt-0.5 block text-[10px] text-parchment-500">{hint}</span>}
 
       {ratio !== null && (
-        <span className="relative mt-2 block h-1 overflow-hidden rounded-full bg-white/[0.07]">
+        <span className="relative mt-2 block h-1 overflow-hidden rounded-full bg-black/40">
           <span
             className="block h-full rounded-full transition-[width] duration-700 ease-out"
             style={{
               width: `${ratio * 100}%`,
-              background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 60%, transparent), ${accent})`,
+              background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 55%, transparent), ${accent})`,
               boxShadow: `0 0 10px -2px ${accent}`,
             }}
+          />
+        </span>
+      )}
+
+      {linkLabel && (
+        <span
+          className="relative mt-2 flex items-center gap-1 text-[10px] font-semibold"
+          style={{ color: `color-mix(in srgb, ${accent} 35%, white)` }}
+        >
+          {linkLabel}
+          <Icon
+            name="arrow"
+            size={11}
+            className="transition-transform duration-300 group-hover:translate-x-0.5"
           />
         </span>
       )}
@@ -304,21 +332,19 @@ export function StatTile({
   );
 
   const cls =
-    "group relative overflow-hidden rounded-xl border border-white/[0.09] px-3.5 py-3.5 text-left backdrop-blur transition-all duration-300";
-  const tint = {
-    backgroundImage: `linear-gradient(160deg, color-mix(in srgb, ${accent} 9%, transparent), rgba(255,255,255,0.02) 55%, transparent)`,
+    "group relative overflow-hidden rounded-xl border px-3.5 py-3.5 text-left transition-all duration-300";
+  const skin = {
+    borderColor: `color-mix(in srgb, ${accent} 32%, transparent)`,
+    backgroundImage: `linear-gradient(155deg, color-mix(in srgb, ${accent} 26%, transparent) 0%, color-mix(in srgb, ${accent} 9%, transparent) 45%, rgba(10,8,16,0.55) 100%)`,
+    boxShadow: `inset 0 1px 0 0 color-mix(in srgb, ${accent} 22%, transparent)`,
   };
 
   return href ? (
-    <Link
-      href={href}
-      className={`${cls} block hover:-translate-y-0.5 hover:border-white/20`}
-      style={tint}
-    >
+    <Link href={href} className={`${cls} block hover:-translate-y-0.5`} style={skin}>
       {body}
     </Link>
   ) : (
-    <div className={cls} style={tint}>
+    <div className={cls} style={skin}>
       {body}
     </div>
   );

@@ -6,6 +6,7 @@ import { levelFromXp, skillLevelFromXp } from "@/lib/xp";
 import { flameAlive } from "@/lib/streak";
 import { getRecommendations } from "@/lib/recommendations";
 import { Icon, SKILL_ICONS, type IconName } from "@/components/ui/Icon";
+import { Motif, type MotifName } from "@/components/ui/Motif";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { skillTheme } from "@/lib/category-theme";
 import {
@@ -27,10 +28,13 @@ import {
 
 export const metadata = { title: "The Entrance Hall" };
 
-const REC_META: Record<string, { icon: IconName; label: string }> = {
-  LESSON: { icon: "book", label: "Academy" },
-  DAILY: { icon: "sun", label: "Daily Challenge" },
-  DUNGEON: { icon: "candle", label: "Dungeon" },
+const REC_META: Record<
+  string,
+  { icon: IconName; label: string; accent: string; motif: MotifName; cta: string }
+> = {
+  LESSON: { icon: "book", label: "Academy", accent: "#4f7fd4", motif: "keys", cta: "Begin lesson" },
+  DAILY: { icon: "sun", label: "Daily Challenge", accent: "#e0b53c", motif: "candle", cta: "Start challenge" },
+  DUNGEON: { icon: "candle", label: "Dungeon", accent: "#d4455f", motif: "arch", cta: "Enter" },
 };
 
 function timeAgo(date: Date) {
@@ -250,42 +254,54 @@ export default async function EntranceHallPage() {
           value={`${lessonsDone}/${lessonTotal}`}
           hint="Academy"
           href="/academy"
-          accent="#4f63a8"
+          accent="#4f7fd4"
+          motif="book"
+          linkLabel="Academy"
         />
         <StatTile
           icon="sword"
           label="Trials won"
           value={challengesDone}
           href="/library"
-          accent="#cc5580"
+          accent="#d4455f"
+          motif="arch"
+          linkLabel="Dungeon"
         />
         <StatTile
           icon="skull"
           label="Bosses felled"
           value={`${bossesDefeated}/${bossTotal}`}
           href="/bosses"
-          accent="#a03c38"
+          accent="#e0803a"
+          motif="crown"
+          linkLabel="Bosses"
         />
         <StatTile
           icon="quill"
           label="Compositions"
           value={compositionCount}
           href="/library"
-          accent="#2fa27c"
+          accent="#2fb37f"
+          motif="sheet"
+          linkLabel="Studio"
         />
         <StatTile
           icon="chest"
           label="Artifacts"
           value={`${artifactCount}/${artifactTotal}`}
           href="/library"
-          accent="#2f97a0"
+          accent="#9358c9"
+          motif="crystal"
+          linkLabel="Workshop"
         />
         <StatTile
           icon="trophy"
           label="Achievements"
           value={`${achievementCount}/${achievementTotal}`}
           href="/library"
-          accent="#c9a84c"
+          accent="#e0b53c"
+          motif="trophy"
+          linkLabel="View all"
         />
       </section>
 
@@ -313,17 +329,49 @@ export default async function EntranceHallPage() {
             <Link
               key={rec.href + rec.title}
               href={rec.href}
-              className="card-link lit-edge group p-5"
+              className="group relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-0.5"
+              style={{
+                borderColor: `color-mix(in srgb, ${meta.accent} 34%, transparent)`,
+                backgroundImage: `linear-gradient(150deg, color-mix(in srgb, ${meta.accent} 24%, transparent) 0%, color-mix(in srgb, ${meta.accent} 8%, transparent) 45%, rgba(10,8,16,0.6) 100%)`,
+              }}
             >
-              <p className="eyebrow">
+              <Motif name={meta.motif} tint={meta.accent} opacity={0.36} />
+              <span
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(100deg, rgba(8,6,14,0.86) 0%, rgba(8,6,14,0.6) 45%, transparent 82%)",
+                }}
+              />
+              <span
+                className="pointer-events-none absolute inset-x-0 top-0 h-px"
+                style={{ background: `linear-gradient(90deg, transparent, ${meta.accent}, transparent)` }}
+              />
+
+              <p
+                className="relative flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.24em]"
+                style={{ color: `color-mix(in srgb, ${meta.accent} 30%, white)` }}
+              >
                 <Icon name={meta.icon} size={12} /> {meta.label}
               </p>
-              <p className="mt-2 font-display text-lg text-gold-300 group-hover:text-gold-200">
-                {rec.title}
+              <p className="relative mt-2 font-display text-xl text-parchment-100">{rec.title}</p>
+              <p className="relative mt-1.5 text-sm leading-relaxed text-parchment-300">
+                {rec.message}
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-parchment-400">{rec.message}</p>
-              <span className="mt-3 inline-flex items-center gap-1 text-xs text-parchment-500 transition-colors group-hover:text-gold-400">
-                Begin <Icon name="chevron" size={12} />
+              <span
+                className="relative mt-4 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+                style={{
+                  borderColor: `color-mix(in srgb, ${meta.accent} 50%, transparent)`,
+                  background: `color-mix(in srgb, ${meta.accent} 18%, transparent)`,
+                  color: `color-mix(in srgb, ${meta.accent} 25%, white)`,
+                }}
+              >
+                {meta.cta}
+                <Icon
+                  name="arrow"
+                  size={12}
+                  className="transition-transform duration-300 group-hover:translate-x-0.5"
+                />
               </span>
             </Link>
           );

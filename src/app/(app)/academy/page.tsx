@@ -153,7 +153,10 @@ export default async function AcademyPage() {
                   const card = (
                     <article
                       className={`card-accent h-full p-5 ${
-                        done ? "border-emerald2-500/40" : locked ? "opacity-60 saturate-[0.6]" : ""
+                        // A locked lesson steps back, but keeps its subject's
+                        // colour: draining it turned a wall of different
+                        // subjects into one undifferentiated brown.
+                        done ? "border-emerald2-500/40" : locked ? "opacity-75" : ""
                       }`}
                       style={categoryVars(theme)}
                     >

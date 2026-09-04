@@ -41,7 +41,7 @@ export default async function BossesPage() {
                 boss.final ? "card-crimson" : "card"
               } lit-edge group relative h-full overflow-hidden p-6 transition-all duration-300 ${
                 locked
-                  ? "opacity-55 saturate-[0.55]"
+                  ? "opacity-70"
                   : p?.defeated
                     ? "border-emerald2-500/40"
                     : "hover:-translate-y-1 hover:border-crimson-400/50 hover:shadow-crimson"

@@ -47,7 +47,7 @@ export default async function DungeonMapPage() {
     const inner = (
       <div
         className={`card-accent h-full p-5 ${
-          unlocked ? "" : "opacity-55 saturate-[0.55]"
+          unlocked ? "" : "opacity-70"
         } ${cleared ? "border-emerald2-500/40" : ""}`}
         style={categoryVars(theme)}
       >

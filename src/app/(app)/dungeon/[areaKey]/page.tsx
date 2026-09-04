@@ -155,7 +155,7 @@ export default async function DungeonAreaPage({
           const inner = (
             <div
               className={`card-accent group relative ml-12 p-4 ${
-                roomLocked ? "opacity-55 saturate-[0.55]" : cleared ? "border-emerald2-500/40" : ""
+                roomLocked ? "opacity-70" : cleared ? "border-emerald2-500/40" : ""
               }`}
               style={categoryVars(theme)}
             >
