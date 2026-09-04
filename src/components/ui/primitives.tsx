@@ -225,48 +225,102 @@ export function StatTile({
   value: string | number;
   hint?: string;
   href?: string;
-  /** Jewel tone for the icon and its hover glow. */
+  /** Jewel tone for the icon, the rule, the bloom and the progress bar. */
   accent?: string;
 }) {
+  // A value written "3/25" is a score out of something, and a score out of
+  // something deserves to be shown as a proportion rather than read as text.
+  const parts = String(value).split("/");
+  const done = Number(parts[0]);
+  const outOf = parts.length === 2 ? Number(parts[1]) : NaN;
+  const ratio =
+    Number.isFinite(done) && Number.isFinite(outOf) && outOf > 0
+      ? Math.max(0, Math.min(1, done / outOf))
+      : null;
+  const complete = ratio === 1;
+
   const body = (
     <>
-      {/* Accent bloom, revealed on hover */}
+      {/* The tile is lit by its own colour rather than being another grey box. */}
       <span
-        className="pointer-events-none absolute -left-6 -top-8 h-24 w-24 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-40"
+        className="pointer-events-none absolute -left-8 -top-10 h-28 w-28 rounded-full opacity-25 blur-2xl transition-opacity duration-500 group-hover:opacity-60"
         style={{ background: `radial-gradient(circle, ${accent}, transparent 70%)` }}
       />
       <span
-        className="relative flex h-8 w-8 items-center justify-center rounded-lg border backdrop-blur transition-transform duration-300 group-hover:scale-110"
-        style={{
-          borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
-          background: `color-mix(in srgb, ${accent} 12%, transparent)`,
-          color: accent,
-        }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
+      />
+
+      <span className="relative flex items-center gap-2">
+        <span
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border backdrop-blur transition-transform duration-300 group-hover:scale-110"
+          style={{
+            borderColor: `color-mix(in srgb, ${accent} 55%, transparent)`,
+            background: `color-mix(in srgb, ${accent} 18%, transparent)`,
+            color: accent,
+            boxShadow: `0 0 18px -6px ${accent}`,
+          }}
+        >
+          <Icon name={icon} size={15} />
+        </span>
+        {complete && (
+          <span
+            className="ml-auto rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+            style={{
+              borderColor: `color-mix(in srgb, ${accent} 55%, transparent)`,
+              color: accent,
+            }}
+          >
+            Done
+          </span>
+        )}
+      </span>
+
+      <span
+        className="relative mt-2.5 block font-display text-[1.7rem] leading-none"
+        style={{ color: ratio !== null && ratio > 0 ? accent : undefined }}
       >
-        <Icon name={icon} size={15} />
+        <span className={ratio !== null && ratio > 0 ? "" : "text-parchment-100"}>{value}</span>
       </span>
-      <span className="relative mt-2.5 block font-display text-2xl leading-none text-parchment-100">
-        {value}
-      </span>
-      <span className="relative mt-1.5 block text-[10px] uppercase tracking-[0.18em] text-parchment-500">
+
+      <span className="relative mt-1.5 block text-[10px] uppercase tracking-[0.18em] text-parchment-400">
         {label}
       </span>
-      {hint && (
-        <span className="relative mt-1 block text-[10px] text-parchment-500/80">{hint}</span>
+      {hint && <span className="relative mt-1 block text-[10px] text-parchment-500">{hint}</span>}
+
+      {ratio !== null && (
+        <span className="relative mt-2 block h-1 overflow-hidden rounded-full bg-white/[0.07]">
+          <span
+            className="block h-full rounded-full transition-[width] duration-700 ease-out"
+            style={{
+              width: `${ratio * 100}%`,
+              background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 60%, transparent), ${accent})`,
+              boxShadow: `0 0 10px -2px ${accent}`,
+            }}
+          />
+        </span>
       )}
     </>
   );
+
   const cls =
-    "group relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3.5 text-left backdrop-blur transition-all duration-300";
+    "group relative overflow-hidden rounded-xl border border-white/[0.09] px-3.5 py-3.5 text-left backdrop-blur transition-all duration-300";
+  const tint = {
+    backgroundImage: `linear-gradient(160deg, color-mix(in srgb, ${accent} 9%, transparent), rgba(255,255,255,0.02) 55%, transparent)`,
+  };
+
   return href ? (
     <Link
       href={href}
-      className={`${cls} block hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.06]`}
+      className={`${cls} block hover:-translate-y-0.5 hover:border-white/20`}
+      style={tint}
     >
       {body}
     </Link>
   ) : (
-    <div className={cls}>{body}</div>
+    <div className={cls} style={tint}>
+      {body}
+    </div>
   );
 }
 

@@ -29,8 +29,16 @@ const config: Config = {
           100: "#f5ecd7",
           200: "#e9dcc0",
           300: "#d6c5a0",
-          400: "#b3a07c",
-          500: "#8c7a5b",
+          // 400 and 500 carry most of the secondary text in the app. Against a
+          // near-black ground the old values sat close to the contrast floor at
+          // the 10px sizes the labels use, which is most of why the interface
+          // read as flat and grey.
+          400: "#c0ad88",
+          500: "#a08e6b",
+          // 600 and 700 were used throughout the app but never defined, so
+          // those classes generated nothing and the text simply inherited.
+          600: "#7f7052",
+          700: "#5f5340",
         },
         crimson: {
           300: "#dc8580",
