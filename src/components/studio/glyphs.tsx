@@ -402,67 +402,137 @@ export function OrnamentGlyph({
   sp,
   color = INK,
 }: { kind: Ornament } & G) {
+  const stroke = { fill: "none", stroke: color, strokeWidth: sp * 0.14, strokeLinecap: "round" as const };
+
+  /** The wavy line a trill or a slide rides on. */
+  const wave = (from: number, to: number, at: number) => {
+    const step = sp * 0.5;
+    let d = `M ${from} ${at}`;
+    for (let x0 = from; x0 < to; x0 += step) {
+      d += ` q ${step / 2} ${-sp * 0.35}, ${step} 0`;
+    }
+    return d;
+  };
+
   switch (kind) {
     case "trill":
+    case "trill-sharp":
+    case "trill-flat":
       return (
-        <text
-          x={x}
-          y={y}
-          fill={color}
-          fontSize={sp * 1.7}
-          fontFamily="Georgia, serif"
-          fontStyle="italic"
-          fontWeight={700}
-          textAnchor="middle"
-        >
-          tr
-        </text>
+        <g>
+          <text
+            x={x}
+            y={y}
+            fill={color}
+            fontSize={sp * 1.7}
+            fontFamily="Georgia, serif"
+            fontStyle="italic"
+            fontWeight={700}
+            textAnchor="middle"
+          >
+            tr
+          </text>
+          {kind !== "trill" && (
+            <text
+              x={x + sp * 0.95}
+              y={y - sp * 1.05}
+              fill={color}
+              fontSize={sp * 1.15}
+              textAnchor="middle"
+            >
+              {kind === "trill-sharp" ? "\u266F" : "\u266D"}
+            </text>
+          )}
+        </g>
       );
+
     case "mordent":
+    case "inverted-mordent":
       return (
-        <g stroke={color} strokeWidth={sp * 0.14} fill="none" strokeLinecap="round">
+        <g {...stroke}>
           <path
             d={`M ${x - sp} ${y} l ${sp * 0.5} ${-sp * 0.4} l ${sp * 0.5} ${sp * 0.4} l ${sp * 0.5} ${-sp * 0.4} l ${sp * 0.5} ${sp * 0.4}`}
           />
-          <line x1={x} y1={y - sp * 0.7} x2={x} y2={y + sp * 0.5} />
+          {/* The lower mordent carries a stroke through it; the upper does not. */}
+          {kind === "mordent" && <line x1={x} y1={y - sp * 0.7} x2={x} y2={y + sp * 0.55} />}
         </g>
       );
+
     case "turn":
+    case "inverted-turn":
       return (
-        <path
-          d={`M ${x - sp} ${y + sp * 0.2} c ${sp * 0.15} ${-sp * 0.5}, ${sp * 0.7} ${-sp * 0.5}, ${sp * 0.85} 0 c ${sp * 0.15} ${sp * 0.5}, ${sp * 0.7} ${sp * 0.5}, ${sp * 0.85} 0`}
-          fill="none"
-          stroke={color}
-          strokeWidth={sp * 0.15}
-          strokeLinecap="round"
-        />
+        <g transform={kind === "inverted-turn" ? `rotate(180 ${x} ${y})` : undefined}>
+          <path
+            d={`M ${x - sp} ${y + sp * 0.2} c ${sp * 0.15} ${-sp * 0.5}, ${sp * 0.7} ${-sp * 0.5}, ${sp * 0.85} 0 c ${sp * 0.15} ${sp * 0.5}, ${sp * 0.7} ${sp * 0.5}, ${sp * 0.85} 0`}
+            {...stroke}
+          />
+        </g>
       );
-    case "tremolo":
+
+    case "tremolo-1":
+    case "tremolo-2":
+    case "tremolo-3": {
+      const bars = kind === "tremolo-1" ? 1 : kind === "tremolo-2" ? 2 : 3;
       return (
         <g fill={color}>
-          {[0, 1, 2].map((i) => (
+          {Array.from({ length: bars }).map((_, i) => (
             <rect
               key={i}
-              x={x - sp * 0.45}
-              y={y + i * sp * 0.38}
-              width={sp * 0.9}
-              height={sp * 0.2}
-              transform={`skewY(-20)`}
+              x={x - sp * 0.5}
+              y={y + i * sp * 0.42}
+              width={sp}
+              height={sp * 0.22}
+              transform={`skewY(-22)`}
             />
           ))}
         </g>
       );
+    }
+
     case "arpeggio":
+    case "arpeggio-up":
+    case "arpeggio-down":
       return (
-        <path
-          d={`M ${x} ${y} q ${sp * 0.4} ${sp * 0.4}, 0 ${sp * 0.8} q ${-sp * 0.4} ${sp * 0.4}, 0 ${sp * 0.8}`}
-          fill="none"
-          stroke={color}
-          strokeWidth={sp * 0.14}
-        />
+        <g>
+          <path
+            d={`M ${x} ${y} q ${sp * 0.4} ${sp * 0.4}, 0 ${sp * 0.8} q ${-sp * 0.4} ${sp * 0.4}, 0 ${sp * 0.8}`}
+            {...stroke}
+          />
+          {/* An arrowhead names the direction the chord is rolled. */}
+          {kind === "arpeggio-up" && (
+            <path d={`M ${x - sp * 0.28} ${y + sp * 0.3} L ${x} ${y - sp * 0.2} L ${x + sp * 0.28} ${y + sp * 0.3} Z`} fill={color} />
+          )}
+          {kind === "arpeggio-down" && (
+            <path d={`M ${x - sp * 0.28} ${y + sp * 1.3} L ${x} ${y + sp * 1.8} L ${x + sp * 0.28} ${y + sp * 1.3} Z`} fill={color} />
+          )}
+        </g>
       );
+
+    case "glissando":
+      return <path d={wave(x, x + sp * 3, y)} {...stroke} />;
+
+    case "portamento":
+      return <line x1={x} y1={y + sp * 0.5} x2={x + sp * 3} y2={y - sp * 0.5} {...stroke} />;
+
+    case "bend":
+      return (
+        <path d={`M ${x} ${y + sp} q ${sp * 1.2} 0, ${sp * 1.5} ${-sp * 1.4}`} {...stroke} />
+      );
+
+    case "fall":
+      return (
+        <path d={`M ${x} ${y} q ${sp * 0.9} ${sp * 0.2}, ${sp * 1.4} ${sp * 1.3}`} {...stroke} />
+      );
+
+    case "doit":
+      return (
+        <path d={`M ${x} ${y + sp} q ${sp * 0.9} ${-sp * 0.2}, ${sp * 1.4} ${-sp * 1.3}`} {...stroke} />
+      );
+
     case "grace":
-      return null; // Grace notes draw as small noteheads, not as a mark.
+    case "appoggiatura":
+      // Both draw as a small note beside the main one, not as a mark above it.
+      return null;
   }
 }
 

@@ -53,6 +53,7 @@ import { InstrumentPanel } from "./InstrumentPanel";
 import { Inspector } from "./Inspector";
 import { Mixer } from "./Mixer";
 import { NotationToolbar, type ToolTab } from "./NotationToolbar";
+import { NotationPanel } from "./NotationPanel";
 import { DrumPad, Fretboard, PianoKeyboard } from "./PianoKeyboard";
 import { TopBar, type SaveState } from "./TopBar";
 
@@ -641,7 +642,6 @@ export function StudioEditor({
             voiceCount: target.staff.voices.length,
           }}
           actions={actions}
-          onTab={setTab}
         />
       )}
 
@@ -702,6 +702,15 @@ export function StudioEditor({
             }
           />
         </main>
+
+        {showTools && !narrow && (
+          <NotationPanel
+            tab={tab}
+            onTab={setTab}
+            actions={actions}
+            hasSelection={selection.kind === "note" || selection.kind === "measure"}
+          />
+        )}
 
         {showRight && (
           <aside

@@ -61,7 +61,7 @@ export function PianoKeyboard({
         >
           −
         </button>
-        <span className="text-[10px] text-parchment-400">C{baseOctave + 1}</span>
+        <span className="text-[10px] text-parchment-400">C{baseOctave}</span>
         <button
           onClick={() => onOctaveChange(Math.min(7, baseOctave + 1))}
           className="rounded px-1.5 text-parchment-400 hover:bg-abyss-700"

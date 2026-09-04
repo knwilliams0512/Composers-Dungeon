@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { StaffView } from "@/components/composer/StaffView";
+import { PianoKeyboard } from "@/components/studio/PianoKeyboard";
 import type { Freedom } from "@/lib/composer-freedom";
 import {
   analyze,
@@ -166,8 +167,17 @@ const NOTE_NAMES: Record<number, string> = {
   32: "double whole",
 };
 
+/** The written symbol for a length, shown above its value in beats. */
+const NOTE_GLYPHS: Record<number, string> = {
+  1: "\u{1D161}", 2: "\u266A", 3: "\u266A.", 4: "\u2669", 6: "\u2669.",
+  8: "\u{1D15E}", 12: "\u{1D15E}.", 16: "\u{1D15D}", 24: "\u{1D15D}.", 32: "\u{1D15C}",
+};
+function noteGlyph(ticks: number): string {
+  return NOTE_GLYPHS[ticks] ?? "\u2669";
+}
+
 /**
- * Note lengths are labelled in beats rather than with musical glyphs. Half and
+ * Note lengths are labelled in beats as well as glyphs. Half and
  * sixteenth-note characters have patchy font coverage, and "1 beat" is a thing
  * a beginner can act on without having read the rhythm lesson yet.
  */
@@ -208,12 +218,18 @@ export function ScoreEditor({
   // notation a la Flat.io / MuseScore. The choice sticks between visits.
   const [view, setView] = useState<"grid" | "staff">(() => {
     try {
-      return localStorage.getItem("cd-editor-view") === "staff" ? "staff" : "grid";
+      const saved = localStorage.getItem("cd-editor-view");
+      // Real notation is the point of the app, so it leads unless the writer
+      // has said otherwise; the grid stays one click away.
+      return saved === "grid" ? "grid" : "staff";
     } catch {
-      return "grid";
+      return "staff";
     }
   });
   const [accidentalMode, setAccidentalMode] = useState<-1 | 0 | 1 | null>(null);
+  const [showPiano, setShowPiano] = useState(false);
+  /** null until first opened, then the writer's own choice. */
+  const [pianoOctave, setPianoOctave] = useState<number | null>(null);
 
   function switchView(v: "grid" | "staff") {
     setView(v);
@@ -321,6 +337,42 @@ export function ScoreEditor({
     melody.push(spell === undefined ? { start: tick, duration: len, pitch } : { start: tick, duration: len, pitch, spell });
     change({ ...score, melody: melody.sort((a, b) => a.start - b.start) });
     preview(pitch);
+  }
+
+  /**
+   * The octave the keyboard opens on: the one holding the lowest note this
+   * tier allows, so every key under the hand is a key that can be written.
+   */
+  const keyboardOctave = useMemo(() => {
+    if (pianoOctave !== null) return pianoOctave;
+    const lowest = rows.length > 0 ? Math.min(...rows) : 60;
+    return Math.floor(lowest / 12) - 1;
+  }, [pianoOctave, rows]);
+
+  /**
+   * Where the on-screen keyboard writes next: straight after the music already
+   * written, snapped to the grid. Writing a melody left to right is what a
+   * beginner is doing anyway, so the keyboard needs no cursor to aim.
+   */
+  const writeHead = useMemo(() => {
+    if (score.melody.length === 0) return 0;
+    const end = Math.max(...score.melody.map((n) => n.start + n.duration));
+    const step = freedom.gridStep || 1;
+    return Math.min(total - duration, Math.ceil(end / step) * step);
+  }, [score.melody, freedom.gridStep, total, duration]);
+
+  /** A key on the piano writes at the write-head; shift stacks a chord on it. */
+  function playFromKeyboard(pitch: number, chord: boolean) {
+    preview(pitch);
+    if (readOnly) return;
+    if (!rows.includes(pitch)) return; // outside what this tier has earned
+    const tick = chord
+      ? score.melody.length > 0
+        ? Math.max(...score.melody.map((n) => n.start))
+        : 0
+      : writeHead;
+    if (tick + duration > total) return;
+    toggle(pitch, tick);
   }
 
   function setChord(barIndex: number, degree: number | null) {
@@ -482,13 +534,16 @@ export function ScoreEditor({
                 title={`${NOTE_NAMES[d] ?? "custom"} note — ${beatLabel(d, beatTicks)} beat${
                   d / beatTicks === 1 ? "" : "s"
                 }`}
-                className={`min-w-[2.6rem] rounded px-2 py-1 text-sm font-semibold leading-none transition-colors ${
+                className={`flex min-w-[2.6rem] flex-col items-center gap-0.5 rounded px-2 py-1 leading-none transition-colors ${
                   duration === d
                     ? "bg-gold-600 text-abyss-950"
                     : "text-parchment-300 hover:bg-abyss-700"
                 }`}
               >
-                {beatLabel(d, beatTicks)}
+                <span className="text-base leading-none">{noteGlyph(d)}</span>
+                <span className="text-[10px] font-semibold leading-none">
+                  {beatLabel(d, beatTicks)}
+                </span>
               </button>
             ))}
           </div>
@@ -569,6 +624,19 @@ export function ScoreEditor({
           >
             <Icon name="loop" size={14} />
           </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => setShowPiano((v) => !v)}
+              title="On-screen keyboard — play the notes in instead of placing them"
+              aria-pressed={showPiano}
+              className={`rounded px-2 py-1 transition-colors ${
+                showPiano ? "bg-gold-600 text-abyss-950" : "text-parchment-300 hover:bg-abyss-700"
+              }`}
+            >
+              <Icon name="piano" size={14} />
+            </button>
+          )}
         </div>
 
         <span className="pill">
@@ -676,6 +744,15 @@ export function ScoreEditor({
                 onSetChord={setChord}
               />
             </div>
+          )}
+          {showPiano && !readOnly && (
+            <PianoKeyboard
+              baseOctave={keyboardOctave}
+              onOctaveChange={setPianoOctave}
+              onClose={() => setShowPiano(false)}
+              onPlay={playFromKeyboard}
+              highlighted={rows}
+            />
           )}
           <div ref={gridRef} className={view === "staff" ? "hidden" : "overflow-x-auto"}>
             <div className="inline-block min-w-full p-3">

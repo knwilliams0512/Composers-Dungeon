@@ -26,12 +26,31 @@ export type Articulation =
   | "portato";
 
 export type Ornament =
+  // Shakes and turns
   | "trill"
+  | "trill-sharp"
+  | "trill-flat"
   | "mordent"
+  | "inverted-mordent"
   | "turn"
-  | "tremolo"
+  | "inverted-turn"
+  // Repeated-note figures
+  | "tremolo-1"
+  | "tremolo-2"
+  | "tremolo-3"
+  // Spread chords
   | "arpeggio"
-  | "grace";
+  | "arpeggio-up"
+  | "arpeggio-down"
+  // Small notes before the beat
+  | "grace"
+  | "appoggiatura"
+  // Sliding between pitches
+  | "glissando"
+  | "portamento"
+  | "bend"
+  | "fall"
+  | "doit";
 
 export type Dynamic =
   | "ppp" | "pp" | "p" | "mp" | "mf" | "f" | "ff" | "fff"
