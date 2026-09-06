@@ -8,6 +8,7 @@ import { Meter, DangerRating } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { skillTheme, categoryVars } from "@/lib/category-theme";
 import { tierOrdinal } from "@/lib/enums";
+import { countCleared, isRoomCleared, type ClearedSets } from "@/lib/dungeon-progress";
 
 export const metadata = { title: "The Dungeon" };
 
@@ -15,7 +16,7 @@ export default async function DungeonMapPage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
-  const [profile, areas, completedByArea] = await Promise.all([
+  const [profile, areas, completedByArea, bossProgress, ownedArtifacts] = await Promise.all([
     db.userProfile.findUnique({ where: { userId } }),
     db.dungeonArea.findMany({
       orderBy: { order: "asc" },
@@ -25,12 +26,16 @@ export default async function DungeonMapPage() {
       where: { userId, status: "COMPLETED" },
       include: { challenge: { select: { roomId: true } } },
     }),
+    db.userBossProgress.findMany({ where: { userId, defeated: true } }),
+    db.userArtifact.findMany({ where: { userId }, select: { artifactId: true } }),
   ]);
   if (!profile) redirect("/login");
 
-  const completedRoomIds = new Set(
-    completedByArea.map((c) => c.challenge.roomId).filter(Boolean)
-  );
+  const clearedSets: ClearedSets = {
+    challengeRoomIds: new Set(completedByArea.map((c) => c.challenge.roomId).filter(Boolean)),
+    defeatedBossIds: new Set(bossProgress.map((b) => b.bossId)),
+    ownedArtifactIds: new Set(ownedArtifacts.map((a) => a.artifactId)),
+  };
   const userOrdinal = tierOrdinal(profile.experienceTier);
 
   const mainAreas = areas.filter((a) => !a.special);
@@ -38,7 +43,7 @@ export default async function DungeonMapPage() {
 
   // How far down the whole dungeon you have actually got.
   const allRooms = areas.flatMap((a) => a.rooms);
-  const roomsCleared = allRooms.filter((r) => completedRoomIds.has(r.id)).length;
+  const roomsCleared = countCleared(allRooms, clearedSets);
   const areasOpen = areas.filter(
     (a) => profile.level >= a.levelRequirement && userOrdinal >= tierOrdinal(a.tierRequirement) - 2
   ).length;
@@ -48,7 +53,7 @@ export default async function DungeonMapPage() {
     const unlocked =
       profile!.level >= area.levelRequirement &&
       userOrdinal >= tierOrdinal(area.tierRequirement) - 2;
-    const clearedRooms = area.rooms.filter((r) => completedRoomIds.has(r.id)).length;
+    const clearedRooms = countCleared(area.rooms, clearedSets);
     const percent = area.rooms.length ? (clearedRooms / area.rooms.length) * 100 : 0;
     const cleared = area.rooms.length > 0 && clearedRooms === area.rooms.length;
     const theme = skillTheme(area.skillKey);
@@ -114,7 +119,7 @@ export default async function DungeonMapPage() {
                   key={r.id}
                   name={ROOM_ICONS[r.type] ?? "sword"}
                   size={12}
-                  className={completedRoomIds.has(r.id) ? "text-emerald2-400" : "text-white/15"}
+                  className={isRoomCleared(r, clearedSets) ? "text-emerald2-400" : "text-white/15"}
                 />
               ))}
             </span>

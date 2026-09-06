@@ -255,7 +255,10 @@ export function emptyScore(init: Partial<Score> = {}): Score {
 /* -------------------------------------------------------------------------- */
 
 export interface ScoreAnalysis {
+  /** Every note, sorted by onset then pitch. */
   notes: ScoreNote[];
+  /** One note per onset — the top of each chord. Melodic shape is read here. */
+  line: ScoreNote[];
   noteCount: number;
   filledTicks: number;
   totalTicks: number;
@@ -273,6 +276,27 @@ export interface ScoreAnalysis {
   barsUsed: boolean[];
 }
 
+/** Total length of the union of the notes' spans, in ticks. */
+function coveredTicks(notes: ScoreNote[]): number {
+  const spans = notes
+    .map((n) => [n.start, n.start + n.duration] as const)
+    .sort((a, b) => a[0] - b[0]);
+  let covered = 0;
+  let from = -1;
+  let to = -1;
+  for (const [s, e] of spans) {
+    if (s > to) {
+      if (to > from) covered += to - from;
+      from = s;
+      to = e;
+    } else if (e > to) {
+      to = e;
+    }
+  }
+  if (to > from) covered += to - from;
+  return covered;
+}
+
 export function analyze(score: Score): ScoreAnalysis {
   const notes = [...score.melody].sort((a, b) => a.start - b.start || a.pitch - b.pitch);
   const total = totalTicks(score);
@@ -282,22 +306,39 @@ export function analyze(score: Score): ScoreAnalysis {
   const lowest = pitches.length ? Math.min(...pitches) : null;
   const highest = pitches.length ? Math.max(...pitches) : null;
 
+  // Melodic shape is a property of the line, not of every notehead. Once a
+  // piece is harmonised, the notes of a chord sit in this list one after
+  // another, and reading intervals straight off it turns each chord into a
+  // string of leaps: the same stepwise tune scores 100% stepwise as a single
+  // line and 0% the moment it is harmonised. The line is the top note of each
+  // onset — what a listener follows — so shape is measured from that.
+  const line: ScoreNote[] = [];
+  for (const n of notes) {
+    const prev = line[line.length - 1];
+    if (prev && prev.start === n.start) line[line.length - 1] = n;
+    else line.push(n);
+  }
+  const linePitches = line.map((n) => n.pitch);
+
   const intervals: number[] = [];
-  for (let i = 1; i < notes.length; i++) intervals.push(notes[i].pitch - notes[i - 1].pitch);
+  for (let i = 1; i < line.length; i++) intervals.push(line[i].pitch - line[i - 1].pitch);
 
   const stepCount = intervals.filter((i) => Math.abs(i) > 0 && Math.abs(i) <= 2).length;
   const leapCount = intervals.filter((i) => Math.abs(i) > 2).length;
-  const climaxCount = highest === null ? 0 : pitches.filter((p) => p === highest).length;
+  const climaxCount = highest === null ? 0 : linePitches.filter((p) => p === highest).length;
 
   let longestRepeat = 0;
   let run = 0;
-  for (let i = 0; i < notes.length; i++) {
-    if (i > 0 && notes[i].pitch === notes[i - 1].pitch) run++;
+  for (let i = 0; i < line.length; i++) {
+    if (i > 0 && line[i].pitch === line[i - 1].pitch) run++;
     else run = 1;
     longestRepeat = Math.max(longestRepeat, run);
   }
 
-  const filledTicks = notes.reduce((sum, n) => sum + n.duration, 0);
+  // Ticks that carry sound, counted once however many notes stack on them.
+  // Summing durations double-counts a chord, which reported a piece as fuller
+  // than its own length and left no silence for "uses rests" to find.
+  const filledTicks = coveredTicks(notes);
   const barsUsed: boolean[] = [];
   for (let b = 0; b < score.bars; b++) {
     const from = b * barTicks;
@@ -308,6 +349,7 @@ export function analyze(score: Score): ScoreAnalysis {
 
   return {
     notes,
+    line,
     noteCount: notes.length,
     filledTicks,
     totalTicks: total,
@@ -409,7 +451,7 @@ const DEFS: Record<CheckId, CheckDef> = {
     label: () => "Ends on the tonic",
     hint: "Finish on the key note — it is what makes an ending sound like an ending.",
     run: (score, a) => {
-      const last = a.notes[a.notes.length - 1];
+      const last = a.line[a.line.length - 1];
       if (!last) return { passed: false, detail: "No notes yet" };
       const deg = scaleDegree(last.pitch, score.key, score.mode);
       return {
@@ -424,9 +466,17 @@ const DEFS: Record<CheckId, CheckDef> = {
     run: (score, a) => {
       const first = a.notes[0];
       if (!first) return { passed: false, detail: "No notes yet" };
-      const deg = scaleDegree(first.pitch, score.key, score.mode);
-      const ok = deg === 1 || deg === 3 || deg === 5;
-      return { passed: ok, detail: ok ? `Opens on degree ${deg}` : `Opens on degree ${deg ?? "chromatic"}` };
+      // An opening chord passes if any of its notes carries the degree.
+      const opening = a.notes.filter((n) => n.start === first.start);
+      const degrees = opening.map((n) => scaleDegree(n.pitch, score.key, score.mode));
+      const hit = degrees.find((d) => d === 1 || d === 3 || d === 5);
+      return {
+        passed: hit !== undefined,
+        detail:
+          hit !== undefined
+            ? `Opens on degree ${hit}`
+            : `Opens on degree ${degrees[0] ?? "chromatic"}`,
+      };
     },
   },
   "range-limit": {
@@ -480,7 +530,7 @@ const DEFS: Record<CheckId, CheckDef> = {
     label: () => "Leaps are answered by a step back",
     hint: "After a jump of a fourth or more, step back the other way.",
     run: (_s, a) => {
-      if (a.notes.length < 2) return { passed: false, detail: "Not enough melody yet" };
+      if (a.line.length < 2) return { passed: false, detail: "Not enough melody yet" };
       let bad = 0;
       for (let i = 0; i < a.intervals.length; i++) {
         const leap = a.intervals[i];

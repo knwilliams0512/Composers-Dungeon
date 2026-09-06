@@ -7,6 +7,7 @@ import { Icon, ROOM_ICONS, SKILL_ICONS } from "@/components/ui/Icon";
 import { Meter, DangerRating, Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { roomTypeTheme, categoryVars } from "@/lib/category-theme";
+import { countCleared, isRoomCleared, type ClearedSets } from "@/lib/dungeon-progress";
 
 export default async function DungeonAreaPage({
   params,
@@ -47,7 +48,7 @@ export default async function DungeonAreaPage({
     );
   }
 
-  const [completed, bossProgress] = await Promise.all([
+  const [completed, bossProgress, ownedArtifacts] = await Promise.all([
     db.userChallenge.findMany({
       where: {
         userId,
@@ -57,17 +58,15 @@ export default async function DungeonAreaPage({
       include: { challenge: { select: { roomId: true } } },
     }),
     db.userBossProgress.findMany({ where: { userId } }),
+    db.userArtifact.findMany({ where: { userId }, select: { artifactId: true } }),
   ]);
-  const clearedRoomIds = new Set(completed.map((c) => c.challenge.roomId));
-  const defeatedBossIds = new Set(
-    bossProgress.filter((b) => b.defeated).map((b) => b.bossId)
-  );
+  const clearedSets: ClearedSets = {
+    challengeRoomIds: new Set(completed.map((c) => c.challenge.roomId)),
+    defeatedBossIds: new Set(bossProgress.filter((b) => b.defeated).map((b) => b.bossId)),
+    ownedArtifactIds: new Set(ownedArtifacts.map((a) => a.artifactId)),
+  };
 
-  const clearedCount = area.rooms.filter((r) =>
-    r.type === "BOSS"
-      ? r.bossId != null && defeatedBossIds.has(r.bossId)
-      : clearedRoomIds.has(r.id)
-  ).length;
+  const clearedCount = countCleared(area.rooms, clearedSets);
   const areaPercent = area.rooms.length ? (clearedCount / area.rooms.length) * 100 : 0;
 
   let survivalTips: string[] = [];
@@ -143,10 +142,7 @@ export default async function DungeonAreaPage({
         {area.rooms.map((room) => {
           const info = ROOM_TYPE_INFO[room.type as RoomType];
           const roomLocked = profile.level < room.levelRequirement;
-          const cleared =
-            room.type === "BOSS"
-              ? room.bossId != null && defeatedBossIds.has(room.bossId)
-              : clearedRoomIds.has(room.id);
+          const cleared = isRoomCleared(room, clearedSets);
           const href =
             room.type === "BOSS" && room.boss
               ? `/bosses/${room.boss.key}`

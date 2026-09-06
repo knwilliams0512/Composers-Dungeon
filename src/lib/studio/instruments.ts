@@ -325,3 +325,63 @@ export const ENSEMBLES: EnsembleTemplate[] = [
 export function ensembleById(id: string): EnsembleTemplate | undefined {
   return ENSEMBLES.find((e) => e.id === id);
 }
+
+/* -------------------------------------------------------------------------- */
+/* General MIDI                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * General MIDI program number for each instrument, so an exported .mid opens
+ * in another program sounding like the score rather than like a stack of
+ * pianos. Numbers are 0-based, as the MIDI byte is.
+ */
+const GM_PROGRAM: Record<string, number> = {
+  // Woodwinds
+  piccolo: 72, flute: 73, "alto-flute": 73, recorder: 74, oboe: 68,
+  "english-horn": 69, "clarinet-bb": 71, "clarinet-a": 71, "bass-clarinet": 71,
+  bassoon: 70, contrabassoon: 70, "soprano-sax": 64, "alto-sax": 65,
+  "tenor-sax": 66, "baritone-sax": 67,
+  // Brass
+  horn: 60, trumpet: 56, "trumpet-c": 56, cornet: 56, flugelhorn: 56,
+  trombone: 57, "bass-trombone": 57, euphonium: 58, tuba: 58,
+  // Pitched percussion (the unpitched ones go to channel 10 instead)
+  timpani: 47, glockenspiel: 9, xylophone: 13, vibraphone: 11, marimba: 12,
+  "tubular-bells": 14,
+  // Keyboards
+  piano: 0, harpsichord: 6, celesta: 8, organ: 19, harp: 46, accordion: 21,
+  "electric-piano": 4,
+  // Voices
+  soprano: 52, "mezzo-soprano": 52, "alto-voice": 52, "tenor-voice": 52,
+  "baritone-voice": 52, "bass-voice": 52,
+  // Guitars
+  guitar: 24, "steel-guitar": 25, "electric-guitar": 27, "guitar-tab": 25,
+  "bass-guitar": 33, ukulele: 24, banjo: 105, mandolin: 25,
+  // Strings
+  violin: 40, "violin-1": 40, "violin-2": 40, viola: 41, cello: 42,
+  "double-bass": 43,
+  // Electronic
+  "synth-lead": 80, "synth-pad": 88, "synth-bass": 38,
+  // World
+  sitar: 104, koto: 107, shakuhachi: 77, "pan-flute": 75, bagpipes: 109,
+};
+
+/** Family fallback for anything the table above does not name. */
+const GM_BY_FAMILY: Record<Family, number> = {
+  woodwinds: 73, brass: 56, percussion: 12, keyboards: 0, voices: 52,
+  guitars: 24, strings: 48, electronic: 80, world: 104,
+};
+
+/**
+ * Instruments with no definite pitch. General MIDI puts these on channel 10,
+ * where the note number picks the drum rather than the pitch.
+ */
+const DRUM_KIT = new Set(["snare", "bass-drum", "drum-set", "cymbals", "triangle", "tambourine", "djembe", "tabla"]);
+
+export function isDrumKit(instrumentId: string): boolean {
+  return DRUM_KIT.has(instrumentId);
+}
+
+export function gmProgram(instrumentId: string): number {
+  const inst = instrumentById(instrumentId);
+  return GM_PROGRAM[instrumentId] ?? GM_BY_FAMILY[inst.family] ?? 0;
+}
