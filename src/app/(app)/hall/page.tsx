@@ -16,8 +16,8 @@ import {
   XpRing,
   StatTile,
   EmptyState,
-  FlameBadge,
 } from "@/components/ui/primitives";
+import { HallBannerArt } from "@/components/hall/HallBannerArt";
 import {
   avatarGlyph,
   TIER_INFO,
@@ -171,7 +171,7 @@ export default async function EntranceHallPage() {
       <ScrollProgress />
 
       {/* ---- Identity banner ------------------------------------------------ */}
-      <section className="card-gold aura lit-edge animate-rise relative overflow-hidden p-7">
+      <section className="card-gold aura lit-edge animate-rise relative overflow-hidden p-6 sm:p-7">
         {/* Twin auroras behind the identity block */}
         <div
           className="pointer-events-none absolute -left-24 -top-28 h-80 w-80 rounded-full opacity-25 blur-3xl"
@@ -181,90 +181,93 @@ export default async function EntranceHallPage() {
           className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full opacity-20 blur-3xl"
           style={{ background: "radial-gradient(circle, #9358c9, transparent 70%)" }}
         />
-        {/* A page of music behind the name, where a photograph would sit. */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/3 opacity-[0.28] sm:block">
-          <Motif name="sheet" tint="#e3c26d" opacity={1} />
+        {/* A piano catching light, and a curl of manuscript in the corner —
+            where the mockup's photograph sits. */}
+        <div className="hidden sm:block">
+          <HallBannerArt />
         </div>
-        <div className="relative space-y-6">
-          {/* Who you are, and how the flame is doing — one line at the top. */}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-            <div className="flex min-w-0 flex-1 items-center gap-5">
-              <div className="relative shrink-0">
-                <XpRing percent={xp.percent} level={xp.level} />
-                <span className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border border-gold-500/60 bg-abyss-900/90 text-lg shadow-[0_0_18px_-2px_rgba(201,168,76,0.8)] backdrop-blur">
-                  {avatarGlyph(profile.avatar)}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="eyebrow">
-                  <Icon name="hall" size={12} /> The Entrance Hall
-                </p>
-                <h1 className="text-gilded mt-1 truncate font-display text-3xl leading-tight sm:text-4xl">
-                  {profile.displayName}
-                </h1>
-                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-parchment-400">
-                  <span className="text-parchment-300">Composer in Progress</span>
-                  <span className="text-parchment-600">·</span>
-                  <span>{tierLabel}</span>
-                  {specTitle && (
-                    <span className="pill-arcane">
-                      <Icon name="star" size={10} /> {specTitle}
-                    </span>
-                  )}
-                </p>
-              </div>
+
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:flex-nowrap lg:items-center">
+          {/* Who you are — a fixed budget, so the row's other columns can
+              rely on how much space is left. */}
+          <div className="flex min-w-0 items-center gap-3 lg:w-[270px] lg:shrink-0">
+            <div className="relative shrink-0">
+              <XpRing percent={xp.percent} level={xp.level} size={76} />
+              <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border border-gold-500/60 bg-abyss-900/90 text-sm shadow-[0_0_18px_-2px_rgba(201,168,76,0.8)] backdrop-blur">
+                {avatarGlyph(profile.avatar)}
+              </span>
             </div>
-
-            <FlameBadge
-              days={profile.streakCount}
-              alive={flame}
-              restDays={profile.restDays}
-              best={profile.longestStreak}
-            />
-
-            {/* What the whole app is for, in the order you meet it. */}
-            <ul className="hidden shrink-0 flex-col gap-1 border-l border-gold-700/30 pl-5 text-right xl:flex">
-              {["Create", "Practice", "Explore", "Ascend"].map((word) => (
-                <li
-                  key={word}
-                  className="font-display text-[15px] italic leading-tight text-gold-300/85"
-                >
-                  {word}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* The climb to the next level, given the full width beneath. */}
-          <div className="space-y-2.5 border-t border-gold-700/20 pt-5">
-            <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-              <div className="min-w-0">
-                <p className="font-display text-lg leading-none text-parchment-100">
-                  <span className="tabular-nums text-gold-300">
-                    {xp.intoLevel.toLocaleString()}
-                  </span>
-                  <span className="text-parchment-400"> / {xp.needed.toLocaleString()}</span>
-                </p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-400">
-                  XP to level {xp.level + 1}
-                </p>
-              </div>
-              <p className="text-[11px] leading-relaxed text-parchment-400">
-                {(xp.needed - xp.intoLevel).toLocaleString()} XP remaining — roughly{" "}
-                {Math.max(1, Math.ceil((xp.needed - xp.intoLevel) / 120))} more trials at your
-                current rate.
+            <div className="min-w-0">
+              <p className="eyebrow">
+                <Icon name="hall" size={12} /> The Entrance Hall
               </p>
-              <div className="shrink-0 text-right">
-                <p className="font-display text-lg leading-none tabular-nums text-parchment-300">
-                  {profile.totalXp.toLocaleString()}
-                </p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-parchment-400">
-                  total
-                </p>
-              </div>
+              <h1 className="text-gilded mt-1 truncate font-display text-2xl leading-tight">
+                {profile.displayName}
+              </h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-parchment-400">
+                <span className="text-parchment-300">Composer in Progress</span>
+                <span className="text-parchment-600">·</span>
+                <span>{tierLabel}</span>
+                {specTitle && (
+                  <span className="pill-arcane">
+                    <Icon name="star" size={10} /> {specTitle}
+                  </span>
+                )}
+              </p>
             </div>
-            <Meter percent={xp.percent} thick />
           </div>
+
+          {/* The climb to the next level — takes whatever room is left. */}
+          <div className="min-w-[150px] flex-1">
+            <p className="font-display text-lg leading-none text-parchment-100">
+              <span className="tabular-nums text-gold-300">{xp.intoLevel.toLocaleString()}</span>
+              <span className="text-parchment-400"> / {xp.needed.toLocaleString()} XP</span>
+            </p>
+            <Meter percent={xp.percent} thick className="mt-2" />
+            <p className="mt-1.5 text-[11px] uppercase tracking-[0.16em] text-parchment-400">
+              XP to level {xp.level + 1}
+            </p>
+          </div>
+
+          {/* Total XP and the Creative Flame, sharing one card. */}
+          <div className="flex shrink-0 items-center gap-2.5 rounded-xl border border-gold-700/40 bg-abyss-900/70 px-3 py-2">
+            <div className="text-right leading-tight">
+              <p className="font-display text-lg tabular-nums text-parchment-100">
+                {profile.totalXp.toLocaleString()}
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-parchment-400">
+                Total XP
+              </p>
+            </div>
+            <div className="h-8 w-px bg-gold-700/30" />
+            <Icon
+              name="flame"
+              size={22}
+              className={flame ? "animate-flicker text-gold-400" : "text-abyss-600"}
+            />
+            <div className="leading-tight">
+              <p className="font-display text-sm text-gold-300">
+                {profile.streakCount}{" "}
+                <span className="text-[10px] tracking-wide text-parchment-400">DAY FLAME</span>
+              </p>
+              <p className="text-[10px] text-parchment-400">
+                {flame ? "Keep it going." : "Gone cold."}
+              </p>
+            </div>
+          </div>
+
+          {/* What the whole app is for, in the order you meet it. */}
+          <ul className="hidden shrink-0 flex-col gap-1 border-l border-gold-700/30 pl-4 text-right lg:flex">
+            {["Create", "Practice", "Explore", "Ascend"].map((word) => (
+              <li
+                key={word}
+                className="font-display text-sm italic leading-tight text-gold-300/85"
+                style={{ textShadow: "0 1px 4px rgba(0,0,0,0.85)" }}
+              >
+                {word}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -356,7 +359,7 @@ export default async function EntranceHallPage() {
       </section>
 
       {/* ---- Recommendations ------------------------------------------------ */}
-      <section className="stagger grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <section className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2">
         {recommendations.map((rec) => {
           const meta = REC_META[rec.kind] ?? REC_META.DUNGEON;
           return (
@@ -369,12 +372,12 @@ export default async function EntranceHallPage() {
                 backgroundImage: `linear-gradient(150deg, color-mix(in srgb, ${meta.accent} 24%, transparent) 0%, color-mix(in srgb, ${meta.accent} 8%, transparent) 45%, rgba(10,8,16,0.6) 100%)`,
               }}
             >
-              <Motif name={meta.motif} tint={meta.accent} opacity={0.36} />
+              <Motif name={meta.motif} tint={meta.accent} opacity={0.62} className="scale-110" />
               <span
                 className="pointer-events-none absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(100deg, rgba(8,6,14,0.86) 0%, rgba(8,6,14,0.6) 45%, transparent 82%)",
+                    "linear-gradient(100deg, rgba(8,6,14,0.88) 0%, rgba(8,6,14,0.55) 40%, transparent 68%)",
                 }}
               />
               <span

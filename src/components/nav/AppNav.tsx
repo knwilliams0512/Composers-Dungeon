@@ -18,13 +18,13 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/hall", label: "Entrance Hall", short: "Hall", icon: "hall", mobile: true },
   { href: "/academy", label: "Academy", short: "Academy", icon: "book", mobile: true },
-  { href: "/dungeon", label: "Dungeon", short: "Dungeon", icon: "candle", mobile: true },
+  { href: "/dungeon", label: "Dungeon", short: "Dungeon", icon: "arch", mobile: true },
   { href: "/workshop", label: "Workshop", short: "Write", icon: "quill", mobile: true },
   { href: "/bosses", label: "Bosses", short: "Bosses", icon: "skull" },
-  { href: "/studio", label: "Studio", short: "Studio", icon: "staff", mobile: true },
+  { href: "/studio", label: "Studio", short: "Studio", icon: "waveform", mobile: true },
   { href: "/library", label: "Library", short: "Library", icon: "scroll", mobile: true },
-  { href: "/guild", label: "Guild", short: "Guild", icon: "shield" },
-  { href: "/profile", label: "Profile", short: "Profile", icon: "feather", mobile: true },
+  { href: "/guild", label: "Guild", short: "Guild", icon: "users" },
+  { href: "/profile", label: "Profile", short: "Profile", icon: "user", mobile: true },
   { href: "/settings", label: "Settings", short: "Settings", icon: "settings" },
 ];
 

@@ -80,7 +80,10 @@ export type IconName =
   | "loop"
   | "star"
   | "grid"
-  | "staff";
+  | "staff"
+  | "arch"
+  | "waveform"
+  | "user";
 
 const PATHS: Record<IconName, JSX.Element> = {
   hall: (
@@ -156,6 +159,24 @@ const PATHS: Record<IconName, JSX.Element> = {
       <line x1="3" y1="16.5" x2="21" y2="16.5" />
       <ellipse cx="14.5" cy="13" rx="2.2" ry="1.7" fill="currentColor" stroke="none" />
       <line x1="16.6" y1="13" x2="16.6" y2="5" />
+    </>
+  ),
+  arch: (
+    <>
+      <path d="M4 21V11a8 8 0 0 1 16 0v10" />
+      <path d="M4 21h16M8 21v-8M16 21v-8" />
+    </>
+  ),
+  waveform: (
+    <>
+      <path d="M3 12h2M21 12h-2" />
+      <path d="M7 12v0M7 9v6M11 5v14M15 8v8M19 12v0" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6" />
     </>
   ),
   note: (
