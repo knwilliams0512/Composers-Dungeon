@@ -14,6 +14,7 @@ import {
   challengeComponents,
   placementQuestions,
 } from "./seed-data/world";
+import { guilds } from "./seed-data/guilds";
 import type { SeedLesson } from "./seed-data/types";
 
 const db = new PrismaClient();
@@ -312,6 +313,17 @@ async function seedSpecializations() {
   console.log(`✔ ${specializations.length} specializations`);
 }
 
+async function seedGuilds() {
+  // Only the app's own houses are upserted. A player-founded guild has
+  // official=false and is never touched here, so re-seeding after an update
+  // cannot overwrite or remove anything a player made.
+  for (const g of guilds) {
+    const data = { ...g, official: true };
+    await db.guild.upsert({ where: { key: g.key }, create: data, update: data });
+  }
+  console.log(`✔ ${guilds.length} guilds`);
+}
+
 async function seedDemoUser() {
   // Admin-only. The demo composer exists solely for the maintainer to inspect a
   // mid-progress account, so it is created only when CD_DEMO_PASSWORD is set —
@@ -433,6 +445,7 @@ export async function seed() {
   await seedComponents();
   await seedAchievements();
   await seedSpecializations();
+  await seedGuilds();
   await seedDemoUser();
   console.log("Done.");
   await db.$disconnect();

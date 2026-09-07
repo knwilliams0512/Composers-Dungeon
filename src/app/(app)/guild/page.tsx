@@ -3,6 +3,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { GuildFeed } from "@/components/guild/GuildFeed";
+import { GuildHall } from "@/components/guild/GuildHall";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export const metadata = { title: "The Composer's Guild" };
@@ -12,7 +13,7 @@ export default async function GuildPage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
-  const [posts, myPublicCompositions, myFollowing] = await Promise.all([
+  const [posts, myPublicCompositions, myFollowing, allGuilds, myMembership] = await Promise.all([
     db.guildPost.findMany({
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -32,6 +33,11 @@ export default async function GuildPage() {
       select: { id: true, title: true },
     }),
     db.follow.findMany({ where: { followerId: userId }, select: { followingId: true } }),
+    db.guild.findMany({
+      orderBy: [{ official: "desc" }, { order: "asc" }, { name: "asc" }],
+      include: { _count: { select: { members: true } } },
+    }),
+    db.guildMember.findUnique({ where: { userId } }),
   ]);
 
   const followingIds = new Set(myFollowing.map((f) => f.followingId));
@@ -112,6 +118,30 @@ export default async function GuildPage() {
           </div>
         }
       />
+      <GuildHall
+        guilds={allGuilds.map((g) => ({
+          id: g.id,
+          key: g.key,
+          name: g.name,
+          tagline: g.tagline,
+          description: g.description,
+          emblem: g.emblem,
+          accent: g.accent,
+          focus: g.focus,
+          official: g.official,
+          memberCount: g._count.members,
+        }))}
+        membership={
+          myMembership
+            ? {
+                guildId: myMembership.guildId,
+                role: myMembership.role,
+                joinedAt: myMembership.joinedAt.toISOString(),
+              }
+            : null
+        }
+      />
+
       <GuildFeed
         posts={feed}
         myPublicCompositions={myPublicCompositions.map((c) => ({

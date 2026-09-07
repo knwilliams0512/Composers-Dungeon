@@ -40,19 +40,21 @@ model User {
   posts           GuildPost[]
   comments        Comment[]
   likes           PostLike[]
-  following       Follow[]           @relation("follower")
-  followers       Follow[]           @relation("following")
+  following       Follow[]             @relation("follower")
+  followers       Follow[]             @relation("following")
   specializations UserSpecialization[]
+  guildMembership GuildMember?
+  guildsFounded   Guild[]              @relation("guildFounder")
 }
 
 model UserProfile {
-  id          String  @id @default(cuid())
-  userId      String  @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String @id @default(cuid())
+  userId      String @unique
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   displayName String
-  avatar      String  @default("quill") // avatar key rendered client-side
-  bio         String  @default("")
-  visibility  String  @default("PUBLIC") // enum: ProfileVisibility PUBLIC|PRIVATE
+  avatar      String @default("quill") // avatar key rendered client-side
+  bio         String @default("")
+  visibility  String @default("PUBLIC") // enum: ProfileVisibility PUBLIC|PRIVATE
 
   experienceTier String @default("NO_EXPERIENCE") // enum: ExperienceTier
   goals          String @default("[]") // JSON string[] of Goal keys
@@ -107,16 +109,16 @@ model UserSkill {
 // ---------------------------------------------------------------------------
 
 model Lesson {
-  id             String @id @default(cuid())
-  slug           String @unique
-  title          String
-  description    String
-  category       String // enum: LessonCategory FUNDAMENTALS|RHYTHM|MELODY|HARMONY|FORM|COUNTERPOINT|ORCHESTRATION|VIRTUOSO
-  difficulty     Int    @default(1) // 1..10
-  tierRequirement String @default("NO_EXPERIENCE") // enum: ExperienceTier
-  levelRequirement Int   @default(1)
-  order          Int    @default(0)
-  xpReward       Int    @default(50)
+  id               String @id @default(cuid())
+  slug             String @unique
+  title            String
+  description      String
+  category         String // enum: LessonCategory FUNDAMENTALS|RHYTHM|MELODY|HARMONY|FORM|COUNTERPOINT|ORCHESTRATION|VIRTUOSO
+  difficulty       Int    @default(1) // 1..10
+  tierRequirement  String @default("NO_EXPERIENCE") // enum: ExperienceTier
+  levelRequirement Int    @default(1)
+  order            Int    @default(0)
+  xpReward         Int    @default(50)
 
   // Ordered content sections rendered by the lesson page:
   // JSON [{ heading, body, example?, callout?, call="" }]
@@ -152,18 +154,18 @@ model LessonSkillReward {
 }
 
 model LessonProgress {
-  id             String    @id @default(cuid())
-  userId         String
-  lessonId       String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson         Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  status         String    @default("IN_PROGRESS") // enum: ProgressStatus IN_PROGRESS|COMPLETED
-  quizPassed     Boolean   @default(false)
-  bestQuizScore  Int       @default(0)
-  practiceDone   Boolean   @default(false)
-  compositionDone Boolean  @default(false)
-  completedAt    DateTime?
-  updatedAt      DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String
+  lessonId        String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson          Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status          String    @default("IN_PROGRESS") // enum: ProgressStatus IN_PROGRESS|COMPLETED
+  quizPassed      Boolean   @default(false)
+  bestQuizScore   Int       @default(0)
+  practiceDone    Boolean   @default(false)
+  compositionDone Boolean   @default(false)
+  completedAt     DateTime?
+  updatedAt       DateTime  @updatedAt
 
   @@unique([userId, lessonId])
 }
@@ -224,16 +226,16 @@ model Exercise {
 // ---------------------------------------------------------------------------
 
 model DungeonArea {
-  id               String @id @default(cuid())
-  key              String @unique // e.g. hall-of-melody
+  id               String  @id @default(cuid())
+  key              String  @unique // e.g. hall-of-melody
   name             String
   description      String
-  theme            String @default("") // flavor line shown on the map
-  icon             String @default("🏰")
-  levelRequirement Int    @default(1)
-  tierRequirement  String @default("NO_EXPERIENCE") // enum: ExperienceTier
+  theme            String  @default("") // flavor line shown on the map
+  icon             String  @default("🏰")
+  levelRequirement Int     @default(1)
+  tierRequirement  String  @default("NO_EXPERIENCE") // enum: ExperienceTier
   skillKey         String? // primary SkillKey this area trains
-  order            Int    @default(0)
+  order            Int     @default(0)
   special          Boolean @default(false) // special unlockable dungeon
 
   lore         String? // longer atmospheric description shown on the area page
@@ -244,44 +246,44 @@ model DungeonArea {
 }
 
 model DungeonRoom {
-  id               String  @id @default(cuid())
+  id               String      @id @default(cuid())
   areaId           String
   area             DungeonArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
   name             String
   description      String
   type             String // enum: RoomType CHALLENGE|PUZZLE|CURSE|TREASURE|REST|BOSS|EVENT
-  order            Int     @default(0)
-  levelRequirement Int     @default(1)
-  bossId           String? @unique
-  boss             Boss?   @relation(fields: [bossId], references: [id])
+  order            Int         @default(0)
+  levelRequirement Int         @default(1)
+  bossId           String?     @unique
+  boss             Boss?       @relation(fields: [bossId], references: [id])
   // For PUZZLE rooms: JSON puzzle definition (kind, prompt, pieces, solution)
   // Solutions are only ever checked server-side.
   puzzleData       String?
   // For TREASURE rooms: artifact granted on first opening
   artifactId       String?
-  artifact         Artifact? @relation(fields: [artifactId], references: [id])
+  artifact         Artifact?   @relation(fields: [artifactId], references: [id])
 
   challenges Challenge[]
 }
 
 model ChallengeComponent {
-  id            String @id @default(cuid())
+  id            String  @id @default(cuid())
   type          String // enum: ComponentType KEY|MODE|METER|LENGTH|INSTRUMENT|STYLE|REQUIREMENT|RESTRICTION|TITLE_FRAGMENT
   value         String
-  minDifficulty Int    @default(1)
-  maxDifficulty Int    @default(10)
+  minDifficulty Int     @default(1)
+  maxDifficulty Int     @default(10)
   skillKey      String? // biases the generator toward a skill/area
-  weight        Int    @default(1)
+  weight        Int     @default(1)
 }
 
 model Challenge {
-  id          String  @id @default(cuid())
+  id          String       @id @default(cuid())
   roomId      String?
   room        DungeonRoom? @relation(fields: [roomId], references: [id])
   type        String // enum: ChallengeType CHALLENGE|PUZZLE|CURSE|DAILY|BOSS|LESSON
   title       String
   description String
-  difficulty  Int     @default(1) // 1..10
+  difficulty  Int          @default(1) // 1..10
   keySig      String?
   meter       String?
   lengthBars  Int?
@@ -289,34 +291,34 @@ model Challenge {
   style       String?
   requirement String?
   restriction String?
-  xpReward    Int     @default(100)
+  xpReward    Int          @default(100)
   skillKey    String? // primary skill awarded
-  curated     Boolean @default(false) // seeded/handwritten rather than generated
-  createdAt   DateTime @default(now())
+  curated     Boolean      @default(false) // seeded/handwritten rather than generated
+  createdAt   DateTime     @default(now())
 
   // The in-app composer's brief. `checks` is the machine-checkable standard a
   // submission must meet (see src/lib/score.ts); `freedomCap` limits which
   // tools the editor offers regardless of the player's earned tier.
-  checks      String? // JSON [{ id, value? }]
-  freedomCap  Int?
+  checks     String? // JSON [{ id, value? }]
+  freedomCap Int?
 
-  users  UserChallenge[]
+  users   UserChallenge[]
   dailies DailyChallenge[]
 }
 
 model UserChallenge {
-  id            String    @id @default(cuid())
-  userId        String
-  challengeId   String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  challenge     Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  status        String    @default("ACTIVE") // enum: ChallengeStatus ACTIVE|COMPLETED|ABANDONED
+  id             String    @id @default(cuid())
+  userId         String
+  challengeId    String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge      Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  status         String    @default("ACTIVE") // enum: ChallengeStatus ACTIVE|COMPLETED|ABANDONED
   // JSON string[] of objective labels the user has checked off
-  objectivesDone String   @default("[]")
-  rerolls       Int       @default(0)
-  compositionId String?
-  startedAt     DateTime  @default(now())
-  completedAt   DateTime?
+  objectivesDone String    @default("[]")
+  rerolls        Int       @default(0)
+  compositionId  String?
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
 
   @@index([userId, status])
 }
@@ -333,16 +335,16 @@ model DailyChallenge {
 // ---------------------------------------------------------------------------
 
 model Boss {
-  id               String @id @default(cuid())
-  key              String @unique
+  id               String  @id @default(cuid())
+  key              String  @unique
   name             String
-  title            String @default("") // epithet, e.g. "Guardian of the Crypt"
+  title            String  @default("") // epithet, e.g. "Guardian of the Crypt"
   description      String
-  artwork          String @default("🐍") // placeholder glyph until custom art
+  artwork          String  @default("🐍") // placeholder glyph until custom art
   totalHp          Int
-  difficulty       Int    @default(3) // 1..10
-  levelRequirement Int    @default(1)
-  xpReward         Int    @default(500)
+  difficulty       Int     @default(3) // 1..10
+  levelRequirement Int     @default(1)
+  xpReward         Int     @default(500)
   final            Boolean @default(false)
 
   lore    String? // the story behind the encounter
@@ -358,20 +360,20 @@ model Boss {
 }
 
 model BossPhase {
-  id          String @id @default(cuid())
-  bossId      String
-  boss        Boss   @relation(fields: [bossId], references: [id], onDelete: Cascade)
-  order       Int
-  name        String
-  description String
+  id                 String @id @default(cuid())
+  bossId             String
+  boss               Boss   @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  order              Int
+  name               String
+  description        String
   // Phase becomes active when boss HP falls to this percent or below (100 = start)
-  hpThresholdPercent Int @default(100)
+  hpThresholdPercent Int    @default(100)
 }
 
 model BossObjective {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   bossId      String
-  boss        Boss   @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  boss        Boss    @relation(fields: [bossId], references: [id], onDelete: Cascade)
   name        String
   description String
   damage      Int
@@ -423,7 +425,7 @@ model Artifact {
   effect       String // enum: ArtifactEffect REROLL|BONUS_XP|UNLOCK_HARMONY|UNLOCK_VIRTUOSO|REVEAL_CHALLENGE|COSMETIC|REST_DAY
   unlockMethod String // human-readable description of how it is earned
 
-  users UserArtifact[]
+  users  UserArtifact[]
   bosses Boss[]
   rooms  DungeonRoom[]
 }
@@ -466,16 +468,16 @@ model UserAchievement {
 }
 
 model Specialization {
-  id               String @id @default(cuid())
-  key              String @unique // VIRTUOSO|IMPRESSIONIST|CLASSICIST|CINEMATIC|EXPERIMENTALIST
-  name             String
-  description      String
-  focus            String // JSON string[] of focus bullet points
-  icon             String @default("🎭")
-  levelRequirement Int    @default(15)
+  id                 String  @id @default(cuid())
+  key                String  @unique // VIRTUOSO|IMPRESSIONIST|CLASSICIST|CINEMATIC|EXPERIMENTALIST
+  name               String
+  description        String
+  focus              String // JSON string[] of focus bullet points
+  icon               String  @default("🎭")
+  levelRequirement   Int     @default(15)
   // SkillKey that must reach requiredSkillLevel to unlock
-  skillKey         String?
-  requiredSkillLevel Int  @default(1)
+  skillKey           String?
+  requiredSkillLevel Int     @default(1)
 
   users UserSpecialization[]
 }
@@ -496,23 +498,23 @@ model UserSpecialization {
 // ---------------------------------------------------------------------------
 
 model Composition {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
-  description String   @default("")
-  reflection  String   @default("")
-  scoreLink   String   @default("")
-  scoreFile   String   @default("") // stored filename/path; uploads are optional in v1
-  audioFile   String   @default("")
-  midiFile    String   @default("")
-  visibility  String   @default("PRIVATE") // enum: ProfileVisibility PUBLIC|PRIVATE
+  description String  @default("")
+  reflection  String  @default("")
+  scoreLink   String  @default("")
+  scoreFile   String  @default("") // stored filename/path; uploads are optional in v1
+  audioFile   String  @default("")
+  midiFile    String  @default("")
+  visibility  String  @default("PRIVATE") // enum: ProfileVisibility PUBLIC|PRIVATE
   challengeId String? // the UserChallenge this fulfilled, if any
-  source      String   @default("FREE") // enum: CompositionSource FREE|CHALLENGE|LESSON|BOSS|DAILY
+  source      String  @default("FREE") // enum: CompositionSource FREE|CHALLENGE|LESSON|BOSS|DAILY
 
   // The piece itself, written in-app. JSON Score (src/lib/score.ts).
-  score       String?
-  createdAt   DateTime @default(now())
+  score     String?
+  createdAt DateTime @default(now())
 
   posts GuildPost[]
 }
@@ -551,12 +553,52 @@ model PostLike {
 }
 
 model Follow {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   followerId  String
   followingId String
-  follower    User   @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User   @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
 
   @@unique([followerId, followingId])
+}
+
+/// A company of composers. The seeded ones are the app's own houses; players
+/// may found their own. A composer belongs to at most one at a time, so
+/// joining is a real choice rather than a checkbox.
+model Guild {
+  id          String  @id @default(cuid())
+  key         String  @unique // slug used in URLs
+  name        String
+  tagline     String  @default("")
+  description String  @default("")
+  /// A single glyph, shown as the guild's emblem.
+  emblem      String  @default("♬")
+  /// The guild's colour, used the way skills and areas use theirs.
+  accent      String  @default("#c9a84c")
+  /// What the guild is about, so members can be matched to their craft.
+  focus       String  @default("") // a SkillKey, or "" for a general house
+  /// True for the houses the app ships with; false for player-founded ones.
+  official    Boolean @default(false)
+  order       Int     @default(0)
+
+  founderId String?
+  founder   User?   @relation("guildFounder", fields: [founderId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  members GuildMember[]
+}
+
+model GuildMember {
+  id       String   @id @default(cuid())
+  guildId  String
+  guild    Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  /// One membership per composer — leaving is how you switch houses.
+  userId   String   @unique
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("MEMBER") // FOUNDER | MEMBER
+  joinedAt DateTime @default(now())
+
+  @@unique([guildId, userId])
 }

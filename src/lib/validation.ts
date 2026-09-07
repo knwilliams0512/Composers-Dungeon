@@ -84,6 +84,23 @@ export const guildPostSchema = z.object({
   compositionId: z.string().trim().optional(),
 });
 
+/**
+ * Founding a guild. The key is derived from the name server-side, so only the
+ * human-facing fields are accepted here.
+ */
+export const guildFoundSchema = z.object({
+  name: z.string().trim().min(3, "Give the house a name").max(48),
+  tagline: z.string().trim().max(80).default(""),
+  description: z.string().trim().max(600).default(""),
+  emblem: z.string().trim().min(1).max(4).default("\u266c"),
+  accent: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Pick a colour")
+    .default("#c9a84c"),
+  focus: z.string().trim().max(32).default(""),
+});
+
 export const commentSchema = z.object({
   postId: z.string(),
   content: z.string().trim().min(1).max(1000),
