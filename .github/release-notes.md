@@ -73,6 +73,65 @@ were drawn desaturated, and since almost everything is locked early on, nearly
 every page was grey on purpose. They step back on opacity now and keep the
 colour that says what they are.
 
+## What's new in v1.5.3
+
+**The Entrance Hall matches its design.** The banner is one line now — who you
+are, the climb to the next level, your total XP and the Creative Flame — and
+every other page carries a banner of the same family in its own colour, with
+its own drawn scene behind it.
+
+**A bug that hid the Creative Flame.** The hall's banner was wider than the
+card holding it, and the card clips what overflows — so the flame badge was
+cut in half and anything after it was invisible. Every element's width is now
+budgeted against the space actually available.
+
+## What's new in v1.5.4
+
+**Chords no longer wreck your score.** Writing a chord under a melody made the
+grader read every stacked note as a melodic leap: the same stepwise tune
+scored 100% stepwise as a single line and 0% the moment it was harmonised, and
+a piece with real silence in it was told it had none. Shape is now read from
+the line, and filled time is counted once however many notes stack on a beat.
+
+**Exports that other programs can actually read.** MIDI files played every
+instrument as a piano, because no program-change was ever written; a note
+ending exactly where the next began could cut that new note off; and
+instrument names with a flat sign in them wrote broken bytes. MusicXML could
+not express a chord, a rest or a second staff at all — a harmonised part or a
+grand staff came out wrong. All of it is fixed and checked against real
+exported files.
+
+**Shift-click builds the chord it promises.** The keyboard's own hint says
+shift-click to build a chord, but clicking the root and then shift-clicking
+the third and fifth left the root behind on its own and chorded the other two
+together on the next beat.
+
+**Cleared rooms agree with each other.** A treasure vault counted as cleared on
+its own page but not on the map or the area list, and the map ignored bosses
+the area page counted as beaten. All three now ask the same question.
+
+**A wrong link no longer looks like a crash.** Missing rooms, lessons and
+bosses fell through to a bare white page in an otherwise dark app.
+
+## What's new in v1.6.0
+
+**Guilds you can actually join.** The Guild was a feed with nobody in it. There
+are six houses now, each standing for a way of working rather than a
+difficulty tier: the Singing Line (melody), the Stacked Hand (harmony), the
+Iron Pulse (rhythm), the Long Arch (form), the Quiet Room (expression), and the
+Open Bench, which has no specialism and expects newcomers.
+
+You belong to one at a time, so joining is a choice rather than a checkbox, and
+switching is a single action. **You can found your own** — name, tagline,
+description, emblem, colour and focus — and become its founder. A founder
+disbands their house rather than walking out of it, which would leave it
+orphaned, and disbanding releases every member.
+
+**The Entrance Hall, rebuilt to its design.** One row: the level ring and your
+name, the climb to the next level with its bar, Total XP and the Creative Flame
+sharing a card, and Create / Practice / Explore / Ascend down the edge — over a
+piano catching warm light and a curl of manuscript paper in the corner.
+
 ## Install on Windows
 
 1. Download **`ComposersDungeonSetup.exe`** from **Assets** below.
