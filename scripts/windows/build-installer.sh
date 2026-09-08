@@ -35,8 +35,21 @@ mkdir -p "$PAYLOAD" "$CACHE" "$ROOT/dist"
 say "Fetching the Windows Node runtime (v$NODE_VERSION)"
 NODE_ZIP="$CACHE/node-v$NODE_VERSION-win-x64.zip"
 if [ ! -f "$NODE_ZIP" ]; then
-  curl -sSL --fail -o "$NODE_ZIP" \
-    "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-win-x64.zip"
+  # A plain `curl -sSL` waits forever on a connection that opens and then
+  # stops sending, which is exactly how this step hangs: the release build
+  # sat on this line for half an hour twice in a row with nothing to show
+  # for it and no way to tell a slow mirror from a dead one. Give up on a
+  # stalled transfer and try again rather than burning the whole job.
+  curl -sSL --fail \
+    --connect-timeout 20 --max-time 300 \
+    --speed-limit 1024 --speed-time 30 \
+    --retry 4 --retry-delay 5 --retry-connrefused \
+    -o "$NODE_ZIP" \
+    "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-win-x64.zip" || {
+    rm -f "$NODE_ZIP"
+    echo "Could not fetch the Windows Node runtime after several tries." >&2
+    exit 1
+  }
 fi
 unzip -o -q "$NODE_ZIP" "node-v$NODE_VERSION-win-x64/node.exe" -d "$CACHE"
 cp "$CACHE/node-v$NODE_VERSION-win-x64/node.exe" "$PAYLOAD/node.exe"
