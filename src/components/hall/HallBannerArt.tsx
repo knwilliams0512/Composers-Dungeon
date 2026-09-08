@@ -15,19 +15,26 @@ export function HallBannerArt() {
         aria-hidden
       >
         <defs>
+          {/* Lit like a photograph taken by candlelight rather than a shape cut
+              out of the dark: the keys catch a warm highlight along the top
+              and fall away into shadow, which is what gives the banner its
+              depth. The word list that sits over the far end is kept legible
+              by the vignette below and its own text shadow, not by dimming
+              the instrument. */}
           <linearGradient id="hb-white-key" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#b39a68" />
-            <stop offset="45%" stopColor="#6d5c3d" />
-            <stop offset="100%" stopColor="#2b2418" />
+            <stop offset="0%" stopColor="#f3e2b8" />
+            <stop offset="30%" stopColor="#c8ac74" />
+            <stop offset="70%" stopColor="#7d6942" />
+            <stop offset="100%" stopColor="#332a1b" />
           </linearGradient>
           <linearGradient id="hb-black-key" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1a160f" />
-            <stop offset="100%" stopColor="#070604" />
+            <stop offset="0%" stopColor="#2a2418" />
+            <stop offset="100%" stopColor="#0a0806" />
           </linearGradient>
           <radialGradient id="hb-glow" cx="42%" cy="14%" r="62%">
-            <stop offset="0%" stopColor="#f0bc63" stopOpacity="0.38" />
-            <stop offset="40%" stopColor="#c98f3c" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="#c98f3c" stopOpacity="0" />
+            <stop offset="0%" stopColor="#ffd68a" stopOpacity="0.55" />
+            <stop offset="40%" stopColor="#e0a54a" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#e0a54a" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="hb-fade" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#0a0810" stopOpacity="1" />

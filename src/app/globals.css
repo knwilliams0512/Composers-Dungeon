@@ -199,8 +199,8 @@ html { scroll-behavior: smooth; }
   /* A sheen sweeps across primary buttons on hover. */
   .btn-primary {
     @apply btn text-abyss-950;
-    background-image: linear-gradient(135deg, #f5e2ae 0%, #e3c26d 45%, #b8923f 100%);
-    box-shadow: 0 4px 18px -4px rgba(201, 168, 76, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    background-image: linear-gradient(135deg, #ffefc0 0%, #f2d071 45%, #c99a3f 100%);
+    box-shadow: 0 4px 20px -4px rgba(230, 190, 90, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   }
   .btn-primary:hover:not(:disabled) {
     @apply -translate-y-0.5;
@@ -219,14 +219,17 @@ html { scroll-behavior: smooth; }
   .btn-secondary {
     @apply btn border border-white/10 bg-white/[0.04] text-parchment-200 backdrop-blur hover:-translate-y-0.5 hover:border-gold-500/50 hover:bg-white/[0.08] hover:text-gold-200;
   }
+  /* Opaque, not a translucent wash: laid over a near-black page the old
+     65%-alpha red came through as a muddy maroon, so the app's loudest
+     invitation was also its dimmest button. */
   .btn-danger {
-    @apply btn border border-crimson-400/50 text-parchment-100;
-    background-image: linear-gradient(135deg, rgba(194, 85, 79, 0.65), rgba(92, 30, 29, 0.6));
-    box-shadow: 0 4px 18px -4px rgba(160, 60, 56, 0.5);
+    @apply btn border border-crimson-300/60 text-white;
+    background-image: linear-gradient(135deg, #d2453f 0%, #a82f2c 55%, #6f1f1e 100%);
+    box-shadow: 0 4px 20px -4px rgba(200, 60, 55, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.16);
   }
   .btn-danger:hover:not(:disabled) {
-    @apply -translate-y-0.5 border-crimson-400;
-    box-shadow: 0 10px 28px -6px rgba(194, 85, 79, 0.6);
+    @apply -translate-y-0.5 border-crimson-300;
+    box-shadow: 0 10px 30px -6px rgba(216, 76, 70, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   }
   .btn-ghost {
     @apply btn text-parchment-400 hover:bg-white/[0.06] hover:text-gold-300;

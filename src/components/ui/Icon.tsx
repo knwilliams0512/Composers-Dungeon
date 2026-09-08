@@ -83,7 +83,8 @@ export type IconName =
   | "staff"
   | "arch"
   | "waveform"
-  | "user";
+  | "user"
+  | "clef";
 
 const PATHS: Record<IconName, JSX.Element> = {
   hall: (
@@ -185,6 +186,12 @@ const PATHS: Record<IconName, JSX.Element> = {
       <ellipse cx="6.5" cy="18" rx="2.5" ry="2" />
       <ellipse cx="16.5" cy="16" rx="2.5" ry="2" />
     </>
+  ),
+  /* A treble clef, written the way the glyph is: bottom hook, up the stem,
+     crook over the top, down the left, out around the bowl, spiral into the
+     eye. One continuous stroke, so it holds together down to 16px. */
+  clef: (
+    <path d="M9.2 20.8C8.5 22.8 10.7 23.8 12.3 22.4 13.3 21.4 13 19.9 12.8 18.5 13.4 13.2 14.3 7.4 13.7 3.4 13.5 1.6 11.1 1.2 10.2 3.1 9 5.5 10.1 8 11.7 10 13.6 12.2 16.2 13.6 16.2 16.2 16.2 19.2 13.5 20.9 10.9 20.2 8.3 19.5 6.8 17.4 7.1 15.1 7.4 13 9.2 11.8 11 12.3 12.6 12.7 13.3 14 12.9 15.2" />
   ),
   chord: (
     <>
@@ -504,19 +511,231 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
 };
 
+/**
+ * Filled counterparts for the marks that name a place in the app.
+ *
+ * Line icons read as chrome; a destination wants weight and a colour of its
+ * own, so the Academy's book and the Guild's crowd carry the same presence
+ * here as the artwork they sit beside. Details are cut as holes
+ * (`fill-rule="evenodd"`) rather than painted in a background colour, so a
+ * mark looks right on a sidebar, a chip or a photograph alike.
+ */
+const SOLID_PATHS: Partial<Record<IconName, JSX.Element>> = {
+  hall: (
+    <path
+      fillRule="evenodd"
+      d="M12.68 2.26a1 1 0 0 0-1.36 0L1.6 11.1a1 1 0 0 0 .66 1.75H4V21a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8.15h1.74a1 1 0 0 0 .66-1.75zM9.7 21.9v-5.3a2.3 2.3 0 0 1 4.6 0v5.3z"
+    />
+  ),
+  book: (
+    <>
+      <path d="M11 6.6C8.5 4.7 5.7 4.3 2.9 4.8A1.2 1.2 0 0 0 2 6v11.6a1.2 1.2 0 0 0 1.5 1.16c2.3-.5 4.9-.2 7 1.3.3.2.5-.1.5-.4z" />
+      <path
+        opacity=".5"
+        d="M13 6.6c2.5-1.9 5.3-2.3 8.1-1.8A1.2 1.2 0 0 1 22 6v11.6a1.2 1.2 0 0 1-1.5 1.16c-2.3-.5-4.9-.2-7 1.3-.3.2-.5-.1-.5-.4z"
+      />
+    </>
+  ),
+  arch: (
+    <>
+      <path d="M12 1.8A8.6 8.6 0 0 0 3.4 10.4V21a1 1 0 0 0 1 1h3.3a1 1 0 0 0 1-1v-10.6a3.3 3.3 0 0 1 6.6 0V21a1 1 0 0 0 1 1h3.3a1 1 0 0 0 1-1V10.4A8.6 8.6 0 0 0 12 1.8" />
+      <path
+        opacity=".45"
+        d="M12 6.4a4 4 0 0 0-1.6.33V21a1 1 0 0 1-1 1h5.2a1 1 0 0 1-1-1V6.73A4 4 0 0 0 12 6.4"
+      />
+    </>
+  ),
+  quill: (
+    <path
+      fillRule="evenodd"
+      d="M21.35 2.14a1.4 1.4 0 0 0-.5-.05c-6.06.66-10.5 3.24-12.66 7.06-1.4 2.47-1.53 5.02-.63 7.2l-1.9 1.9-1.9 1.9a1 1 0 1 0 1.42 1.42l1.9-1.9 1.9-1.9c2.18.9 4.73.77 7.2-.63 3.82-2.16 6.4-6.6 7.06-12.66a1.4 1.4 0 0 0-1.9-1.54zM18.9 5.1l1.06 1.06-9.9 9.9-1.06-1.06z"
+    />
+  ),
+  skull: (
+    <path
+      fillRule="evenodd"
+      d="M12 1.9C7 1.9 3.3 5.5 3.3 10.3c0 2.7 1.2 4.7 2.7 6v3.1a2.6 2.6 0 0 0 2.6 2.6h6.8a2.6 2.6 0 0 0 2.6-2.6v-3.1c1.5-1.3 2.7-3.3 2.7-6C20.7 5.5 17 1.9 12 1.9m-3.3 6.3a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2m6.6 0a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2M12 13.6l1.3 2.6h-2.6z"
+    />
+  ),
+  waveform: (
+    <>
+      <rect x="2" y="10" width="2.4" height="4" rx="1.2" />
+      <rect x="6" y="6.5" width="2.4" height="11" rx="1.2" />
+      <rect x="10" y="3" width="2.4" height="18" rx="1.2" />
+      <rect x="14" y="7.5" width="2.4" height="9" rx="1.2" />
+      <rect x="18" y="10.5" width="2.4" height="3" rx="1.2" />
+    </>
+  ),
+  scroll: (
+    <>
+      <path d="M3.4 3.6h4.2a1 1 0 0 1 1 1v14.8a1 1 0 0 1-1 1H3.4a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1" />
+      <path
+        opacity=".55"
+        d="M10.4 3.6h4a1 1 0 0 1 1 1v14.8a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1"
+      />
+      <path
+        opacity=".8"
+        d="m18.1 4.1 2.9.8a1 1 0 0 1 .7 1.23l-3.7 13.8a1 1 0 0 1-1.23.7l-2.9-.78a1 1 0 0 1-.7-1.23l3.7-13.8a1 1 0 0 1 1.23-.7"
+      />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="12" cy="7.2" r="3.4" />
+      <path d="M5.4 20.4c0-3.6 3-6 6.6-6s6.6 2.4 6.6 6a1 1 0 0 1-1 1H6.4a1 1 0 0 1-1-1" />
+      <g opacity=".5">
+        <circle cx="4.6" cy="9.4" r="2.5" />
+        <path d="M1 19.2c0-2.4 1.6-4.2 3.6-4.2.5 0 1 .1 1.4.3-1 1.1-1.6 2.5-1.7 4z" />
+        <circle cx="19.4" cy="9.4" r="2.5" />
+        <path d="M23 19.2c0-2.4-1.6-4.2-3.6-4.2-.5 0-1 .1-1.4.3 1 1.1 1.6 2.5 1.7 4z" />
+      </g>
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="7.6" r="4.1" />
+      <path d="M4.6 20.6c0-3.9 3.3-6.6 7.4-6.6s7.4 2.7 7.4 6.6a1.2 1.2 0 0 1-1.2 1.2H5.8a1.2 1.2 0 0 1-1.2-1.2" />
+    </>
+  ),
+  settings: (
+    <path
+      fillRule="evenodd"
+      d="M10.3 1.3a.9.9 0 0 0-.89.75l-.32 2.2a8.4 8.4 0 0 0-2.7 1.56l-2.07-.83a.9.9 0 0 0-1.11.4l-1.7 2.94a.9.9 0 0 0 .22 1.15l1.75 1.36a8.5 8.5 0 0 0 0 3.12l-1.75 1.36a.9.9 0 0 0-.22 1.15l1.7 2.94a.9.9 0 0 0 1.11.4l2.07-.83a8.4 8.4 0 0 0 2.7 1.56l.32 2.2a.9.9 0 0 0 .89.75h3.4a.9.9 0 0 0 .89-.75l.32-2.2a8.4 8.4 0 0 0 2.7-1.56l2.07.83a.9.9 0 0 0 1.11-.4l1.7-2.94a.9.9 0 0 0-.22-1.15l-1.75-1.36a8.5 8.5 0 0 0 0-3.12l1.75-1.36a.9.9 0 0 0 .22-1.15l-1.7-2.94a.9.9 0 0 0-1.11-.4l-2.07.83a8.4 8.4 0 0 0-2.7-1.56l-.32-2.2a.9.9 0 0 0-.89-.75zM12 8.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8"
+    />
+  ),
+
+  /* The marks that stand for a skill, a stat or a room type. Anything without
+     an entry here simply keeps its line icon, so the set can grow one glyph at
+     a time without a half-drawn shape ever reaching a page. */
+  note: (
+    <path d="M19.2 2.2a1 1 0 0 0-1.18-.98l-8.4 1.62A1 1 0 0 0 8.8 3.82v10.6a3.4 3.4 0 1 0 2 3.1V8.2l6.4-1.24v5.66a3.4 3.4 0 1 0 2 3.1z" />
+  ),
+  chord: (
+    <>
+      <g opacity=".38">
+        <rect x="3" y="5.2" width="18" height="1.5" rx=".75" />
+        <rect x="3" y="11.25" width="18" height="1.5" rx=".75" />
+        <rect x="3" y="17.3" width="18" height="1.5" rx=".75" />
+      </g>
+      <circle cx="8" cy="5.95" r="2.6" />
+      <circle cx="12" cy="12" r="2.6" />
+      <circle cx="16" cy="18.05" r="2.6" />
+    </>
+  ),
+  drum: (
+    <>
+      <path opacity=".6" d="M4 7.4v9.2c0 2.1 3.6 3.8 8 3.8s8-1.7 8-3.8V7.4z" />
+      <path
+        fillRule="evenodd"
+        d="M12 3.7c4.42 0 8 1.66 8 3.7s-3.58 3.7-8 3.7-8-1.66-8-3.7 3.58-3.7 8-3.7m0 1.5c-2.87 0-5.2.98-5.2 2.2s2.33 2.2 5.2 2.2 5.2-.98 5.2-2.2-2.33-2.2-5.2-2.2"
+      />
+      <path d="M5.6 11.4 8 14.6l-2.4 3.2-.9-.7 1.86-2.5-1.86-2.5zM18.4 11.4l.9.7-1.86 2.5 1.86 2.5-.9.7L16 14.6z" />
+    </>
+  ),
+  column: (
+    <>
+      <path d="M4.6 2.4h14.8a1 1 0 0 1 1 1v1.4a1 1 0 0 1-1 1H4.6a1 1 0 0 1-1-1V3.4a1 1 0 0 1 1-1" />
+      <path d="M4.6 18.2h14.8a1 1 0 0 1 1 1v1.4a1 1 0 0 1-1 1H4.6a1 1 0 0 1-1-1v-1.4a1 1 0 0 1 1-1" />
+      <g opacity=".72">
+        <rect x="6.6" y="6.6" width="3.1" height="11.2" rx="1.2" />
+        <rect x="14.3" y="6.6" width="3.1" height="11.2" rx="1.2" />
+      </g>
+    </>
+  ),
+  bolt: (
+    <path d="M14.05 1.63a.8.8 0 0 0-1.4-.5L4.4 12.9a.8.8 0 0 0 .65 1.27h4.02l-.72 8.2a.8.8 0 0 0 1.44.56l8.25-11.77a.8.8 0 0 0-.66-1.26h-4.05z" />
+  ),
+  moon: (
+    <>
+      <path d="M21 14.6A9.4 9.4 0 0 1 9.4 3a9.4 9.4 0 1 0 11.6 11.6" />
+      <g opacity=".55">
+        <circle cx="17.6" cy="4.6" r="1.2" />
+        <circle cx="20.4" cy="8.4" r=".8" />
+      </g>
+    </>
+  ),
+  gem: (
+    <path
+      fillRule="evenodd"
+      d="M8.3 2.2h7.4a1 1 0 0 1 .84.46l3.66 5.7a1 1 0 0 1-.03 1.12l-7.36 10.3a1 1 0 0 1-1.62 0L3.83 9.48a1 1 0 0 1-.03-1.12l3.66-5.7a1 1 0 0 1 .84-.46m.6 1.2h.9l-1.7 5.1h-.9zm5.3 0h.9l1.7 5.1h-.9zM4.2 8.5h15.6v.9H4.2z"
+    />
+  ),
+  trophy: (
+    <path
+      fillRule="evenodd"
+      d="M6.6 2.2a1 1 0 0 0-1 1v1.4H3.2a1 1 0 0 0-1 1v1.6a5.2 5.2 0 0 0 4.7 5.18 5.6 5.6 0 0 0 4.1 3.5v2.72H8a1 1 0 0 0-1 1v2.2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.2a1 1 0 0 0-1-1h-3v-2.72a5.6 5.6 0 0 0 4.1-3.5A5.2 5.2 0 0 0 21.8 7.2V5.6a1 1 0 0 0-1-1h-2.4V3.2a1 1 0 0 0-1-1zM5.6 6.6v3.66A3.2 3.2 0 0 1 4.2 7.2v-.6zm12.8 0h1.4v.6a3.2 3.2 0 0 1-1.4 3.06z"
+    />
+  ),
+  layers: (
+    <>
+      <path d="M11.5 2.3a1 1 0 0 1 1 0l8.4 4.4a1 1 0 0 1 0 1.77l-8.4 4.4a1 1 0 0 1-1 0L3.1 8.47a1 1 0 0 1 0-1.77z" />
+      <path
+        opacity=".55"
+        d="m3.1 12.1 1.9-1 6.5 3.4a1 1 0 0 0 1 0l6.5-3.4 1.9 1a1 1 0 0 1 0 1.77l-8.4 4.4a1 1 0 0 1-1 0l-8.4-4.4a1 1 0 0 1 0-1.77"
+      />
+    </>
+  ),
+  flame: (
+    <path
+      fillRule="evenodd"
+      d="M12.6 1.4a1 1 0 0 0-1.6.5c-.7 2.7-2 4.1-3.3 5.6C6.2 9.2 4.8 10.9 4.8 14a7.2 7.2 0 1 0 14.4 0c0-3.6-1.8-6.1-3.5-8.2a19 19 0 0 1-3.1-4.4M12 11.4c1.6 1.5 2.7 2.8 2.7 4.5a2.7 2.7 0 1 1-5.4 0c0-1.7 1.1-3 2.7-4.5"
+    />
+  ),
+  chest: (
+    <path
+      fillRule="evenodd"
+      d="M4.4 5.2A3.2 3.2 0 0 1 7.6 2h8.8a3.2 3.2 0 0 1 3.2 3.2V9H4.4zM3.4 10.8a1 1 0 0 0-1 1v7.4A2.8 2.8 0 0 0 5.2 22h13.6a2.8 2.8 0 0 0 2.8-2.8v-7.4a1 1 0 0 0-1-1zm7.4 3.2h2.4a1 1 0 0 1 1 1v1.6a1 1 0 0 1-1 1h-2.4a1 1 0 0 1-1-1V15a1 1 0 0 1 1-1"
+    />
+  ),
+  sparkle: (
+    <>
+      <path d="M12 1.6a.8.8 0 0 1 .77.58l1.36 4.7 4.7 1.36a.8.8 0 0 1 0 1.54l-4.7 1.36-1.36 4.7a.8.8 0 0 1-1.54 0L9.87 11.14 5.17 9.78a.8.8 0 0 1 0-1.54l4.7-1.36 1.36-4.7A.8.8 0 0 1 12 1.6" />
+      <path
+        opacity=".6"
+        d="M18.6 14.4a.6.6 0 0 1 .58.43l.6 2.05 2.05.6a.6.6 0 0 1 0 1.16l-2.05.6-.6 2.05a.6.6 0 0 1-1.16 0l-.6-2.05-2.05-.6a.6.6 0 0 1 0-1.16l2.05-.6.6-2.05a.6.6 0 0 1 .58-.43"
+      />
+    </>
+  ),
+  sword: (
+    <path d="M20.9 2.2 14 9.1l-1.4-1.4-1.42 1.42 1.4 1.4-1.7 1.7-1.4-1.4L8.06 12.24l1.4 1.4-2.3 2.3a1 1 0 0 0 0 1.42l.72.7-2.9 2.9a1 1 0 1 0 1.42 1.42l2.9-2.9.7.72a1 1 0 0 0 1.42 0l2.3-2.3 1.4 1.4 1.42-1.42-1.4-1.4 1.7-1.7 1.4 1.4 1.42-1.42-1.4-1.4 6.9-6.9z" />
+  ),
+  puzzle: (
+    <path d="M10.4 2a2.6 2.6 0 0 0-2.6 2.6v.8H5.2a1.4 1.4 0 0 0-1.4 1.4v3.1h1.1a2.5 2.5 0 0 1 0 5H3.8v3.1a1.4 1.4 0 0 0 1.4 1.4h3.1v-1.1a2.5 2.5 0 0 1 5 0v1.1h3.1a1.4 1.4 0 0 0 1.4-1.4v-2.6h.8a2.6 2.6 0 0 0 0-5.2h-.8V6.8a1.4 1.4 0 0 0-1.4-1.4H13v-.8A2.6 2.6 0 0 0 10.4 2" />
+  ),
+  star: (
+    <path d="M12 1.8a.9.9 0 0 1 .82.53l2.6 5.62 6.14.74a.9.9 0 0 1 .5 1.56l-4.54 4.2 1.2 6.07a.9.9 0 0 1-1.33.96L12 18.4l-5.39 3.08a.9.9 0 0 1-1.33-.96l1.2-6.07-4.54-4.2a.9.9 0 0 1 .5-1.56l6.14-.74 2.6-5.62A.9.9 0 0 1 12 1.8" />
+  ),
+  target: (
+    <>
+      <path
+        fillRule="evenodd"
+        d="M12 1.8A10.2 10.2 0 1 0 22.2 12 10.2 10.2 0 0 0 12 1.8m0 3.4a6.8 6.8 0 1 1 0 13.6 6.8 6.8 0 0 1 0-13.6"
+      />
+      <circle cx="12" cy="12" r="4" />
+    </>
+  ),
+};
+
 export function Icon({
   name,
   size = 18,
   className = "",
+  solid = false,
   ...rest
-}: { name: IconName; size?: number } & SVGProps<SVGSVGElement>) {
+}: {
+  name: IconName;
+  size?: number;
+  /** Render the filled mark, where one exists. Falls back to the line icon. */
+  solid?: boolean;
+} & SVGProps<SVGSVGElement>) {
+  const filled = solid ? SOLID_PATHS[name] : undefined;
   return (
     <svg
       viewBox="0 0 24 24"
       width={size}
       height={size}
-      fill="none"
-      stroke="currentColor"
+      fill={filled ? "currentColor" : "none"}
+      stroke={filled ? "none" : "currentColor"}
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -525,7 +744,7 @@ export function Icon({
       className={`shrink-0 ${className}`}
       {...rest}
     >
-      {PATHS[name]}
+      {filled ?? PATHS[name]}
     </svg>
   );
 }

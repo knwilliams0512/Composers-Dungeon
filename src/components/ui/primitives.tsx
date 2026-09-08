@@ -116,12 +116,12 @@ export function SkillMeter({
       <span
         className="flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur transition-transform duration-300 group-hover:scale-110"
         style={{
-          borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
-          background: `color-mix(in srgb, ${accent} 12%, transparent)`,
-          color: accent,
+          borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`,
+          background: `color-mix(in srgb, ${accent} 26%, #0b0916)`,
+          color: `color-mix(in srgb, ${accent} 88%, white)`,
         }}
       >
-        <Icon name={icon} size={16} />
+        <Icon name={icon} size={17} solid />
       </span>
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-2">
@@ -137,7 +137,9 @@ export function SkillMeter({
             className="meter-fill"
             style={{
               width: `${Math.max(0, Math.min(100, percent))}%`,
-              background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 60%, #000), ${accent})`,
+              /* Starts at the accent and finishes brighter, so a short bar
+                 still reads as its skill's colour instead of a dark stub. */
+              background: `linear-gradient(90deg, ${accent}, color-mix(in srgb, ${accent} 68%, white))`,
               color: accent,
             }}
           />
@@ -250,13 +252,15 @@ export function StatTile({
     <>
       {motif && (
         <>
-          <Motif name={motif} tint={accent} opacity={0.55} className="scale-110" />
-          {/* Keeps the figures readable wherever the scene happens to fall. */}
+          <Motif name={motif} tint={accent} opacity={0.8} className="scale-110" />
+          {/* Keeps the figures readable wherever the scene happens to fall.
+              Heavy enough on the left to carry white text, gone by the right
+              so the scene behind it is actually seen. */}
           <span
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "linear-gradient(115deg, rgba(8,6,14,0.86) 0%, rgba(8,6,14,0.5) 46%, transparent 82%)",
+                "linear-gradient(115deg, rgba(8,6,14,0.8) 0%, rgba(8,6,14,0.34) 48%, transparent 84%)",
             }}
           />
         </>
@@ -272,13 +276,15 @@ export function StatTile({
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-110"
           style={{
-            borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`,
-            background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 34%, transparent), color-mix(in srgb, ${accent} 12%, transparent))`,
-            color: `color-mix(in srgb, ${accent} 55%, white)`,
-            boxShadow: `0 0 22px -6px ${accent}`,
+            borderColor: `color-mix(in srgb, ${accent} 70%, transparent)`,
+            background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 30%, #0b0916), color-mix(in srgb, ${accent} 14%, #0b0916))`,
+            /* Barely lifted toward white — enough to glow, not so much that
+               the jewel tone washes out to a pastel. */
+            color: `color-mix(in srgb, ${accent} 86%, white)`,
+            boxShadow: `0 0 20px -5px ${accent}`,
           }}
         >
-          <Icon name={icon} size={17} />
+          <Icon name={icon} size={18} solid />
         </span>
         {complete && (
           <span
@@ -290,10 +296,9 @@ export function StatTile({
         )}
       </span>
 
-      <span
-        className="relative mt-3 block font-display text-[1.85rem] leading-none"
-        style={{ color: `color-mix(in srgb, ${accent} 40%, white)` }}
-      >
+      {/* The figure is the point of the tile, so it is plain white: a tinted
+          number competes with its own accent and reads dimmer than it is. */}
+      <span className="relative mt-3 block font-display text-[1.95rem] leading-none text-white">
         {value}
       </span>
 
@@ -320,10 +325,13 @@ export function StatTile({
 
   const cls =
     "group relative overflow-hidden rounded-xl border px-4 py-4 text-left transition-all duration-300";
+  // Mixed toward a dark ground rather than toward `transparent`: over a
+  // near-black page a transparent mix has almost no colour left in it, which
+  // is why the rack of tiles used to read as six identical dark rectangles.
   const skin = {
-    borderColor: `color-mix(in srgb, ${accent} 32%, transparent)`,
-    backgroundImage: `linear-gradient(155deg, color-mix(in srgb, ${accent} 26%, transparent) 0%, color-mix(in srgb, ${accent} 9%, transparent) 45%, rgba(10,8,16,0.55) 100%)`,
-    boxShadow: `inset 0 1px 0 0 color-mix(in srgb, ${accent} 22%, transparent)`,
+    borderColor: `color-mix(in srgb, ${accent} 48%, transparent)`,
+    backgroundImage: `linear-gradient(155deg, color-mix(in srgb, ${accent} 32%, #0b0916) 0%, color-mix(in srgb, ${accent} 16%, #0b0916) 48%, #0b0916 100%)`,
+    boxShadow: `inset 0 1px 0 0 color-mix(in srgb, ${accent} 34%, transparent)`,
   };
 
   return href ? (
