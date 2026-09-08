@@ -187,10 +187,16 @@ export default async function EntranceHallPage() {
           <HallBannerArt />
         </div>
 
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:flex-nowrap lg:items-center">
+        {/* The single-row banner needs about 1280px to hold all four columns.
+            Below that it stacks rather than squeezing: at lg the flame card
+            and the word list were being shoved out past the banner's edge,
+            where overflow-hidden silently ate them. */}
+        <div className="relative flex flex-col gap-4 xl:flex-row xl:flex-nowrap xl:items-center">
           {/* Who you are — a fixed budget, so the row's other columns can
-              rely on how much space is left. */}
-          <div className="flex min-w-0 items-center gap-3 lg:w-[400px] lg:shrink-0">
+              rely on how much space is left. 520px because the name is the
+              one thing here that should never be abbreviated, and a long one
+              like "Aria the Wandering Bard" wants 410px beside the ring. */}
+          <div className="flex min-w-0 items-center gap-3 xl:w-[520px] xl:shrink-0">
             <div className="relative shrink-0">
               <XpRing percent={xp.percent} level={xp.level} size={76} />
               <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border border-gold-500/60 bg-abyss-900/90 text-sm shadow-[0_0_18px_-2px_rgba(201,168,76,0.8)] backdrop-blur">
@@ -257,7 +263,7 @@ export default async function EntranceHallPage() {
           </div>
 
           {/* What the whole app is for, in the order you meet it. */}
-          <ul className="hidden shrink-0 flex-col gap-1 border-l border-gold-700/30 pl-4 text-right lg:flex">
+          <ul className="hidden shrink-0 flex-col gap-1 border-l border-gold-700/30 pl-4 text-right xl:flex">
             {["Create", "Practice", "Explore", "Ascend"].map((word) => (
               <li
                 key={word}
