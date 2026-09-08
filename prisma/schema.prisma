@@ -69,6 +69,11 @@ model UserProfile {
   lastActivityDate DateTime?
   restDays         Int       @default(1)
 
+  /// Opt out of the tiered composer tools and get every option at once.
+  /// Off by default: the tiers exist so a beginner is not handed a blank page
+  /// with fifty controls on it.
+  fullFreedom Boolean @default(false)
+
   onboardingComplete Boolean @default(false)
   placementResult    String? // JSON summary of the Placement Trial, display-only
 

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { ensureDailyChallenge } from "@/lib/daily";
 import { ChallengePanel } from "@/components/dungeon/ChallengePanel";
 import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
-import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
+import { resolveFreedom } from "@/lib/composer-freedom";
 import { Icon } from "@/components/ui/Icon";
 
 export const metadata = { title: "Daily Dungeon Challenge" };
@@ -24,10 +24,12 @@ export default async function DailyChallengePage() {
   const lessonsCompleted = await db.lessonProgress.count({
     where: { userId, status: "COMPLETED" },
   });
-  const freedom = cappedFreedom(
-    freedomForPlayer(profile?.level ?? 1, lessonsCompleted),
-    uc.challenge.freedomCap ?? brief.freedomCap
-  );
+  const freedom = resolveFreedom({
+    level: profile?.level ?? 1,
+    lessonsCompleted,
+    fullFreedom: profile?.fullFreedom ?? false,
+    cap: uc.challenge.freedomCap ?? brief.freedomCap,
+  });
 
   return (
     <div className="mx-auto max-w-3xl">

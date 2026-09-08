@@ -53,7 +53,7 @@ export function AppNav({
             <br />
             Dungeon
           </p>
-          <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-parchment-500">
+          <p className="mt-1 whitespace-nowrap text-[9px] uppercase tracking-[0.2em] text-parchment-500">
             Learn · Create · Ascend
           </p>
           </div>
@@ -83,21 +83,22 @@ export function AppNav({
             <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-700/50 bg-abyss-800 text-lg">
               {avatarGlyph}
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-parchment-100">
                 {displayName}
               </p>
-              <p className="text-xs text-parchment-500">Level {level} Composer</p>
+              <p className="text-xs text-parchment-500">Level {level} · Composer</p>
             </div>
+            <Icon name="chevron" size={14} className="shrink-0 text-parchment-600" />
           </div>
           <InstallAppButton className="mb-2" />
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full rounded-md border border-abyss-600 px-3 py-1.5 text-xs text-parchment-400 transition-colors hover:border-crimson-600 hover:text-crimson-400"
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-abyss-600 px-3 py-2 text-xs text-parchment-400 transition-colors hover:border-crimson-600 hover:text-crimson-400"
           >
-            Leave the Dungeon
+            <Icon name="arrow" size={13} /> Leave the Dungeon
           </button>
-          <p className="mt-3 text-center font-display text-[11px] italic leading-snug text-parchment-600">
+          <p className="mx-auto mt-3 max-w-[150px] text-center font-display text-[12px] italic leading-snug text-parchment-500">
             &ldquo;Better composers build habits.&rdquo;
           </p>
         </div>

@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         avatarGlyph={avatarGlyph(profile.avatar)}
       />
       <main className="px-4 pb-24 pt-16 md:ml-60 md:px-8 md:pb-10 md:pt-8">
-        <div className="mx-auto max-w-5xl">{children}</div>
+        <div className="mx-auto max-w-[1360px]">{children}</div>
       </main>
     </div>
   );

@@ -85,3 +85,25 @@ export async function setCompositionVisibility(input: {
   revalidatePath("/library");
   return { ok: true };
 }
+
+/**
+ * Turns the tiered composer tools off or on.
+ *
+ * Off (the default) the editor hands back one decision at a time as the
+ * composer earns it. On, every tool appears at once — which is what some
+ * people want, and which the Settings copy warns is a lot to meet all at once.
+ */
+export async function setFullFreedom(
+  enabled: boolean
+): Promise<{ ok: boolean; fullFreedom?: boolean }> {
+  const userId = await requireUserId();
+  const profile = await db.userProfile.update({
+    where: { userId },
+    data: { fullFreedom: enabled },
+  });
+  revalidatePath("/settings");
+  revalidatePath("/workshop");
+  revalidatePath("/academy");
+  revalidatePath("/dungeon");
+  return { ok: true, fullFreedom: profile.fullFreedom };
+}

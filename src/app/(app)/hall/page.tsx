@@ -190,7 +190,7 @@ export default async function EntranceHallPage() {
         <div className="relative flex flex-col gap-4 lg:flex-row lg:flex-nowrap lg:items-center">
           {/* Who you are — a fixed budget, so the row's other columns can
               rely on how much space is left. */}
-          <div className="flex min-w-0 items-center gap-3 lg:w-[270px] lg:shrink-0">
+          <div className="flex min-w-0 items-center gap-3 lg:w-[400px] lg:shrink-0">
             <div className="relative shrink-0">
               <XpRing percent={xp.percent} level={xp.level} size={76} />
               <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border border-gold-500/60 bg-abyss-900/90 text-sm shadow-[0_0_18px_-2px_rgba(201,168,76,0.8)] backdrop-blur">
@@ -201,12 +201,12 @@ export default async function EntranceHallPage() {
               <p className="eyebrow">
                 <Icon name="hall" size={12} /> The Entrance Hall
               </p>
-              <h1 className="text-gilded mt-1 truncate font-display text-2xl leading-tight">
+              <h1 className="text-gilded mt-1 truncate font-display text-3xl leading-tight">
                 {profile.displayName}
               </h1>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-parchment-400">
+              <p className="mt-1 flex items-center gap-x-2 whitespace-nowrap text-[13px] text-parchment-400">
                 <span className="text-parchment-300">Composer in Progress</span>
-                <span className="text-parchment-600">·</span>
+                <span className="text-parchment-500">·</span>
                 <span>{tierLabel}</span>
                 {specTitle && (
                   <span className="pill-arcane">
@@ -267,6 +267,7 @@ export default async function EntranceHallPage() {
                 {word}
               </li>
             ))}
+            <li aria-hidden className="mt-1 h-px w-10 self-end bg-gold-500/70" />
           </ul>
         </div>
       </section>
@@ -332,9 +333,9 @@ export default async function EntranceHallPage() {
 
       {/* ---- Quick actions -------------------------------------------------- */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Link href="/dungeon" className="btn-danger justify-between px-5 py-3.5 text-left">
+        <Link href="/dungeon" className="btn-danger justify-between px-6 py-4 text-left">
           <span className="flex items-center gap-3">
-            <Icon name="candle" size={22} />
+            <Icon name="arch" size={26} />
             <span className="flex flex-col leading-tight">
               <span className="text-base">Enter the Dungeon</span>
               <span className="text-[11px] font-normal normal-case tracking-normal opacity-75">
@@ -344,9 +345,9 @@ export default async function EntranceHallPage() {
           </span>
           <Icon name="arrow" size={18} />
         </Link>
-        <Link href="/academy" className="btn-primary justify-between px-5 py-3.5 text-left">
+        <Link href="/academy" className="btn-primary justify-between px-6 py-4 text-left">
           <span className="flex items-center gap-3">
-            <Icon name="book" size={22} />
+            <Icon name="book" size={26} />
             <span className="flex flex-col leading-tight">
               <span className="text-base">Continue Learning</span>
               <span className="text-[11px] font-normal normal-case tracking-normal opacity-75">

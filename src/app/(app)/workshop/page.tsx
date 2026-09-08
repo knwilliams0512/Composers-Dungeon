@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Workshop } from "@/components/composer/Workshop";
 import { Icon } from "@/components/ui/Icon";
-import { freedomForPlayer } from "@/lib/composer-freedom";
+import { resolveFreedom } from "@/lib/composer-freedom";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
 export const metadata = { title: "The Composer's Workshop" };
@@ -26,7 +26,11 @@ export default async function WorkshopPage() {
   ]);
   if (!profile) redirect("/login");
 
-  const freedom = freedomForPlayer(profile.level, lessonsCompleted);
+  const freedom = resolveFreedom({
+    level: profile.level,
+    lessonsCompleted,
+    fullFreedom: profile.fullFreedom,
+  });
 
   return (
     <div>

@@ -128,4 +128,28 @@ export function cappedFreedom(player: Freedom, cap?: number): Freedom {
   return freedomTier(Math.min(player.tier, cap));
 }
 
+/**
+ * The one place that decides how much rope a composer actually gets.
+ *
+ * Three things feed in: what they have earned, whether an exercise caps it,
+ * and whether they have asked in Settings for everything at once. Every screen
+ * that mounts an editor calls this rather than combining the pieces itself —
+ * when the rule lived in four call sites, a new one could quietly forget the
+ * override and hand a player less than they asked for.
+ *
+ * `fullFreedom` deliberately lifts an exercise's cap too. A switch that says
+ * "give me every tool" and then leaves a lesson's toolbar short would be a
+ * worse surprise than the extra options are.
+ */
+export function resolveFreedom(input: {
+  level: number;
+  lessonsCompleted: number;
+  fullFreedom?: boolean;
+  /** The exercise's own ceiling, when it sets one. */
+  cap?: number;
+}): Freedom {
+  if (input.fullFreedom) return freedomTier(TIERS.length);
+  return cappedFreedom(freedomForPlayer(input.level, input.lessonsCompleted), input.cap);
+}
+
 export const ALL_TIERS = TIERS;

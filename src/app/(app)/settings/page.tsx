@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Panel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { UpdatePanel } from "@/components/settings/UpdatePanel";
+import { FreedomPanel } from "@/components/settings/FreedomPanel";
 import { appVersion, isDesktop } from "@/lib/desktop";
 
 export const metadata = { title: "Settings" };
@@ -44,6 +45,18 @@ export default async function SettingsPage() {
         >
           <UpdatePanel
             initial={{ current: appVersion(), desktop: isDesktop(), available: false }}
+          />
+        </Panel>
+
+        <Panel
+          title="Composer Tools"
+          icon="quill"
+          subtitle="How much the editor offers you at once"
+        >
+          <FreedomPanel
+            fullFreedom={profile.fullFreedom}
+            level={profile.level}
+            lessonsCompleted={lessons}
           />
         </Panel>
 

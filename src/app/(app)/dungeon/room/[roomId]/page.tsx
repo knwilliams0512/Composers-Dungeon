@@ -6,7 +6,7 @@ import { tierOrdinal, ROOM_TYPE_INFO, type RoomType } from "@/lib/enums";
 import { ChallengePanel } from "@/components/dungeon/ChallengePanel";
 import { BeginTrialButton } from "@/components/dungeon/BeginTrialButton";
 import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
-import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
+import { resolveFreedom } from "@/lib/composer-freedom";
 import { PuzzlePanel } from "@/components/dungeon/PuzzlePanel";
 import { TreasurePanel } from "@/components/dungeon/TreasurePanel";
 import { Icon } from "@/components/ui/Icon";
@@ -87,10 +87,12 @@ export default async function DungeonRoomPage({
   const lessonsCompleted = await db.lessonProgress.count({
     where: { userId, status: "COMPLETED" },
   });
-  const freedom = cappedFreedom(
-    freedomForPlayer(profile.level, lessonsCompleted),
-    activeChallenge?.challenge.freedomCap ?? brief.freedomCap
-  );
+  const freedom = resolveFreedom({
+    level: profile.level,
+    lessonsCompleted,
+    fullFreedom: profile.fullFreedom,
+    cap: activeChallenge?.challenge.freedomCap ?? brief.freedomCap,
+  });
 
   const ownsArtifact = room.artifactId
     ? (await db.userArtifact.count({

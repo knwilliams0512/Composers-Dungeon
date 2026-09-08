@@ -250,13 +250,13 @@ export function StatTile({
     <>
       {motif && (
         <>
-          <Motif name={motif} tint={accent} opacity={0.34} />
+          <Motif name={motif} tint={accent} opacity={0.55} className="scale-110" />
           {/* Keeps the figures readable wherever the scene happens to fall. */}
           <span
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "linear-gradient(100deg, rgba(8,6,14,0.82) 0%, rgba(8,6,14,0.55) 42%, transparent 78%)",
+                "linear-gradient(115deg, rgba(8,6,14,0.86) 0%, rgba(8,6,14,0.5) 46%, transparent 82%)",
             }}
           />
         </>
@@ -297,23 +297,10 @@ export function StatTile({
         {value}
       </span>
 
-      <span className="relative mt-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-parchment-300">
+      <span className="relative mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-parchment-200">
         {label}
       </span>
       {hint && <span className="relative mt-0.5 block text-[10px] text-parchment-500">{hint}</span>}
-
-      {ratio !== null && (
-        <span className="relative mt-2 block h-1 overflow-hidden rounded-full bg-black/40">
-          <span
-            className="block h-full rounded-full transition-[width] duration-700 ease-out"
-            style={{
-              width: `${ratio * 100}%`,
-              background: `linear-gradient(90deg, color-mix(in srgb, ${accent} 55%, transparent), ${accent})`,
-              boxShadow: `0 0 10px -2px ${accent}`,
-            }}
-          />
-        </span>
-      )}
 
       {linkLabel && (
         <span
@@ -332,7 +319,7 @@ export function StatTile({
   );
 
   const cls =
-    "group relative overflow-hidden rounded-xl border px-3.5 py-3.5 text-left transition-all duration-300";
+    "group relative overflow-hidden rounded-xl border px-4 py-4 text-left transition-all duration-300";
   const skin = {
     borderColor: `color-mix(in srgb, ${accent} 32%, transparent)`,
     backgroundImage: `linear-gradient(155deg, color-mix(in srgb, ${accent} 26%, transparent) 0%, color-mix(in srgb, ${accent} 9%, transparent) 45%, rgba(10,8,16,0.55) 100%)`,

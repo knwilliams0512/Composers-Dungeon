@@ -13,3 +13,6 @@ logs/
 next-env.d.ts
 build/
 dist/
+
+# Stray output from a test script run with an unset path variable.
+/undefined/

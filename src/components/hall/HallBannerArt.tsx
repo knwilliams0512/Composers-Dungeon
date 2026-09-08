@@ -9,37 +9,37 @@ export function HallBannerArt() {
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
       {/* Piano keys, angled slightly and lit from the upper left. */}
       <svg
-        className="absolute inset-y-0 right-0 h-full w-[62%]"
+        className="absolute inset-y-0 right-0 h-full w-[54%]"
         viewBox="0 0 620 300"
         preserveAspectRatio="xMaxYMid slice"
         aria-hidden
       >
         <defs>
           <linearGradient id="hb-white-key" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fdf8ec" />
-            <stop offset="55%" stopColor="#e9dfc8" />
-            <stop offset="100%" stopColor="#c7b98f" />
+            <stop offset="0%" stopColor="#b39a68" />
+            <stop offset="45%" stopColor="#6d5c3d" />
+            <stop offset="100%" stopColor="#2b2418" />
           </linearGradient>
           <linearGradient id="hb-black-key" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3a3226" />
-            <stop offset="100%" stopColor="#0e0b06" />
+            <stop offset="0%" stopColor="#1a160f" />
+            <stop offset="100%" stopColor="#070604" />
           </linearGradient>
-          <radialGradient id="hb-glow" cx="30%" cy="20%" r="85%">
-            <stop offset="0%" stopColor="#f4c86a" stopOpacity="0.55" />
-            <stop offset="45%" stopColor="#e3a94a" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#e3a94a" stopOpacity="0" />
+          <radialGradient id="hb-glow" cx="42%" cy="14%" r="62%">
+            <stop offset="0%" stopColor="#f0bc63" stopOpacity="0.38" />
+            <stop offset="40%" stopColor="#c98f3c" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="#c98f3c" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="hb-fade" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#0a0810" stopOpacity="1" />
-            <stop offset="28%" stopColor="#0a0810" stopOpacity="0.55" />
-            <stop offset="65%" stopColor="#0a0810" stopOpacity="0" />
+            <stop offset="34%" stopColor="#0a0810" stopOpacity="0.72" />
+            <stop offset="62%" stopColor="#0a0810" stopOpacity="0.3" />
             {/* The far edge dims again, like a lens losing focus at the frame's
                 border — and, not incidentally, keeps the word list that sits
                 there readable against keys that would otherwise run bright
                 white right up to the corner. */}
-            <stop offset="68%" stopColor="#0a0810" stopOpacity="0" />
-            <stop offset="82%" stopColor="#0a0810" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#0a0810" stopOpacity="0.8" />
+            <stop offset="70%" stopColor="#0a0810" stopOpacity="0.28" />
+            <stop offset="86%" stopColor="#0a0810" stopOpacity="0.72" />
+            <stop offset="100%" stopColor="#0a0810" stopOpacity="0.82" />
           </linearGradient>
         </defs>
 
@@ -83,7 +83,7 @@ export function HallBannerArt() {
           music sits — a torn triangle with a few handwritten-looking staff
           lines, catching the same warm light. */}
       <svg
-        className="absolute -right-2 -top-4 h-40 w-56 opacity-90"
+        className="absolute -right-2 -top-4 h-36 w-52 opacity-60"
         viewBox="0 0 220 160"
         aria-hidden
       >

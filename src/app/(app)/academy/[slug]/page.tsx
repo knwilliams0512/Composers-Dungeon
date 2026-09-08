@@ -8,7 +8,7 @@ import { Callout, Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { categoryTheme, categoryVars } from "@/lib/category-theme";
 import { briefForLesson } from "@/lib/lesson-brief";
-import { cappedFreedom, freedomForPlayer } from "@/lib/composer-freedom";
+import { resolveFreedom } from "@/lib/composer-freedom";
 
 type Section = {
   heading: string;
@@ -88,13 +88,18 @@ export default async function LessonPage({ params }: { params: { slug: string } 
 
   const brief = briefForLesson(lesson);
   const [playerProfile, lessonsCompleted] = await Promise.all([
-    db.userProfile.findUnique({ where: { userId }, select: { level: true } }),
+    db.userProfile.findUnique({
+      where: { userId },
+      select: { level: true, fullFreedom: true },
+    }),
     db.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
   ]);
-  const freedom = cappedFreedom(
-    freedomForPlayer(playerProfile?.level ?? 1, lessonsCompleted),
-    brief.freedomCap
-  );
+  const freedom = resolveFreedom({
+    level: playerProfile?.level ?? 1,
+    lessonsCompleted,
+    fullFreedom: playerProfile?.fullFreedom ?? false,
+    cap: brief.freedomCap,
+  });
 
   const practice = lesson.exercises.filter((e) => e.type === "PRACTICE");
   const composition = lesson.exercises.find((e) => e.type === "COMPOSITION");
@@ -199,7 +204,7 @@ export default async function LessonPage({ params }: { params: { slug: string } 
       {/* ---- The lesson ------------------------------------------------------ */}
       {/* A numbered rail runs down the left of the whole reading section, so a
           long lesson reads as a descent rather than a stack of boxes. */}
-      <div className="prose-lesson relative mt-8 space-y-5 pl-11 before:absolute before:bottom-6 before:left-[18px] before:top-6 before:w-px before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
+      <div className="prose-lesson relative mt-8 max-w-3xl space-y-5 pl-11 before:absolute before:bottom-6 before:left-[18px] before:top-6 before:w-px before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
         {content.map((section, i) => (
           <section key={section.heading} className="card group relative p-6">
             {/* Numbered node on the rail */}
