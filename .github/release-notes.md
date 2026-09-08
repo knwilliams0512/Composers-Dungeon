@@ -132,6 +132,29 @@ name, the climb to the next level with its bar, Total XP and the Creative Flame
 sharing a card, and Create / Practice / Explore / Ascend down the edge — over a
 piano catching warm light and a curl of manuscript paper in the corner.
 
+## What's new in v1.7.0
+
+**You can turn the training wheels off.** Settings has a new switch: *Give me
+every tool at once*. The editor normally hands back one decision at a time as
+you earn it — note lengths, then accidentals, then chords, then control of key
+and meter. Flip the switch and all of it is there immediately, in lessons and
+trials as well as the Workshop.
+
+It comes with an honest warning rather than a decorative one, because two
+things really do get confusing. You will be offered notation nobody has taught
+you yet, and lessons that set their own key and length can now be changed out
+from under their own wording — a brief asking for eight bars in G major will
+still say so while you write four in D. Nothing is lost by trying it: turn it
+back off and the tools return to what you have earned, with your compositions
+untouched.
+
+**The Entrance Hall, finished.** The banner now reads as a single row at any
+window width instead of stacking, the piano behind it is lit rather than
+washed out, and Create / Practice / Explore / Ascend stays legible over the
+keys. The app itself is wider — the old measure left a third of a desktop
+screen empty — while lesson text keeps its own narrower column so prose stays
+readable.
+
 ## Install on Windows
 
 1. Download **`ComposersDungeonSetup.exe`** from **Assets** below.
