@@ -155,6 +155,35 @@ keys. The app itself is wider — the old measure left a third of a desktop
 screen empty — while lesson text keeps its own narrower column so prose stays
 readable.
 
+## What's new in v1.8.0
+
+**The mark is a treble clef.** In the sidebar, on the browser tab, and on the
+Windows taskbar — one clef, drawn as a single continuous stroke the way the
+glyph is actually written, so it still reads at 16 pixels.
+
+**Every place in the app has its own mark, in its own colour.** The Academy's
+open book, the Dungeon's arch, the Workshop's quill, the Bosses' skull, the
+Studio's waveform, the Library's shelf, the Guild's crowd. They are filled
+shapes now rather than thin grey outlines, so you can find a room by its
+colour before you have read a single label. Stat tiles and skill meters use
+the same filled set.
+
+**The whole interface is lit.** The accents each gained about a step of
+saturation and light where every icon, meter and pill lives, and the card
+surfaces carry more blue — a card and the page behind it used to be nearly
+the same near-black, which is why the layout looked flat. Two things were
+doing real harm: the stat tiles mixed their colour toward transparent, which
+over a near-black page leaves almost none of it, and *Enter the Dungeon* was
+a translucent red that came through as muddy maroon, making the loudest
+invitation in the app its dimmest button. Both are solid colour now, and the
+figures on the tiles are plain white.
+
+**Fixes** — between 1024 and 1280 pixels wide the Entrance Hall banner tried
+to form its single row before there was room for one, pushing the Creative
+Flame and the whole Create / Practice / Explore / Ascend list off the edge
+where they were silently clipped. It stacks below that width now. A long
+composer name no longer truncates mid-word.
+
 ## Install on Windows
 
 1. Download **`ComposersDungeonSetup.exe`** from **Assets** below.
