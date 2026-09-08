@@ -35,11 +35,11 @@ mkdir -p "$PAYLOAD" "$CACHE" "$ROOT/dist"
 say "Fetching the Windows Node runtime (v$NODE_VERSION)"
 NODE_ZIP="$CACHE/node-v$NODE_VERSION-win-x64.zip"
 if [ ! -f "$NODE_ZIP" ]; then
-  # A plain `curl -sSL` waits forever on a connection that opens and then
-  # stops sending, which is exactly how this step hangs: the release build
-  # sat on this line for half an hour twice in a row with nothing to show
-  # for it and no way to tell a slow mirror from a dead one. Give up on a
-  # stalled transfer and try again rather than burning the whole job.
+  # Precautionary, not a fix for anything observed: a plain `curl -sSL` waits
+  # forever on a connection that opens and then stops sending, so a bad
+  # mirror would hang the release job until the six-hour runner limit rather
+  # than failing in a way anyone could read. Give up on a stalled transfer
+  # and try again instead.
   curl -sSL --fail \
     --connect-timeout 20 --max-time 300 \
     --speed-limit 1024 --speed-time 30 \
