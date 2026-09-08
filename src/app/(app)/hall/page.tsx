@@ -47,6 +47,26 @@ function timeAgo(date: Date) {
   return days === 1 ? "yesterday" : `${days}d ago`;
 }
 
+/**
+ * The tinted square an Open Threads row leads with. A loose glyph on a dark
+ * row disappears into it; a chip gives the thread a colour you can pick out
+ * of the list at a glance, the way the stat tiles and skills already do.
+ */
+function ThreadChip({ icon, tint }: { icon: IconName; tint: string }) {
+  return (
+    <span
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border"
+      style={{
+        borderColor: `color-mix(in srgb, ${tint} 55%, transparent)`,
+        background: `color-mix(in srgb, ${tint} 22%, #0b0916)`,
+        color: `color-mix(in srgb, ${tint} 88%, white)`,
+      }}
+    >
+      <Icon name={icon} size={17} solid />
+    </span>
+  );
+}
+
 export default async function EntranceHallPage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
@@ -431,9 +451,9 @@ export default async function EntranceHallPage() {
                 href={`/academy/${currentLessonProgress.lesson.slug}`}
                 className="flex items-center gap-3 rounded-lg border border-abyss-600 p-3 transition-colors hover:border-gold-700/60"
               >
-                <Icon name="book" size={18} className="text-gold-500" />
+                <ThreadChip icon="book" tint="#8fbcff" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] uppercase tracking-widest text-parchment-500">
+                  <p className="text-[11px] uppercase tracking-widest text-parchment-400">
                     Lesson in progress
                   </p>
                   <p className="truncate text-parchment-100">
@@ -455,9 +475,9 @@ export default async function EntranceHallPage() {
                 }
                 className="flex items-center gap-3 rounded-lg border border-crimson-700/50 p-3 transition-colors hover:border-crimson-500"
               >
-                <Icon name="sword" size={18} className="text-crimson-400" />
+                <ThreadChip icon="sword" tint="#f09a94" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] uppercase tracking-widest text-parchment-500">
+                  <p className="text-[11px] uppercase tracking-widest text-parchment-400">
                     Active trial
                     {activeChallenge.challenge.room &&
                       ` · ${activeChallenge.challenge.room.area.name}`}
@@ -474,9 +494,9 @@ export default async function EntranceHallPage() {
               href="/dungeon/daily"
               className="flex items-center gap-3 rounded-lg border border-gold-700/40 bg-gold-fade p-3 transition-colors hover:border-gold-600"
             >
-              <Icon name="sun" size={18} className="text-gold-400" />
+              <ThreadChip icon="sun" tint="#f2cf68" />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-widest text-parchment-500">
+                <p className="text-[11px] uppercase tracking-widest text-parchment-400">
                   Daily Dungeon Challenge
                 </p>
                 <p className="text-gold-300">

@@ -31,7 +31,7 @@ export function Panel({
         <header className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="heading-display flex items-center gap-2 text-lg">
-              {icon && <Icon name={icon} size={18} className="text-gold-500" />}
+              {icon && <Icon name={icon} size={18} solid className="text-gold-300" />}
               <span className="truncate">{title}</span>
             </h2>
             {subtitle && <p className="mt-0.5 text-xs text-parchment-500">{subtitle}</p>}
@@ -58,10 +58,10 @@ export function EmptyState({ icon, children }: { icon: IconName; children: React
 /* -------------------------------------------------------------------------- */
 
 const METER_FILLS: Record<string, string> = {
-  gold: "linear-gradient(90deg,#a8863a,#e3c26d)",
-  arcane: "linear-gradient(90deg,#3a4a82,#7289d1)",
-  crimson: "linear-gradient(90deg,#7e2b29,#c2554f)",
-  emerald: "linear-gradient(90deg,#1f6b52,#4dc79a)",
+  gold: "linear-gradient(90deg,#d9b757,#ffe9a8)",
+  arcane: "linear-gradient(90deg,#5a72c4,#aec3f5)",
+  crimson: "linear-gradient(90deg,#b8443f,#f09a94)",
+  emerald: "linear-gradient(90deg,#35b88c,#9ff0cb)",
 };
 
 export function Meter({
@@ -148,9 +148,9 @@ export function SkillMeter({
       <span
         className="flex h-9 w-9 items-center justify-center rounded-xl border font-display text-sm backdrop-blur"
         style={{
-          borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
-          background: `color-mix(in srgb, ${accent} 10%, transparent)`,
-          color: `color-mix(in srgb, ${accent} 55%, #f5ecd7)`,
+          borderColor: `color-mix(in srgb, ${accent} 55%, transparent)`,
+          background: `color-mix(in srgb, ${accent} 18%, #0b0916)`,
+          color: `color-mix(in srgb, ${accent} 30%, white)`,
         }}
       >
         {level}
@@ -169,7 +169,10 @@ export function XpRing({
   level: number;
   size?: number;
 }) {
-  const stroke = 6;
+  // Thicker and brighter than it was: this ring is the first thing you look
+  // at on the Entrance Hall, and a 6px muted-gold hairline read as a border
+  // rather than a gauge.
+  const stroke = 7;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(100, percent));
@@ -181,7 +184,7 @@ export function XpRing({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#211b36"
+          stroke="#292144"
           strokeWidth={stroke}
         />
         <circle
@@ -194,12 +197,15 @@ export function XpRing({
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c - (c * clamped) / 100}
-          style={{ transition: "stroke-dashoffset 900ms ease-out" }}
+          style={{
+            transition: "stroke-dashoffset 900ms ease-out",
+            filter: "drop-shadow(0 0 6px rgba(240, 210, 120, 0.55))",
+          }}
         />
         <defs>
           <linearGradient id="xpgrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#a8863a" />
-            <stop offset="100%" stopColor="#f0d894" />
+            <stop offset="0%" stopColor="#d9b757" />
+            <stop offset="100%" stopColor="#ffeaad" />
           </linearGradient>
         </defs>
       </svg>

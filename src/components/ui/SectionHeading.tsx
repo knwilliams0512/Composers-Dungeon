@@ -62,7 +62,7 @@ export function SectionHeading({
               className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em]"
               style={{ color: `color-mix(in srgb, ${accent} 78%, #f4ead6)` }}
             >
-              {icon && <Icon name={icon} size={13} />}
+              {icon && <Icon name={icon} size={13} solid />}
               {eyebrow}
             </p>
           )}

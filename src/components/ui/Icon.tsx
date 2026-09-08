@@ -714,6 +714,27 @@ const SOLID_PATHS: Partial<Record<IconName, JSX.Element>> = {
       <circle cx="12" cy="12" r="4" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="5" />
+      <g opacity=".85">
+        <rect x="11" y="1" width="2" height="4" rx="1" />
+        <rect x="11" y="19" width="2" height="4" rx="1" />
+        <rect x="1" y="11" width="4" height="2" rx="1" />
+        <rect x="19" y="11" width="4" height="2" rx="1" />
+        <rect x="4.05" y="4.4" width="2" height="4" rx="1" transform="rotate(-45 5.05 6.4)" />
+        <rect x="17.95" y="15.6" width="2" height="4" rx="1" transform="rotate(-45 18.95 17.6)" />
+        <rect x="4.05" y="15.6" width="2" height="4" rx="1" transform="rotate(45 5.05 17.6)" />
+        <rect x="17.95" y="4.4" width="2" height="4" rx="1" transform="rotate(45 18.95 6.4)" />
+      </g>
+    </>
+  ),
+  compass: (
+    <path
+      fillRule="evenodd"
+      d="M12 1.8A10.2 10.2 0 1 0 22.2 12 10.2 10.2 0 0 0 12 1.8m4.6 4.5a.9.9 0 0 1 1.1 1.1l-2 6.9a.9.9 0 0 1-.6.6l-6.9 2a.9.9 0 0 1-1.1-1.1l2-6.9a.9.9 0 0 1 .6-.6zm-4.6 4a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4"
+    />
+  ),
 };
 
 export function Icon({
