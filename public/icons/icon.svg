@@ -30,10 +30,17 @@
     <line x1="126" y1="362" x2="386" y2="362"/>
   </g>
 
-  <!-- eighth note -->
-  <g fill="url(#gold)" filter="url(#glow)">
-    <ellipse cx="212" cy="348" rx="64" ry="48" transform="rotate(-21 212 348)"/>
-    <rect x="256" y="128" width="20" height="222" rx="7"/>
-    <path d="M276 136 C 344 166, 382 204, 366 276 C 356 224, 322 198, 276 186 Z"/>
+  <!-- treble clef, scaled from the 24-unit glyph the app draws in its nav so
+       the installer icon, the browser tab and the sidebar all carry one mark -->
+  <g
+    fill="none"
+    stroke="url(#gold)"
+    stroke-width="1.55"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#glow)"
+    transform="translate(256 256) scale(14.4) translate(-11.6 -12.5)"
+  >
+    <path d="M9.2 20.8C8.5 22.8 10.7 23.8 12.3 22.4 13.3 21.4 13 19.9 12.8 18.5 13.4 13.2 14.3 7.4 13.7 3.4 13.5 1.6 11.1 1.2 10.2 3.1 9 5.5 10.1 8 11.7 10 13.6 12.2 16.2 13.6 16.2 16.2 16.2 19.2 13.5 20.9 10.9 20.2 8.3 19.5 6.8 17.4 7.1 15.1 7.4 13 9.2 11.8 11 12.3 12.6 12.7 13.3 14 12.9 15.2"/>
   </g>
 </svg>
