@@ -184,6 +184,46 @@ Flame and the whole Create / Practice / Explore / Ascend list off the edge
 where they were silently clipped. It stacks below that width now. A long
 composer name no longer truncates mid-word.
 
+## What's new in v1.9.0
+
+**The dungeon is two-thirds bigger.** Fifteen areas and eighty-two rooms, up
+from nine and fifty-two. The new areas were chosen by what was missing:
+Instrumentation and Orchestration had no room anywhere in the game, and
+Counterpoint had one. So the Instrument Menagerie, the Orchestral Abyss, the
+Whispering Catacombs, the Loom of Variations, the Clockwork Bazaar and the
+Garden of Forking Cadences — with two new bosses and ten new artifacts.
+
+**There are secret rooms now.** Fifteen of them, and a secret is not a locked
+door. A locked door tells you it is there and names its key; these are simply
+absent until you have done the thing that reveals them — cleared an area,
+carried the right artifact through, put a particular boss down, kept the
+Creative Flame alive a week, or found five other secrets first. The room is
+never sent to your browser before you find it, so there is nothing to read in
+the page source and no total quietly hinting that something is missing.
+
+**Fifty-one achievements, up from fifteen.** The old set could only ask about
+eight things, so it rewarded studying and streaks and almost nothing else.
+Now there are rewards for exploring, for collecting, for sharing work, for
+finding secrets — and for being rounded rather than narrow: "raise every
+skill to 10" is measured on your *weakest* skill, because that is the
+question actually worth asking.
+
+**Accessibility settings.** Text size, reduced motion, higher contrast, and a
+reading font that swaps the body serif for your system's interface face while
+leaving the headings alone. They are saved to your composer rather than to
+one browser, so they follow you to any machine you sign in on. Reduce motion
+defaults to following your operating system, which the app already honoured —
+the switch is for people whose system setting is off who still want the app to
+hold still. There is also a skip link now: ten navigation links used to stand
+between the top of every page and its content.
+
+**Creative Sparks in the Workshop.** Forty-four prompts you can take or
+ignore. Nothing records whether you used one and no piece is worth more for
+it — the moment a prompt is graded it is just another brief. They are
+constraints rather than subjects ("only three pitches", "never land on the
+tonic until the last note"), grouped by the kind of block you are facing,
+and each one says why it works.
+
 ## Install on Windows
 
 1. Download **`ComposersDungeonSetup.exe`** from **Assets** below.

@@ -16,7 +16,7 @@
 // Bumped when a cached asset's bytes change in a way a stale copy would hide.
 // v2: the icon set was regenerated — every earlier copy was a cropped fragment
 // of the artwork, and the old cache would keep serving it.
-const VERSION = "cd-v7";
+const VERSION = "cd-v8";
 const ASSET_CACHE = `${VERSION}-assets`;
 const SHELL_CACHE = `${VERSION}-shell`;
 const OFFLINE_URL = "/offline.html";
