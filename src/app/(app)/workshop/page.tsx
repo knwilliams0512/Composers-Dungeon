@@ -7,6 +7,8 @@ import { Workshop } from "@/components/composer/Workshop";
 import { Icon } from "@/components/ui/Icon";
 import { resolveFreedom } from "@/lib/composer-freedom";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { SparkDeck } from "@/components/composer/SparkDeck";
+import { sparkOfTheDay } from "@/lib/sparks";
 
 export const metadata = { title: "The Composer's Workshop" };
 
@@ -45,6 +47,8 @@ export default async function WorkshopPage() {
       />
 
       <Workshop freedom={freedom} />
+
+      <SparkDeck initial={sparkOfTheDay()} />
 
       {recent.length > 0 && (
         <section className="card mt-6 p-5">
