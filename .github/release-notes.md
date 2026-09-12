@@ -233,8 +233,8 @@ and each one says why it works.
 
 No administrator rights, no Node.js, no Git, no build step, and no internet
 connection needed after this. The Node runtime, the app and a database already
-stocked with 25 lessons, 9 dungeon areas, 4 bosses, 8 artifacts and 15
-achievements are all inside the installer. It takes about a minute.
+stocked with 25 lessons, 15 dungeon areas, 82 rooms, 6 bosses, 18 artifacts
+and 51 achievements are all inside the installer. It takes about a minute.
 
 Both Windows warnings appear because the installer isn't code-signed — they mean
 "we don't recognise the publisher", not "we found something bad".
