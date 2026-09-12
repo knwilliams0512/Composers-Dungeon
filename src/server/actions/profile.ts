@@ -107,3 +107,52 @@ export async function setFullFreedom(
   revalidatePath("/dungeon");
   return { ok: true, fullFreedom: profile.fullFreedom };
 }
+
+/** The accessibility preferences a composer may set for themselves. */
+export interface AccessibilityPrefs {
+  reduceMotion: boolean | null;
+  textScale: "NORMAL" | "LARGE" | "LARGER";
+  highContrast: boolean;
+  readableFont: boolean;
+}
+
+const TEXT_SCALES = ["NORMAL", "LARGE", "LARGER"] as const;
+
+/**
+ * Saves accessibility preferences.
+ *
+ * These live on the profile rather than in the browser so they follow the
+ * composer to another machine — someone who needs larger text needs it on
+ * every device, not on the one where they first found the setting.
+ *
+ * `reduceMotion: null` means "follow the operating system", which is the
+ * default and the right one: the OS setting is already an explicit statement
+ * of need, and an app that ignores it until you find its own toggle has
+ * failed the person twice.
+ */
+export async function setAccessibility(
+  prefs: Partial<AccessibilityPrefs>
+): Promise<{ ok: boolean }> {
+  const userId = await requireUserId();
+
+  const data: Record<string, unknown> = {};
+  if ("reduceMotion" in prefs) {
+    data.reduceMotion =
+      prefs.reduceMotion === null ? null : Boolean(prefs.reduceMotion);
+  }
+  if (prefs.textScale !== undefined) {
+    // Never trust the string: an unknown scale falls back to NORMAL rather
+    // than reaching the class name that builds the CSS variable.
+    data.textScale = TEXT_SCALES.includes(prefs.textScale) ? prefs.textScale : "NORMAL";
+  }
+  if (prefs.highContrast !== undefined) data.highContrast = Boolean(prefs.highContrast);
+  if (prefs.readableFont !== undefined) data.readableFont = Boolean(prefs.readableFont);
+
+  if (Object.keys(data).length === 0) return { ok: true };
+
+  await db.userProfile.update({ where: { userId }, data });
+  // Every page is affected, so revalidate the layout that carries the setting
+  // rather than listing routes that will drift out of date.
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

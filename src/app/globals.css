@@ -336,3 +336,109 @@ html { scroll-behavior: smooth; }
   60%  { transform: translateX(100%); }
   100% { transform: translateX(100%); }
 }
+
+/* ===========================================================================
+   Accessibility preferences.
+
+   Each is a data attribute on <html>, set from the composer's profile so the
+   choice follows them between machines. They stack: large text, high contrast
+   and a reading font are independent needs and someone may want all three.
+   =========================================================================== */
+
+/* --- Text size ---------------------------------------------------------- */
+/* Scaling the root font size rather than individual rules means every rem in
+   the app grows together, including the ones inside components that never
+   thought about this. */
+html[data-text="LARGE"]  { font-size: 18px; }
+html[data-text="LARGER"] { font-size: 20px; }
+
+/* --- Reduced motion ------------------------------------------------------
+   The media query above already honours the OS. This is the explicit override
+   for someone whose OS setting is off but who still wants the app still. */
+html[data-motion="reduce"] { scroll-behavior: auto; }
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+/* The drifting aurora is the one piece of motion that is purely decorative
+   and runs forever; with motion reduced it simply stops where it is. */
+html[data-motion="reduce"] body::before { animation: none; }
+
+/* --- High contrast -------------------------------------------------------
+   Not a separate theme — the same palette with the decoration turned down and
+   the edges turned up. Translucent cards over a moving gradient are the main
+   thing that costs contrast here, so the glass goes solid and the background
+   light goes away. */
+html[data-contrast="high"] body::before { opacity: 0.25; filter: none; }
+html[data-contrast="high"] body::after { display: none; }
+html[data-contrast="high"] .card,
+html[data-contrast="high"] .card-gold,
+html[data-contrast="high"] .card-crimson,
+html[data-contrast="high"] .card-arcane,
+html[data-contrast="high"] .card-accent {
+  background-image: none;
+  background-color: #0a0812;
+  border-color: rgba(255, 255, 255, 0.42);
+  backdrop-filter: none;
+}
+html[data-contrast="high"] .pill,
+html[data-contrast="high"] .accent-chip {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+html[data-contrast="high"] {
+  --tw-prose-body: #f5ecd7;
+}
+/* Secondary text carries most of the app's words and sits closest to the
+   contrast floor, so it comes up to the primary ramp entirely. */
+html[data-contrast="high"] .text-parchment-400,
+html[data-contrast="high"] .text-parchment-500,
+html[data-contrast="high"] .text-parchment-600 {
+  color: #e9dcc0 !important;
+}
+
+/* --- Reading font --------------------------------------------------------
+   The display serif is part of the game's voice, but it is a poor face to
+   read a paragraph of theory in if letter shapes are hard for you. This swaps
+   body copy to the system UI stack and leaves headings alone, so the app
+   still looks like itself. */
+html[data-font="readable"] {
+  --font-body-active: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+html[data-font="readable"] body,
+html[data-font="readable"] p,
+html[data-font="readable"] li,
+html[data-font="readable"] label,
+html[data-font="readable"] input,
+html[data-font="readable"] textarea,
+html[data-font="readable"] button {
+  font-family: var(--font-body-active);
+  letter-spacing: 0.01em;
+}
+
+/* --- Focus ---------------------------------------------------------------
+   A visible focus ring everywhere, on the keyboard only. Several components
+   set their own outline-none for the mouse; this puts the ring back for
+   anyone navigating by tab, which is the case where it actually matters. */
+:focus-visible {
+  outline: 2px solid #f2d071;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip link: the first thing a keyboard or screen-reader user meets, and
+   invisible to everyone else until it is focused. */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  transition: transform 0.15s ease-out;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}

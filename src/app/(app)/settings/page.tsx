@@ -7,6 +7,7 @@ import { Panel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { UpdatePanel } from "@/components/settings/UpdatePanel";
 import { FreedomPanel } from "@/components/settings/FreedomPanel";
+import { AccessibilityPanel } from "@/components/settings/AccessibilityPanel";
 import { appVersion, isDesktop } from "@/lib/desktop";
 
 export const metadata = { title: "Settings" };
@@ -57,6 +58,19 @@ export default async function SettingsPage() {
             fullFreedom={profile.fullFreedom}
             level={profile.level}
             lessonsCompleted={lessons}
+          />
+        </Panel>
+
+        <Panel
+          title="Accessibility"
+          icon="eye"
+          subtitle="Text size, motion, contrast and typeface"
+        >
+          <AccessibilityPanel
+            reduceMotion={profile.reduceMotion}
+            textScale={profile.textScale}
+            highContrast={profile.highContrast}
+            readableFont={profile.readableFont}
           />
         </Panel>
 

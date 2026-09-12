@@ -75,6 +75,17 @@ model UserProfile {
   /// with fifty controls on it.
   fullFreedom Boolean @default(false)
 
+  // --- Accessibility ------------------------------------------------------
+  // Stored on the profile rather than in the browser so the settings follow
+  // the composer between machines. Each defaults to the existing behaviour,
+  // and `reduceMotion` defaults to null meaning "whatever the operating
+  // system says" — an explicit choice here overrides the OS, but never
+  // silently replaces it.
+  reduceMotion   Boolean? 
+  textScale      String   @default("NORMAL") // NORMAL|LARGE|LARGER
+  highContrast   Boolean  @default(false)
+  readableFont   Boolean  @default(false)
+
   onboardingComplete Boolean @default(false)
   placementResult    String? // JSON summary of the Placement Trial, display-only
 
