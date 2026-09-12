@@ -42,6 +42,13 @@ export async function checkAchievements(
     bossesDefeated,
     specializations,
     maxSkill,
+    secretsFound,
+    artifactsOwned,
+    publicCompositions,
+    guildMembership,
+    roomChallenges,
+    allSkills,
+    guildPosts,
   ] = await Promise.all([
     tx.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
     tx.composition.count({ where: { userId } }),
@@ -58,7 +65,28 @@ export async function checkAchievements(
     tx.userBossProgress.count({ where: { userId, defeated: true } }),
     tx.userSpecialization.count({ where: { userId } }),
     tx.userSkill.findFirst({ where: { userId }, orderBy: { level: "desc" } }),
+    tx.roomDiscovery.count({ where: { userId } }),
+    tx.userArtifact.count({ where: { userId } }),
+    tx.composition.count({ where: { userId, visibility: "PUBLIC" } }),
+    tx.guildMember.count({ where: { userId } }),
+    // Distinct rooms with a completed challenge: a room re-run twice is one
+    // room explored, not two.
+    tx.userChallenge.findMany({
+      where: { userId, status: "COMPLETED", challenge: { roomId: { not: null } } },
+      select: { challenge: { select: { roomId: true } } },
+    }),
+    tx.userSkill.findMany({ where: { userId }, select: { level: true } }),
+    tx.guildPost.count({ where: { userId } }),
   ]);
+
+  const uniqueRooms = new Set(
+    roomChallenges.map((c) => c.challenge.roomId).filter(Boolean)
+  ).size;
+  // "Every skill above n" is the lowest skill level, not the highest — a
+  // rounded composer is measured by the thing they are worst at.
+  const lowestSkill = allSkills.length
+    ? Math.min(...allSkills.map((s) => s.level))
+    : 0;
 
   const stats: Record<string, number> = {
     LESSONS_COMPLETED: lessonsCompleted,
@@ -72,6 +100,14 @@ export async function checkAchievements(
     LEVEL: profile.level,
     SKILL_LEVEL: maxSkill?.level ?? 1,
     SPECIALIZATIONS: specializations,
+    SECRETS_FOUND: secretsFound,
+    ARTIFACTS_OWNED: artifactsOwned,
+    PUBLIC_COMPOSITIONS: publicCompositions,
+    GUILD_MEMBER: guildMembership,
+    ROOMS_CLEARED: uniqueRooms,
+    ALL_SKILLS_LEVEL: lowestSkill,
+    GUILD_POSTS: guildPosts,
+    TOTAL_XP: profile.totalXp,
   };
 
   const unlocked: UnlockedAchievement[] = [];

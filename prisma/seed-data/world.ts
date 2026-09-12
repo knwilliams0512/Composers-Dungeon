@@ -783,6 +783,58 @@ export const achievements = [
   { key: "skill-10", name: "Specialist", description: "Raise any single skill to level 10.", icon: "⭐", xpReward: 300, criteria: "SKILL_LEVEL", threshold: 10 },
   { key: "specialized", name: "A Name Among Names", description: "Unlock your first Composer Specialization.", icon: "🎭", xpReward: 400, criteria: "SPECIALIZATIONS", threshold: 1 },
   { key: "daily-5", name: "Dawn Patrol", description: "Complete 5 Daily Dungeon Challenges.", icon: "🌅", xpReward: 250, criteria: "DAILIES_COMPLETED", threshold: 5 },
+
+  // --- Exploring -----------------------------------------------------------
+  { key: "secret-1", name: "The Unmarked Door", description: "Find your first secret room.", icon: "🚪", xpReward: 200, criteria: "SECRETS_FOUND", threshold: 1 },
+  { key: "secret-5", name: "Cartographer of the Hidden", description: "Find 5 secret rooms.", icon: "🗺️", xpReward: 600, criteria: "SECRETS_FOUND", threshold: 5 },
+  { key: "secret-10", name: "There Is Always Another Room", description: "Find 10 secret rooms.", icon: "🕳️", xpReward: 1500, criteria: "SECRETS_FOUND", threshold: 10 },
+  { key: "rooms-10", name: "Ten Doors Deep", description: "Clear 10 different Dungeon rooms.", icon: "🔦", xpReward: 200, criteria: "ROOMS_CLEARED", threshold: 10 },
+  { key: "rooms-30", name: "Knows Every Corridor", description: "Clear 30 different Dungeon rooms.", icon: "🧭", xpReward: 700, criteria: "ROOMS_CLEARED", threshold: 30 },
+  { key: "rooms-60", name: "The Dungeon Holds No Surprises", description: "Clear 60 different Dungeon rooms.", icon: "🏴", xpReward: 2000, criteria: "ROOMS_CLEARED", threshold: 60 },
+  { key: "artifacts-5", name: "Magpie", description: "Collect 5 artifacts.", icon: "💍", xpReward: 300, criteria: "ARTIFACTS_OWNED", threshold: 5 },
+  { key: "artifacts-12", name: "The Full Reliquary", description: "Collect 12 artifacts.", icon: "⚱️", xpReward: 1200, criteria: "ARTIFACTS_OWNED", threshold: 12 },
+
+  // --- Fighting ------------------------------------------------------------
+  { key: "boss-3", name: "Three Down", description: "Defeat 3 bosses.", icon: "☠️", xpReward: 600, criteria: "BOSSES_DEFEATED", threshold: 3 },
+  { key: "boss-all", name: "Nothing Left Standing", description: "Defeat 6 bosses.", icon: "👺", xpReward: 2500, criteria: "BOSSES_DEFEATED", threshold: 6 },
+  { key: "curse-10", name: "Unbindable", description: "Break 10 curses.", icon: "⛓️", xpReward: 700, criteria: "CURSES_COMPLETED", threshold: 10 },
+  { key: "puzzle-15", name: "The Lock Has No Secrets", description: "Solve 15 Puzzle Rooms.", icon: "🔐", xpReward: 800, criteria: "PUZZLES_COMPLETED", threshold: 15 },
+  { key: "challenges-25", name: "Twenty-Five Trials", description: "Complete 25 Dungeon challenges.", icon: "⚔️", xpReward: 700, criteria: "CHALLENGES_COMPLETED", threshold: 25 },
+  { key: "challenges-75", name: "The Long Campaign", description: "Complete 75 Dungeon challenges.", icon: "🛡️", xpReward: 2200, criteria: "CHALLENGES_COMPLETED", threshold: 75 },
+
+  // --- Writing -------------------------------------------------------------
+  { key: "compositions-10", name: "A Body of Work", description: "Write 10 compositions.", icon: "📚", xpReward: 400, criteria: "COMPOSITIONS", threshold: 10 },
+  { key: "compositions-25", name: "Opus 25", description: "Write 25 compositions.", icon: "🎼", xpReward: 1000, criteria: "COMPOSITIONS", threshold: 25 },
+  { key: "compositions-50", name: "Prolific", description: "Write 50 compositions.", icon: "🗃️", xpReward: 2500, criteria: "COMPOSITIONS", threshold: 50 },
+  { key: "shared-1", name: "Out Loud", description: "Share your first composition publicly.", icon: "📢", xpReward: 150, criteria: "PUBLIC_COMPOSITIONS", threshold: 1 },
+  { key: "shared-10", name: "Nothing Left in the Drawer", description: "Share 10 compositions publicly.", icon: "🎪", xpReward: 700, criteria: "PUBLIC_COMPOSITIONS", threshold: 10 },
+
+  // --- Studying ------------------------------------------------------------
+  { key: "lessons-20", name: "Most of the Way", description: "Complete 20 Academy lessons.", icon: "📗", xpReward: 700, criteria: "LESSONS_COMPLETED", threshold: 20 },
+  { key: "lessons-all", name: "Graduate of the Academy", description: "Complete all 25 Academy lessons.", icon: "🎓", xpReward: 2000, criteria: "LESSONS_COMPLETED", threshold: 25 },
+  { key: "skill-20", name: "Deep Specialist", description: "Raise any single skill to level 20.", icon: "🌟", xpReward: 900, criteria: "SKILL_LEVEL", threshold: 20 },
+  // Measured on the *lowest* skill, so this is about being rounded rather
+  // than about being very good at one thing.
+  { key: "well-rounded-5", name: "No Weak Hand", description: "Raise every skill to level 5.", icon: "🖐️", xpReward: 800, criteria: "ALL_SKILLS_LEVEL", threshold: 5 },
+  { key: "well-rounded-10", name: "Complete Composer", description: "Raise every skill to level 10.", icon: "🕊️", xpReward: 2500, criteria: "ALL_SKILLS_LEVEL", threshold: 10 },
+
+  // --- Keeping at it -------------------------------------------------------
+  { key: "streak-3", name: "Kindling", description: "Keep the Creative Flame alive for 3 days.", icon: "🕯️", xpReward: 60, criteria: "STREAK", threshold: 3 },
+  { key: "streak-14", name: "A Fortnight Lit", description: "Keep the Creative Flame alive for 14 days.", icon: "🔆", xpReward: 300, criteria: "STREAK", threshold: 14 },
+  { key: "streak-60", name: "Two Months Burning", description: "Keep the Creative Flame alive for 60 days.", icon: "🌠", xpReward: 1200, criteria: "STREAK", threshold: 60 },
+  { key: "daily-25", name: "Every Dawn", description: "Complete 25 Daily Dungeon Challenges.", icon: "🌄", xpReward: 900, criteria: "DAILIES_COMPLETED", threshold: 25 },
+
+  // --- Levels --------------------------------------------------------------
+  { key: "level-5", name: "Finding Your Feet", description: "Reach Composer Level 5.", icon: "🥾", xpReward: 120, criteria: "LEVEL", threshold: 5 },
+  { key: "level-15", name: "Known in the Halls", description: "Reach Composer Level 15.", icon: "🎖️", xpReward: 500, criteria: "LEVEL", threshold: 15 },
+  { key: "level-40", name: "Name Carved in Stone", description: "Reach Composer Level 40.", icon: "🗿", xpReward: 1800, criteria: "LEVEL", threshold: 40 },
+  { key: "xp-25k", name: "Twenty-Five Thousand", description: "Earn 25,000 total XP.", icon: "💠", xpReward: 1000, criteria: "TOTAL_XP", threshold: 25000 },
+  { key: "xp-100k", name: "A Hundred Thousand", description: "Earn 100,000 total XP.", icon: "🔮", xpReward: 4000, criteria: "TOTAL_XP", threshold: 100000 },
+
+  // --- Company -------------------------------------------------------------
+  { key: "guild-join", name: "A House of Your Own", description: "Join a Guild house.", icon: "🏠", xpReward: 150, criteria: "GUILD_MEMBER", threshold: 1 },
+  { key: "guild-posts-5", name: "Part of the Conversation", description: "Post 5 times in the Guild.", icon: "💬", xpReward: 250, criteria: "GUILD_POSTS", threshold: 5 },
+  { key: "specialized-2", name: "Two Names", description: "Unlock a second Composer Specialization.", icon: "🎭", xpReward: 900, criteria: "SPECIALIZATIONS", threshold: 2 },
 ];
 
 export const specializations = [
