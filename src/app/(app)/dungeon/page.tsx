@@ -9,6 +9,8 @@ import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { skillTheme, categoryVars } from "@/lib/category-theme";
 import { tierOrdinal } from "@/lib/enums";
 import { countCleared, isRoomCleared, type ClearedSets } from "@/lib/dungeon-progress";
+import { resolveSecrets } from "@/server/secrets";
+import { SecretFoundToast } from "@/components/dungeon/SecretFoundToast";
 
 export const metadata = { title: "The Dungeon" };
 
@@ -37,6 +39,32 @@ export default async function DungeonMapPage() {
     ownedArtifactIds: new Set(ownedArtifacts.map((a) => a.artifactId)),
   };
   const userOrdinal = tierOrdinal(profile.experienceTier);
+
+  // Secret rooms are stripped from every count and list below unless this
+  // player has found them, so an undiscovered secret never reaches the client
+  // — not as a name, not as a number that would give its existence away.
+  const unlockedAreaIds = new Set(
+    areas
+      .filter(
+        (a) =>
+          profile.level >= a.levelRequirement &&
+          userOrdinal >= tierOrdinal(a.tierRequirement) - 2
+      )
+      .map((a) => a.id)
+  );
+  const { visibleSecretIds, newlyFoundIds } = await resolveSecrets(
+    userId,
+    areas.flatMap((a) => a.rooms),
+    clearedSets,
+    unlockedAreaIds
+  );
+  const visible = (room: { id: string; secret: boolean }) =>
+    !room.secret || visibleSecretIds.has(room.id);
+  for (const area of areas) area.rooms = area.rooms.filter(visible);
+  const foundNow = areas
+    .flatMap((a) => a.rooms)
+    .filter((r) => newlyFoundIds.has(r.id))
+    .map((r) => ({ id: r.id, name: r.name }));
 
   const mainAreas = areas.filter((a) => !a.special);
   const specialAreas = areas.filter((a) => a.special);
@@ -245,6 +273,8 @@ export default async function DungeonMapPage() {
           <AreaCard key={area.id} area={area} />
         ))}
       </div>
+
+      <SecretFoundToast found={foundNow} />
     </div>
   );
 }

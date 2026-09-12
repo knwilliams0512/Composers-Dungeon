@@ -8,6 +8,15 @@ import { Meter, DangerRating, Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { roomTypeTheme, categoryVars } from "@/lib/category-theme";
 import { countCleared, isRoomCleared, type ClearedSets } from "@/lib/dungeon-progress";
+import { resolveSecrets } from "@/server/secrets";
+import { SecretFoundToast } from "@/components/dungeon/SecretFoundToast";
+import { parseSecretRule, describeRule } from "@/lib/secrets";
+
+/** The line under a found secret, safe against a rule that will not parse. */
+function secretStory(raw: string | null): string {
+  const rule = parseSecretRule(raw);
+  return rule ? describeRule(rule) : "Found by a path no one has written down.";
+}
 
 export default async function DungeonAreaPage({
   params,
@@ -65,6 +74,22 @@ export default async function DungeonAreaPage({
     defeatedBossIds: new Set(bossProgress.filter((b) => b.defeated).map((b) => b.bossId)),
     ownedArtifactIds: new Set(ownedArtifacts.map((a) => a.artifactId)),
   };
+
+  // Hide every secret this player has not earned before anything counts or
+  // renders it — the room list, the tally and the progress bar all work off
+  // the filtered set, so an unfound secret cannot be inferred from a total.
+  // Execution only reaches here past the "sealed" return above, so this area
+  // is by definition unlocked for this player.
+  const { visibleSecretIds, newlyFoundIds } = await resolveSecrets(
+    userId,
+    area.rooms,
+    clearedSets,
+    new Set([area.id])
+  );
+  area.rooms = area.rooms.filter((r) => !r.secret || visibleSecretIds.has(r.id));
+  const foundNow = area.rooms
+    .filter((r) => newlyFoundIds.has(r.id))
+    .map((r) => ({ id: r.id, name: r.name }));
 
   const clearedCount = countCleared(area.rooms, clearedSets);
   const areaPercent = area.rooms.length ? (clearedCount / area.rooms.length) * 100 : 0;
@@ -152,7 +177,7 @@ export default async function DungeonAreaPage({
             <div
               className={`card-accent group relative ml-12 p-4 ${
                 roomLocked ? "opacity-70" : cleared ? "border-emerald2-500/40" : ""
-              }`}
+              } ${room.secret ? "border-amethyst-400/60 shadow-[0_0_28px_-10px_rgba(194,142,245,0.8)]" : ""}`}
               style={categoryVars(theme)}
             >
               <span
@@ -179,14 +204,26 @@ export default async function DungeonAreaPage({
                   {cleared && <Icon name="check" size={14} className="text-emerald2-400" />}
                   {room.name}
                 </p>
-                <span className="accent-chip">
-                  <Icon name={theme.icon} size={10} />
-                  {info?.label ?? theme.label}
+                <span className="flex shrink-0 items-center gap-1.5">
+                  {room.secret && (
+                    <span className="pill-amethyst">
+                      <Icon name="sparkle" size={10} solid /> Secret
+                    </span>
+                  )}
+                  <span className="accent-chip">
+                    <Icon name={theme.icon} size={10} />
+                    {info?.label ?? theme.label}
+                  </span>
                 </span>
               </div>
               <p className="relative mt-1 text-sm leading-relaxed text-parchment-400">
                 {room.description}
               </p>
+              {room.secret && (
+                <p className="relative mt-1.5 text-xs italic leading-relaxed text-amethyst-300">
+                  {room.secretHint ?? secretStory(room.secretRule)}
+                </p>
+              )}
               <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
                 {roomLocked ? (
                   <span className="pill">
@@ -216,6 +253,8 @@ export default async function DungeonAreaPage({
           );
         })}
       </ol>
+
+      <SecretFoundToast found={foundNow} />
     </div>
   );
 }

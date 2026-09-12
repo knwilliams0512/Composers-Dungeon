@@ -271,6 +271,7 @@ html { scroll-behavior: smooth; }
   .pill-crimson { @apply pill border-crimson-400/45 bg-crimson-500/10 text-crimson-400; }
   .pill-arcane  { @apply pill border-arcane-400/45 bg-arcane-500/10 text-arcane-300; }
   .pill-emerald { @apply pill border-emerald2-400/45 bg-emerald2-500/10 text-emerald2-300; }
+  .pill-amethyst { @apply pill border-amethyst-400/50 bg-amethyst-500/10 text-amethyst-300; }
 
   /* ---- Meters ------------------------------------------------------------ */
   .meter-track {

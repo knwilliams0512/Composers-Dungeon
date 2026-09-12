@@ -14,6 +14,12 @@ import {
   challengeComponents,
   placementQuestions,
 } from "./seed-data/world";
+import {
+  expansionAreas,
+  expansionArtifacts,
+  expansionBosses,
+  secretRoomsByArea,
+} from "./seed-data/world-expansion";
 import { guilds } from "./seed-data/guilds";
 import type { SeedLesson } from "./seed-data/types";
 
@@ -169,14 +175,14 @@ async function seedPlacementQuestions() {
 }
 
 async function seedArtifacts() {
-  for (const a of artifacts) {
+  for (const a of [...artifacts, ...expansionArtifacts]) {
     await db.artifact.upsert({ where: { key: a.key }, create: a, update: a });
   }
-  console.log(`✔ ${artifacts.length} artifacts`);
+  console.log(`✔ ${artifacts.length + expansionArtifacts.length} artifacts`);
 }
 
 async function seedBosses() {
-  for (const b of bosses) {
+  for (const b of [...bosses, ...expansionBosses]) {
     const rewardArtifact = b.rewardArtifactKey
       ? await db.artifact.findUnique({ where: { key: b.rewardArtifactKey } })
       : null;
@@ -212,11 +218,12 @@ async function seedBosses() {
       }
     }
   }
-  console.log(`✔ ${bosses.length} bosses with phases & objectives`);
+  console.log(`✔ ${bosses.length + expansionBosses.length} bosses with phases & objectives`);
 }
 
 async function seedDungeon() {
-  for (const area of dungeonAreas) {
+  const allAreas = [...dungeonAreas, ...expansionAreas];
+  for (const area of allAreas) {
     const areaFields = {
       name: area.name,
       description: area.description,
@@ -239,7 +246,10 @@ async function seedDungeon() {
       update: areaFields,
     });
 
-    for (const room of area.rooms) {
+    // A secret belongs to its area but is authored apart from it, so the two
+    // lists are joined here rather than in the content files.
+    const rooms = [...area.rooms, ...(secretRoomsByArea[area.key] ?? [])];
+    for (const room of rooms) {
       const existing = await db.dungeonRoom.findFirst({
         where: { areaId: dbArea.id, name: room.name },
       });
@@ -261,11 +271,14 @@ async function seedDungeon() {
           bossId: boss?.id ?? null,
           artifactId: artifact?.id ?? null,
           puzzleData: room.puzzleData ? JSON.stringify(room.puzzleData) : null,
+          secret: room.secret ?? false,
+          secretRule: room.secretRule ? JSON.stringify(room.secretRule) : null,
+          secretHint: room.secretHint ?? null,
         },
       });
     }
   }
-  console.log(`✔ ${dungeonAreas.length} dungeon areas with rooms`);
+  console.log(`✔ ${allAreas.length} dungeon areas with rooms`);
 
   // Curated challenges attached to rooms.
   let curatedCount = 0;

@@ -36,6 +36,7 @@ model User {
   bossProgress    UserBossProgress[]
   artifacts       UserArtifact[]
   achievements    UserAchievement[]
+  discoveries     RoomDiscovery[]
   compositions    Composition[]
   posts           GuildPost[]
   comments        Comment[]
@@ -268,7 +269,33 @@ model DungeonRoom {
   artifactId       String?
   artifact         Artifact?   @relation(fields: [artifactId], references: [id])
 
-  challenges Challenge[]
+  // --- Secrets ------------------------------------------------------------
+  // A secret room is absent from the map until the player earns the sight of
+  // it. `secretRule` is JSON describing what earns it, evaluated server-side
+  // only (src/lib/secrets.ts) — the client is never told what it has not
+  // found, so a secret cannot be read out of the page source.
+  secret     Boolean @default(false)
+  secretRule String?
+  // Shown once the room is discovered, as the story of how it was found.
+  secretHint String?
+
+  challenges  Challenge[]
+  discoveries RoomDiscovery[]
+}
+
+/// One player finding one secret room. The row's existence is the discovery;
+/// it is written once, server-side, and never removed.
+model RoomDiscovery {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId String
+  room   DungeonRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  foundAt DateTime @default(now())
+
+  @@unique([userId, roomId])
+  @@index([userId])
 }
 
 model ChallengeComponent {

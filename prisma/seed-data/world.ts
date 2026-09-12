@@ -191,6 +191,11 @@ export interface SeedRoom {
   bossKey?: string;
   artifactKey?: string;
   puzzleData?: object;
+  /** Hidden until earned. See src/lib/secrets.ts for the rule shapes. */
+  secret?: boolean;
+  secretRule?: object;
+  /** Shown once found, in place of the generic wording for the rule. */
+  secretHint?: string;
 }
 
 export const dungeonAreas: {
