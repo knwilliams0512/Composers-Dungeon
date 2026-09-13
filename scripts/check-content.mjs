@@ -9,6 +9,7 @@
  *   DATABASE_URL="file:./dev.db" node scripts/check-content.mjs
  */
 import { PrismaClient } from "@prisma/client";
+import { readFileSync } from "fs";
 const db = new PrismaClient();
 const problems = [];
 const fail = (m) => problems.push(m);
@@ -93,6 +94,31 @@ for (const a of achievements) {
   if (a.threshold < 1) fail(`achievement "${a.key}": threshold ${a.threshold}`);
   const cap = CAP[a.criteria];
   if (cap !== undefined && a.threshold > cap) fail(`achievement "${a.key}": needs ${a.threshold}, game has ${cap} - unwinnable`);
+}
+
+// --- Curriculum -----------------------------------------------------------
+// The roadmap names the lessons it expects. A unit pointing at a slug that
+// does not exist renders an empty unit; a lesson on neither the roadmap nor
+// the craft strand is unreachable from the Academy entirely.
+{
+  const src = readFileSync("src/lib/curriculum.ts", "utf8");
+  const wanted = [...src.matchAll(/slugs: \[([^\]]+)\]/g)]
+    .flatMap((m) => m[1].split(",").map((x) => x.trim().replace(/"/g, "")))
+    .filter(Boolean);
+  const craftBlock = src.match(/CRAFT_SLUGS = \[([^\]]+)\]/);
+  const craft = craftBlock
+    ? craftBlock[1].split(",").map((x) => x.trim().replace(/"/g, "")).filter(Boolean)
+    : [];
+  const have = new Set((await db.lesson.findMany({ select: { slug: true } })).map((l) => l.slug));
+  for (const slug of wanted) if (!have.has(slug)) fail(`curriculum unit points at missing lesson "${slug}"`);
+  for (const slug of craft) if (!have.has(slug)) fail(`craft strand points at missing lesson "${slug}"`);
+  const dupes = wanted.filter((s, i) => wanted.indexOf(s) !== i);
+  if (dupes.length) fail(`lesson listed in more than one unit: ${[...new Set(dupes)].join(", ")}`);
+  for (const slug of have) {
+    if (!wanted.includes(slug) && !craft.includes(slug))
+      fail(`lesson "${slug}" is on neither the roadmap nor the craft strand - unreachable in the Academy`);
+  }
+  console.log(`curriculum: ${wanted.length} roadmap slots, ${craft.length} craft lessons`);
 }
 
 console.log(`areas ${areas.length} · rooms ${totalRooms} (${totalSecrets} secret) · bosses ${bosses.length} · artifacts ${artifacts.length} · achievements ${achievements.length} · lessons ${totalLessons} · puzzles ${totalPuzzles}`);

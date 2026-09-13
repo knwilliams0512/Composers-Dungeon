@@ -7,7 +7,8 @@ import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { Icon } from "@/components/ui/Icon";
 import { Meter } from "@/components/ui/primitives";
 import { categoryTheme, categoryVars } from "@/lib/category-theme";
-import { TIER_INFO, tierOrdinal, type ExperienceTier } from "@/lib/enums";
+import { tierOrdinal } from "@/lib/enums";
+import { CURRICULUM, CRAFT_SLUGS, unitForSlug } from "@/lib/curriculum";
 
 export const metadata = { title: "The Academy of Musical Arts" };
 
@@ -30,7 +31,13 @@ export default async function AcademyPage() {
   const overallPercent = lessons.length ? (completedIds.size / lessons.length) * 100 : 0;
   const inProgress = progress.filter((p) => p.status !== "COMPLETED").length;
 
-  const tiers = Array.from(new Set(lessons.map((l) => l.tierRequirement)));
+  // The Academy is presented as the roadmap, not as a flat list sorted by
+  // difficulty. "Difficulty 6" is not a place anyone recognises; "Level 3,
+  // unit 3.4" is somewhere you can say you are, and come back to.
+  const bySlug = new Map(lessons.map((l) => [l.slug, l]));
+  const craftLessons = (CRAFT_SLUGS as readonly string[])
+    .map((slug) => bySlug.get(slug))
+    .filter((l): l is (typeof lessons)[number] => Boolean(l));
 
   return (
     <div>
@@ -85,71 +92,154 @@ export default async function AcademyPage() {
         }
       />
 
-      {/* ---- The curriculum, tier by tier ---------------------------------- */}
-      <div className="space-y-12">
-        {tiers.map((tier) => {
-          const tierLessons = lessons.filter((l) => l.tierRequirement === tier);
-          if (tierLessons.length === 0) return null;
-          const info = TIER_INFO[tier as ExperienceTier];
-          const tierLocked = tierOrdinal(tier) > userOrdinal + 1;
-          const tierDone = tierLessons.filter((l) => completedIds.has(l.id)).length;
-          const tierComplete = tierDone === tierLessons.length;
+      {/* ---- The roadmap, level by level ----------------------------------- */}
+      <div className="space-y-14">
+        {CURRICULUM.map((level) => {
+          const levelLessons = level.units.flatMap((u) =>
+            u.slugs.map((slug) => bySlug.get(slug)).filter(Boolean)
+          ) as typeof lessons;
+          if (levelLessons.length === 0) return null;
+          const levelDone = levelLessons.filter((l) => completedIds.has(l.id)).length;
+          const levelComplete = levelDone === levelLessons.length;
 
           return (
-            <section key={tier}>
-              {/* Tier banner */}
-              <div className="mb-5 flex flex-wrap items-center gap-3">
-                <span
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border backdrop-blur ${
-                    tierComplete
-                      ? "border-emerald2-500/50 bg-emerald2-500/10 text-emerald2-300"
-                      : tierLocked
-                        ? "border-white/10 bg-white/[0.04] text-parchment-500"
-                        : "border-gold-500/50 bg-gold-500/10 text-gold-300"
-                  }`}
-                >
-                  <Icon
-                    name={tierComplete ? "check" : tierLocked ? "lock" : "book"}
-                    size={19}
-                  />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-display text-lg tracking-wide text-parchment-100">
-                    {info?.label ?? tier}
-                  </h2>
-                  {info?.blurb && (
-                    <p className="mt-0.5 text-xs leading-relaxed text-parchment-500">
-                      {info.blurb}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-abyss-950/80 ring-1 ring-inset ring-white/10">
-                    <div
-                      className="h-full rounded-full transition-[width] duration-700"
-                      style={{
-                        width: `${(tierDone / tierLessons.length) * 100}%`,
-                        background: tierComplete
-                          ? "linear-gradient(90deg,#1f6b52,#4dc79a)"
-                          : "linear-gradient(90deg,#a8863a,#f0d894)",
-                      }}
-                    />
-                  </div>
-                  <span className="font-display text-xs tabular-nums text-parchment-400">
-                    {tierDone}/{tierLessons.length}
+            <section key={level.level}>
+              {/* Level banner */}
+              <div
+                className="mb-5 rounded-2xl border p-5"
+                style={{
+                  borderColor: `color-mix(in srgb, ${level.accent} 40%, transparent)`,
+                  background: `linear-gradient(150deg, color-mix(in srgb, ${level.accent} 18%, #0b0916), #0b0916 70%)`,
+                }}
+              >
+                <div className="flex flex-wrap items-start gap-3">
+                  <span
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border"
+                    style={{
+                      borderColor: `color-mix(in srgb, ${level.accent} 60%, transparent)`,
+                      background: `color-mix(in srgb, ${level.accent} 24%, #0b0916)`,
+                      color: `color-mix(in srgb, ${level.accent} 88%, white)`,
+                    }}
+                  >
+                    <Icon name={levelComplete ? "check" : level.icon as never} size={22} solid />
                   </span>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="text-[11px] font-semibold uppercase tracking-[0.2em]"
+                      style={{ color: `color-mix(in srgb, ${level.accent} 82%, white)` }}
+                    >
+                      Level {level.level}
+                    </p>
+                    <h2 className="font-display text-xl leading-tight text-parchment-100">
+                      {level.name}
+                    </h2>
+                    <p className="mt-1 text-sm leading-relaxed text-parchment-300">
+                      {level.summary}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-abyss-950/80 ring-1 ring-inset ring-white/10">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-700"
+                        style={{
+                          width: `${(levelDone / levelLessons.length) * 100}%`,
+                          background: levelComplete
+                            ? "linear-gradient(90deg,#35b88c,#9ff0cb)"
+                            : `linear-gradient(90deg, ${level.accent}, color-mix(in srgb, ${level.accent} 60%, white))`,
+                        }}
+                      />
+                    </div>
+                    <span className="font-display text-xs tabular-nums text-parchment-300">
+                      {levelDone}/{levelLessons.length}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Lesson cards */}
-              <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
-                {tierLessons.map((lesson) => {
-                  const p = progressByLesson.get(lesson.id);
-                  const done = completedIds.has(lesson.id);
-                  const prereqMet =
-                    !lesson.prerequisiteId || completedIds.has(lesson.prerequisiteId);
-                  const locked = tierLocked || !prereqMet;
-                  const theme = categoryTheme(lesson.category);
+              {/* Units within the level */}
+              <div className="space-y-7">
+                {level.units.map((unit) => {
+                  const unitLessons = unit.slugs
+                    .map((slug) => bySlug.get(slug))
+                    .filter(Boolean) as typeof lessons;
+                  if (unitLessons.length === 0) return null;
+                  const unitDone = unitLessons.every((l) => completedIds.has(l.id));
+                  return (
+                    <div key={unit.unit}>
+                      <div className="mb-3 flex items-baseline gap-2.5">
+                        <span
+                          className="font-display text-sm tabular-nums"
+                          style={{ color: `color-mix(in srgb, ${level.accent} 85%, white)` }}
+                        >
+                          {unit.unit}
+                        </span>
+                        <h3 className="font-display text-base text-parchment-100">
+                          {unit.title}
+                        </h3>
+                        {unitDone && (
+                          <Icon name="check" size={14} className="text-emerald2-400" />
+                        )}
+                      </div>
+                      <p className="mb-3 text-[13px] leading-relaxed text-parchment-400">
+                        {unit.blurb}
+                      </p>
+                      <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {renderLessons(unitLessons)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Craft sits beside the roadmap rather than inside it: you can know
+            every unit of Level 4 and still not know how to start a tune. */}
+        {craftLessons.length > 0 && (
+          <section>
+            <div className="mb-5 rounded-2xl border border-emerald2-500/40 bg-gradient-to-br from-emerald2-500/15 to-transparent p-5">
+              <div className="flex flex-wrap items-start gap-3">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald2-400/60 bg-emerald2-500/20 text-emerald2-200">
+                  <Icon name="quill" size={22} solid />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald2-300">
+                    Alongside the roadmap
+                  </p>
+                  <h2 className="font-display text-xl leading-tight text-parchment-100">
+                    The Composer&apos;s Craft
+                  </h2>
+                  <p className="mt-1 text-sm leading-relaxed text-parchment-300">
+                    How to write, rather than how music works. Take these whenever
+                    you like — they do not assume a level.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
+              {renderLessons(craftLessons)}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+
+  function renderLessons(list: typeof lessons) {
+    return (
+      <>
+        {list.map((lesson) => {
+          const p = progressByLesson.get(lesson.id);
+          const done = completedIds.has(lesson.id);
+          const prereqMet =
+            !lesson.prerequisiteId || completedIds.has(lesson.prerequisiteId);
+          // Lessons are grouped by roadmap level now rather than by experience
+          // tier, so each one carries its own tier gate instead of inheriting
+          // one from the section it happened to sit in.
+          const tierLocked = tierOrdinal(lesson.tierRequirement) > userOrdinal + 1;
+          const locked = tierLocked || !prereqMet;
+          const theme = categoryTheme(lesson.category);
 
                   const card = (
                     <article
@@ -228,30 +318,24 @@ export default async function AcademyPage() {
                     </article>
                   );
 
-                  return locked ? (
-                    <div
-                      key={lesson.id}
-                      title={
-                        prereqMet ? "Locked by tier" : "Complete the previous lesson first"
-                      }
-                    >
-                      {card}
-                    </div>
-                  ) : (
-                    <Link
-                      key={lesson.id}
-                      href={`/academy/${lesson.slug}`}
-                      className="group block"
-                    >
-                      {card}
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
+          return locked ? (
+            <div
+              key={lesson.id}
+              title={
+                prereqMet
+                  ? "Your experience tier does not reach this yet"
+                  : "Complete the previous lesson first"
+              }
+            >
+              {card}
+            </div>
+          ) : (
+            <Link key={lesson.id} href={`/academy/${lesson.slug}`} className="group block">
+              {card}
+            </Link>
           );
         })}
-      </div>
-    </div>
-  );
+      </>
+    );
+  }
 }

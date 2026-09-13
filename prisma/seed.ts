@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { beginnerLessons } from "./seed-data/lessons-beginner";
 import { advancedLessons } from "./seed-data/lessons-advanced";
+import { curriculumLessons } from "./seed-data/lessons-curriculum";
+import { ALL_UNITS, CRAFT_SLUGS } from "../src/lib/curriculum";
 import { lessonDetail } from "./seed-data/lesson-detail";
 import { areaDetail, bossDetail } from "./seed-data/world-detail";
 import {
@@ -44,8 +46,33 @@ async function seedSkills() {
   console.log(`✔ ${SKILLS.length} skills`);
 }
 
+/**
+ * Teaching order comes from the roadmap, not from each lesson file.
+ *
+ * `order` used to be hand-numbered in three separate content files, which
+ * meant adding a lesson in the middle required renumbering everything after
+ * it, and the Academy's sequence could silently disagree with the curriculum.
+ * The roadmap is the single source of truth now: a lesson's position is where
+ * its unit sits, and craft lessons follow the numbered units.
+ */
+function orderForSlug(slug: string): number {
+  const i = ALL_UNITS.findIndex((u) => u.slugs.includes(slug));
+  if (i >= 0) {
+    // Units can hold several lessons; keep them adjacent and in listed order.
+    const within = ALL_UNITS[i].slugs.indexOf(slug);
+    return (i + 1) * 10 + within;
+  }
+  const craft = (CRAFT_SLUGS as readonly string[]).indexOf(slug);
+  // Craft lessons sort after every numbered unit rather than between them.
+  return craft >= 0 ? 1000 + craft : 2000;
+}
+
 async function seedLessons() {
-  const lessons: SeedLesson[] = [...beginnerLessons, ...advancedLessons];
+  const lessons: SeedLesson[] = [
+    ...beginnerLessons,
+    ...advancedLessons,
+    ...curriculumLessons,
+  ];
   const skillByKey = new Map(
     (await db.skill.findMany()).map((s) => [s.key, s.id])
   );
@@ -76,7 +103,7 @@ async function seedLessons() {
       difficulty: l.difficulty,
       tierRequirement: l.tierRequirement,
       levelRequirement: l.levelRequirement ?? 1,
-      order: l.order,
+      order: orderForSlug(l.slug),
       xpReward: l.xpReward,
       ...detailFields,
     };
