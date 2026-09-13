@@ -798,7 +798,10 @@ export const achievements = [
   { key: "boss-3", name: "Three Down", description: "Defeat 3 bosses.", icon: "☠️", xpReward: 600, criteria: "BOSSES_DEFEATED", threshold: 3 },
   { key: "boss-all", name: "Nothing Left Standing", description: "Defeat 6 bosses.", icon: "👺", xpReward: 2500, criteria: "BOSSES_DEFEATED", threshold: 6 },
   { key: "curse-10", name: "Unbindable", description: "Break 10 curses.", icon: "⛓️", xpReward: 700, criteria: "CURSES_COMPLETED", threshold: 10 },
-  { key: "puzzle-15", name: "The Lock Has No Secrets", description: "Solve 15 Puzzle Rooms.", icon: "🔐", xpReward: 800, criteria: "PUZZLES_COMPLETED", threshold: 15 },
+  // Ten of the twelve puzzle rooms in the game. Solving one twice does not
+  // count — the server refuses a second completion on the same room — so the
+  // ceiling here is the number of puzzle rooms that exist, not a play count.
+  { key: "puzzle-15", name: "The Lock Has No Secrets", description: "Solve 10 Puzzle Rooms.", icon: "🔐", xpReward: 800, criteria: "PUZZLES_COMPLETED", threshold: 10 },
   { key: "challenges-25", name: "Twenty-Five Trials", description: "Complete 25 Dungeon challenges.", icon: "⚔️", xpReward: 700, criteria: "CHALLENGES_COMPLETED", threshold: 25 },
   { key: "challenges-75", name: "The Long Campaign", description: "Complete 75 Dungeon challenges.", icon: "🛡️", xpReward: 2200, criteria: "CHALLENGES_COMPLETED", threshold: 75 },
 

@@ -16,7 +16,6 @@ import {
   loadSecretContext,
   parseSecretRule,
   ruleSatisfied,
-  type SecretContext,
 } from "@/lib/secrets";
 import { isRoomCleared, type ClearedSets } from "@/lib/dungeon-progress";
 
@@ -35,7 +34,6 @@ export interface SecretsResult {
   visibleSecretIds: ReadonlySet<string>;
   /** Ids discovered on this very request — worth announcing. */
   newlyFoundIds: ReadonlySet<string>;
-  context: SecretContext;
 }
 
 /**
@@ -56,12 +54,11 @@ export async function resolveSecrets(
   const secretRooms = rooms.filter(
     (r) => r.secret && unlockedAreaIds.has(r.areaId)
   );
+  // Nothing to judge — and importantly, nothing to load. Building the context
+  // here would run eight queries to answer a question nobody asked, on every
+  // page load of a player with no unlocked area holding a secret.
   if (secretRooms.length === 0) {
-    return {
-      visibleSecretIds: new Set(),
-      newlyFoundIds: new Set(),
-      context: await loadSecretContext(db, userId, new Set()),
-    };
+    return { visibleSecretIds: new Set(), newlyFoundIds: new Set() };
   }
 
   // An area counts as cleared on its ordinary rooms only. Requiring the
@@ -88,12 +85,27 @@ export async function resolveSecrets(
   });
   const found = new Set(already.map((d) => d.roomId));
 
+  // Rules are re-checked until nothing new turns up, because one discovery can
+  // satisfy another: a room that opens at five secrets found should open in
+  // the same breath as the fifth, not force a page refresh to notice. The pass
+  // count is bounded by the number of secret rooms, so the loop always ends.
   const justFound: string[] = [];
-  for (const room of secretRooms) {
-    if (found.has(room.id)) continue;
-    const rule = parseSecretRule(room.secretRule);
-    if (!rule) continue;
-    if (ruleSatisfied(rule, context, room.areaId)) justFound.push(room.id);
+  let progress = true;
+  while (progress) {
+    progress = false;
+    for (const room of secretRooms) {
+      if (found.has(room.id)) continue;
+      const rule = parseSecretRule(room.secretRule);
+      if (!rule) continue;
+      if (!ruleSatisfied(rule, context, room.areaId)) continue;
+      justFound.push(room.id);
+      found.add(room.id);
+      // The count a SECRETS_FOUND rule reads has to move with the discoveries
+      // being made, or the chain is judged against the number from before it
+      // started.
+      context.secretsFound += 1;
+      progress = true;
+    }
   }
 
   if (justFound.length > 0) {
@@ -111,12 +123,10 @@ export async function resolveSecrets(
         }
       })
     );
-    for (const id of justFound) found.add(id);
   }
 
   return {
     visibleSecretIds: found,
     newlyFoundIds: new Set(justFound),
-    context,
   };
 }

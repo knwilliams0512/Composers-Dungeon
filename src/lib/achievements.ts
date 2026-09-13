@@ -49,6 +49,7 @@ export async function checkAchievements(
     roomChallenges,
     allSkills,
     guildPosts,
+    skillCount,
   ] = await Promise.all([
     tx.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
     tx.composition.count({ where: { userId } }),
@@ -77,6 +78,7 @@ export async function checkAchievements(
     }),
     tx.userSkill.findMany({ where: { userId }, select: { level: true } }),
     tx.guildPost.count({ where: { userId } }),
+    tx.skill.count(),
   ]);
 
   const uniqueRooms = new Set(
@@ -84,9 +86,19 @@ export async function checkAchievements(
   ).size;
   // "Every skill above n" is the lowest skill level, not the highest — a
   // rounded composer is measured by the thing they are worst at.
-  const lowestSkill = allSkills.length
-    ? Math.min(...allSkills.map((s) => s.level))
-    : 0;
+  //
+  // A skill only gets a row once it has earned XP, so a player who has never
+  // touched Orchestration simply has no Orchestration row. Taking the minimum
+  // over the rows that exist would therefore ask "every skill you have already
+  // practised", which is the opposite of the question: someone with six skills
+  // at 5 and three never started would have unlocked "raise every skill to 5".
+  // Any skill without a row counts as zero.
+  const lowestSkill =
+    allSkills.length < skillCount
+      ? 0
+      : allSkills.length
+        ? Math.min(...allSkills.map((s) => s.level))
+        : 0;
 
   const stats: Record<string, number> = {
     LESSONS_COMPLETED: lessonsCompleted,

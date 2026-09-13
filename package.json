@@ -18,7 +18,8 @@
     "win:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/start.ps1",
     "win:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/stop.ps1",
     "win:update": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/update.ps1",
-    "win:uninstall": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/uninstall.ps1"
+    "win:uninstall": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/uninstall.ps1",
+    "check:content": "node scripts/check-content.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
