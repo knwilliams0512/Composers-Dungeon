@@ -257,6 +257,33 @@ which meant six skills at 5 and three never started counted as every skill
 at 5. And a secret room that opens at five secrets found could not open in
 the same breath as the fifth — it needed a page refresh to notice.
 
+## What's new in v1.10.1
+
+**A full correctness audit of the music theory.** Every quiz question in
+every lesson, every placement question, every puzzle and the prose of all
+forty lessons, checked against the theory. The answer keys were right — all
+of them. Four sentences were imprecise and are now fixed: a dominant
+seventh's tritone was described as resolving "outward and inward" (with the
+third below the seventh it is a diminished fifth, and it contracts); only
+the *adjacent* intervals of a diminished seventh are identical; the two
+resolving voices of V7 land on the root and third of the tonic chord rather
+than "the tonic"; and E–G–A♭ is the *inversion* of C–C♯–E, not a
+transposition of it.
+
+**Quiz corrections can now reach you.** The app builds its lesson content on
+update, but quizzes, exercises and the placement test were only ever written
+when none existed — so a corrected answer key could never have reached an
+installed copy. That was the one kind of content where being wrong actively
+teaches the wrong thing, and the one kind that could not be fixed. It is
+fixed now, and your quiz history is untouched.
+
+**Two new checks run over the content.** One derives intervals, chord
+spellings, scale patterns and transposing-instrument distances from first
+principles and compares them to what the app says. The other checks the
+notation engine's key signatures against signatures written out by hand.
+Reading prose for a wrong interval does not work — the eye agrees with what
+it expects.
+
 ## Install on Windows
 
 1. Download **`ComposersDungeonSetup.exe`** from **Assets** below.
