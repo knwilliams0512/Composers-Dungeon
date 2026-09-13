@@ -82,6 +82,10 @@ export async function setCompositionVisibility(input: {
     where: { id: comp.id },
     data: { visibility: input.visibility },
   });
+  if (input.visibility === "PUBLIC") {
+    const { syncAchievements } = await import("@/lib/progression");
+    await syncAchievements(userId);
+  }
   revalidatePath("/library");
   return { ok: true };
 }

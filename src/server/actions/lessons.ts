@@ -6,7 +6,12 @@ import { requireUserId } from "@/lib/auth";
 import { quizSubmissionSchema, compositionSchema, scoreSchema } from "@/lib/validation";
 import { briefForLesson } from "@/lib/lesson-brief";
 import { runChecks, type CheckResult, type Score } from "@/lib/score";
-import { awardProgress, checkSpecializations, type AwardResult } from "@/lib/progression";
+import {
+  awardProgress,
+  checkSpecializations,
+  syncAchievements,
+  type AwardResult,
+} from "@/lib/progression";
 import type { SkillKey } from "@/lib/enums";
 
 export interface QuizGradeResult {
@@ -58,14 +63,16 @@ export async function submitLessonQuiz(input: {
     data: { userId, quizId: lesson.quiz.id, score, correct, total: totalQuestions },
   });
 
+  // `progress` has to be the state BEFORE this attempt, because that is what
+  // "have they passed this quiz before?" is asking. The create branch used to
+  // write this attempt's own result, so a quiz passed first time came back
+  // already passed and the award below never fired — while failing once and
+  // then passing did pay, which is exactly backwards. Create the row empty
+  // (the schema defaults are quizPassed false, bestQuizScore 0) and let the
+  // update apply the result.
   const progress = await db.lessonProgress.upsert({
     where: { userId_lessonId: { userId, lessonId: lesson.id } },
-    create: {
-      userId,
-      lessonId: lesson.id,
-      quizPassed: passed,
-      bestQuizScore: score,
-    },
+    create: { userId, lessonId: lesson.id },
     update: {},
   });
   await db.lessonProgress.update({
@@ -92,12 +99,18 @@ export async function completePracticeExercise(
   const lesson = await db.lesson.findUnique({ where: { slug: lessonSlug } });
   if (!lesson) return { ok: false, error: "Lesson not found" };
 
-  const progress = await db.lessonProgress.upsert({
+  // Read before writing: upsert returns the row as it is AFTER the write, so
+  // asking it whether practice was already done returns the `true` this call
+  // just set, every time — and the award below had never once fired.
+  const before = await db.lessonProgress.findUnique({
+    where: { userId_lessonId: { userId, lessonId: lesson.id } },
+  });
+  await db.lessonProgress.upsert({
     where: { userId_lessonId: { userId, lessonId: lesson.id } },
     create: { userId, lessonId: lesson.id, practiceDone: true },
     update: { practiceDone: true },
   });
-  if (!progress.practiceDone) {
+  if (!before?.practiceDone) {
     await awardProgress({ userId, xp: Math.round(lesson.xpReward * 0.2) });
   }
   revalidatePath(`/academy/${lessonSlug}`);
@@ -206,6 +219,7 @@ export async function submitLessonComposition(input: {
 
   const award = await awardProgress({ userId, xp: lesson.xpReward, skillXp });
   const newSpecializations = await checkSpecializations(userId);
+  if (newSpecializations.length) await syncAchievements(userId);
 
   revalidatePath("/academy");
   revalidatePath("/hall");

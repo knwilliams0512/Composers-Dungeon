@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
 import { guildPostSchema, commentSchema, guildFoundSchema } from "@/lib/validation";
+// Joining, founding and posting award no XP, so they have to run the
+// achievement check themselves. See syncAchievements.
+import { syncAchievements } from "@/lib/progression";
 
 export async function createGuildPost(input: {
   content: string;
@@ -31,6 +34,7 @@ export async function createGuildPost(input: {
   await db.guildPost.create({
     data: { userId, content: parsed.data.content, compositionId },
   });
+  await syncAchievements(userId);
   revalidatePath("/guild");
   return { ok: true };
 }
@@ -132,6 +136,7 @@ export async function joinGuild(
     if (existing) await tx.guildMember.delete({ where: { id: existing.id } });
     await tx.guildMember.create({ data: { guildId: guild.id, userId, role: "MEMBER" } });
   });
+  await syncAchievements(userId);
 
   revalidatePath("/guild");
   revalidatePath("/profile");

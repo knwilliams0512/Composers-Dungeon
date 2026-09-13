@@ -7,6 +7,7 @@ import { compositionSchema } from "@/lib/validation";
 import {
   awardProgress,
   checkSpecializations,
+  syncAchievements,
   type AwardResult,
 } from "@/lib/progression";
 
@@ -154,6 +155,7 @@ export async function completeBossObjective(input: {
       }
     }
     newSpecializations = await checkSpecializations(userId);
+    if (newSpecializations.length) await syncAchievements(userId);
   } else {
     award = await awardProgress({ userId, xp: objectiveXp });
   }

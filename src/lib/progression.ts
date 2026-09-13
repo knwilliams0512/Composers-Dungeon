@@ -126,6 +126,25 @@ export async function awardProgress(input: AwardInput): Promise<AwardResult> {
   return result;
 }
 
+/**
+ * Runs the achievement check on its own, for the things you earn without
+ * earning XP.
+ *
+ * checkAchievements() used to be reachable only from inside awardProgress(),
+ * which meant eleven of the fifty-one achievements could never fire at the
+ * moment they were earned: collecting artifacts, joining a house, posting to
+ * the guild, publishing a piece, finding a secret and unlocking a
+ * specialization all award no XP. They sat unrecorded until some unrelated
+ * lesson or challenge happened to run an award — and for a player who only
+ * collected and shared, never at all.
+ *
+ * It costs two queries once everything is earned, since checkAchievements
+ * returns early when nothing is pending.
+ */
+export async function syncAchievements(userId: string): Promise<UnlockedAchievement[]> {
+  return checkAchievements(db, userId);
+}
+
 /** Grants an artifact if the user doesn't own it yet. Returns true if newly granted. */
 export async function grantArtifactByKey(
   tx: Tx,

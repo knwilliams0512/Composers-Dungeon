@@ -10,6 +10,7 @@ import { runChecks, type CheckResult, type Score } from "@/lib/score";
 import {
   awardProgress,
   checkSpecializations,
+  syncAchievements,
   grantArtifactByKey,
   type AwardResult,
 } from "@/lib/progression";
@@ -245,6 +246,7 @@ export async function completeChallenge(input: {
     skillXp: { [skillKey]: Math.round(uc.challenge.xpReward * 0.6) },
   });
   const newSpecializations = await checkSpecializations(userId);
+  if (newSpecializations.length) await syncAchievements(userId);
 
   // Deliberately no revalidatePath here. Every one of these routes is
   // dynamically rendered, so there is no cache to bust — and revalidating from
@@ -266,6 +268,14 @@ export async function solvePuzzle(input: {
   });
   if (!room?.puzzleData) return { ok: false, error: "Puzzle not found" };
   if (!(await isAreaUnlocked(userId, room.areaId))) {
+    return { ok: false, error: "This room is still locked to you" };
+  }
+  // The room's own level, as well as its area's. Entering a room and claiming
+  // its treasure both check this; solving its puzzle did not, and a puzzle
+  // pays out by the room's level, so the gap would have paid best exactly
+  // where it was widest.
+  const puzzleProfile = await getProfileOrThrow(userId);
+  if (puzzleProfile.level < room.levelRequirement) {
     return { ok: false, error: "This room is still locked to you" };
   }
 
@@ -349,6 +359,10 @@ export async function claimTreasure(
       data: { restDays: { increment: 1 } },
     });
   }
+  // Opening a vault awards no XP, so nothing here would otherwise run the
+  // achievement check — and the artifact-collecting achievements are earned
+  // by exactly this action.
+  if (granted) await syncAchievements(userId);
   revalidatePath("/dungeon");
   revalidatePath("/library");
   return { ok: true, artifactName: room.artifact.name, alreadyClaimed: !granted };

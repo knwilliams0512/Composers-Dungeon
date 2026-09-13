@@ -336,3 +336,29 @@ further down.
 lessons were waiting; it now reads "Started", which is what it counts. Content
 corrections that remove a lesson's prerequisite now reach installed copies
 instead of leaving that lesson gated on the old one.
+
+## What's new in v1.10.3
+
+**Eleven achievements could never fire when you earned them.** The achievement
+check only ran when something awarded XP — and collecting an artifact, joining
+a house, posting to the guild, publishing a piece, finding a secret room and
+unlocking a specialization award none. Claim the fifth artifact and *Magpie*
+stayed locked; it would appear later, unannounced, the next time you happened
+to finish a lesson. A player who only collected and shared would never have
+seen it at all. Each of those now runs the check where it belongs.
+
+**Passing a quiz first try paid nothing.** The quiz's own XP — thirty per cent
+of the lesson — was awarded only when you had *failed* that quiz before, which
+is precisely backwards: the code recorded the attempt and then asked whether
+you had already passed, having just written down that you had. Practice
+exercises were worse: their twenty per cent had never been awarded to anyone,
+because the check read back a flag the same call had just set. Half of every
+lesson's XP was unreachable on a clean run. Both now pay once, the first time
+you earn them, whatever order you get there in.
+
+**Fixes** — solving a puzzle checked that its *area* was open but not the room's
+own level, the one place of three that did not; no room in the game is
+reachable that way today, but a future one would have been, and puzzles pay by
+room level. A new check runs over both of these classes — award-once guards,
+and achievements earned without XP — because neither fails loudly: the app just
+quietly pays nothing.

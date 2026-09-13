@@ -123,6 +123,10 @@ export async function resolveSecrets(
         }
       })
     );
+    // Finding a room awards no XP, so nothing else would run the achievement
+    // check — and three achievements count exactly this.
+    const { syncAchievements } = await import("@/lib/progression");
+    await syncAchievements(userId);
   }
 
   return {

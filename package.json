@@ -1,6 +1,6 @@
 {
   "name": "composers-dungeon",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "private": true,
   "description": "An educational music theory & composition platform fused with an RPG dungeon crawler.",
   "scripts": {
@@ -22,7 +22,8 @@
     "check:content": "node scripts/check-content.mjs",
     "check:theory": "node scripts/check-theory.mjs",
     "check:notation": "tsx scripts/check-notation.ts",
-    "check:all": "npm run check:content && npm run check:theory && npm run check:notation"
+    "check:all": "npm run check:content && npm run check:progression && npm run check:theory && npm run check:notation",
+    "check:progression": "node scripts/check-progression.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

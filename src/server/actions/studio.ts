@@ -147,6 +147,10 @@ export async function setStudioVisibility(
   if (!existing || existing.userId !== userId) return { ok: false, error: "Score not found" };
 
   await db.composition.update({ where: { id }, data: { visibility } });
+  if (visibility === "PUBLIC") {
+    const { syncAchievements } = await import("@/lib/progression");
+    await syncAchievements(userId);
+  }
   revalidatePath("/studio");
   return { ok: true };
 }
