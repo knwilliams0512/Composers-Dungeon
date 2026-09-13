@@ -183,7 +183,7 @@ export const curriculumLessons: SeedLesson[] = [
       {
         heading: "The dominant seventh does the work",
         body:
-          "C7 — major triad, minor seventh — is the engine of tonal music. It contains a tritone between its third and its seventh, and that tritone is unstable in a very specific way: the third wants to rise a half step and the seventh wants to fall a half step, and if you let them both do it you land on the tonic.\n\nThat is the whole mechanism of a V7–I cadence. Every other use of a dominant seventh is a variation on it.",
+          "C7 — major triad, minor seventh — is the engine of tonal music. It contains a tritone between its third and its seventh, and that tritone is unstable in a very specific way: the third wants to rise a half step and the seventh wants to fall a half step, and if you let them both do it they land on the root and third of the tonic chord.\n\nThat is the whole mechanism of a V7–I cadence. Every other use of a dominant seventh is a variation on it.",
         callout: {
           kind: "insight",
           text: "In C major, G7 contains B and F. B wants to go to C; F wants to go to E. Both are in the C chord. The resolution is baked into the notes.",
@@ -192,12 +192,12 @@ export const curriculumLessons: SeedLesson[] = [
       {
         heading: "The fully diminished seventh is symmetrical",
         body:
-          "Stack three minor thirds and every interval in the chord is identical, which means it has no obvious root — any of its four notes can be heard as the bottom. That ambiguity makes it a pivot: one diminished seventh can lead convincingly into four different keys.\n\nRomantic composers used this constantly, and it is why a diminished seventh so often marks the moment a piece changes direction.",
+          "Stack three minor thirds and every adjacent interval is identical, which means the chord has no obvious root — any of its four notes can be heard as the bottom. That ambiguity makes it a pivot: one diminished seventh can lead convincingly into four different keys.\n\nRomantic composers used this constantly, and it is why a diminished seventh so often marks the moment a piece changes direction.",
       },
     ],
     quiz: [
       { subject: "Harmony", difficulty: 4, prompt: "What is the difference between Cmaj7 and C7?", choices: ["The triad underneath", "The seventh: major in Cmaj7, minor in C7", "One is inverted", "Nothing, they are the same chord"], answerIndex: 1, explanation: "Both have a major triad. Cmaj7 adds B; C7 adds B♭." },
-      { subject: "Harmony", difficulty: 4, prompt: "Which two notes of G7 create its tritone?", choices: ["G and D", "G and F", "B and F", "D and F"], answerIndex: 2, explanation: "B (the third) and F (the seventh) are a tritone apart — and resolving them outward and inward lands on C and E." },
+      { subject: "Harmony", difficulty: 4, prompt: "Which two notes of G7 create its tritone?", choices: ["G and D", "G and F", "B and F", "D and F"], answerIndex: 2, explanation: "B (the third) and F (the seventh) are a tritone apart. With B below F the interval is a diminished fifth, which contracts: B rises a half step to C, F falls a half step to E." },
       { subject: "Harmony", difficulty: 5, prompt: "Why can a fully diminished seventh chord lead to several different keys?", choices: ["It has no third", "It is symmetrical, so it has no single obvious root", "It contains every note of the scale", "It is always played in first inversion"], answerIndex: 1, explanation: "Three stacked minor thirds means every interval is identical — any note can be heard as the root, and each hearing implies a different resolution." },
       { subject: "Harmony", difficulty: 4, prompt: "A half-diminished seventh chord is built from which triad?", choices: ["Major", "Minor", "Diminished", "Augmented"], answerIndex: 2, explanation: "A diminished triad with a minor seventh on top — written m7♭5 or ø7." },
     ],
@@ -607,7 +607,7 @@ export const curriculumLessons: SeedLesson[] = [
         heading: "Pitch-class set theory",
         body:
           "Treat the twelve pitches as numbers 0–11, ignore octave and spelling, and analyse music as unordered sets. C E G becomes {0,4,7}; so does any voicing, inversion or transposition of it, which is the point — the tool describes what the collection *is* rather than how it happens to be arranged.\n\nSets are catalogued by their interval content. Two passages built from the same set class sound related even when nothing on the page looks similar.",
-        example: "{0,1,4} — set class 3-3\nC C♯ E, or E G A♭, or any transposition: the same shape",
+        example: "{0,1,4} — set class 3-3\nC C♯ E — and E G A♭, which is its inversion.\nSet classes group a set with its inversions and all transpositions of both.",
       },
       {
         heading: "Twelve-tone and total serialism",

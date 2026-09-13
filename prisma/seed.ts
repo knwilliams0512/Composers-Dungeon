@@ -119,27 +119,37 @@ async function seedLessons() {
       create: { lessonId: lesson.id, title: `${l.title} — Quiz` },
       update: {},
     });
-    const existingQ = await db.quizQuestion.count({ where: { quizId: quiz.id } });
-    if (existingQ === 0) {
-      for (const q of l.quiz) {
-        await db.quizQuestion.create({
-          data: {
-            quizId: quiz.id,
-            subject: q.subject,
-            difficulty: q.difficulty,
-            prompt: q.prompt,
-            choices: JSON.stringify(q.choices),
-            answerIndex: q.answerIndex,
-            explanation: q.explanation,
-            placement: true,
-          },
-        });
-      }
+    // Questions are replaced wholesale on every seed, not created only when
+    // none exist. Re-seeding is how the self-updating desktop app ships
+    // content fixes, and a quiz is exactly the content most worth fixing: a
+    // wrong answer key teaches the wrong thing every time it is taken. Under
+    // the old "only if empty" rule a corrected answer could never reach
+    // anybody who already had the app.
+    //
+    // Attempt history survives this: QuizAttempt records a score against the
+    // quiz, not against individual question rows.
+    await db.quizQuestion.deleteMany({ where: { quizId: quiz.id } });
+    for (const q of l.quiz) {
+      await db.quizQuestion.create({
+        data: {
+          quizId: quiz.id,
+          subject: q.subject,
+          difficulty: q.difficulty,
+          prompt: q.prompt,
+          choices: JSON.stringify(q.choices),
+          answerIndex: q.answerIndex,
+          explanation: q.explanation,
+          placement: true,
+        },
+      });
     }
 
     // Exercises
-    const existingE = await db.exercise.count({ where: { lessonId: lesson.id } });
-    if (existingE === 0) {
+    // Same reasoning as the quiz: exercise wording is content, and content
+    // fixes have to be able to reach an existing install. Nothing references
+    // an exercise row by id, so replacing them is safe.
+    await db.exercise.deleteMany({ where: { lessonId: lesson.id } });
+    {
       let order = 0;
       for (const e of l.exercises) {
         await db.exercise.create({
@@ -182,21 +192,24 @@ async function seedLessons() {
 }
 
 async function seedPlacementQuestions() {
-  const count = await db.quizQuestion.count({ where: { quizId: null } });
-  if (count === 0) {
-    for (const q of placementQuestions) {
-      await db.quizQuestion.create({
-        data: {
-          subject: q.subject,
-          difficulty: q.difficulty,
-          prompt: q.prompt,
-          choices: JSON.stringify(q.choices),
-          answerIndex: q.answerIndex,
-          explanation: q.explanation,
-          placement: true,
-        },
-      });
-    }
+  // Replaced rather than created-if-absent, for the same reason as the lesson
+  // quizzes: these decide a new player's starting tier, so a wrong answer key
+  // here mis-places someone on their first five minutes in the app, and the
+  // fix has to be able to reach an install that already has the old rows.
+  // A question with no quizId is a placement question by definition.
+  await db.quizQuestion.deleteMany({ where: { quizId: null } });
+  for (const q of placementQuestions) {
+    await db.quizQuestion.create({
+      data: {
+        subject: q.subject,
+        difficulty: q.difficulty,
+        prompt: q.prompt,
+        choices: JSON.stringify(q.choices),
+        answerIndex: q.answerIndex,
+        explanation: q.explanation,
+        placement: true,
+      },
+    });
   }
   console.log(`✔ ${placementQuestions.length} placement questions`);
 }

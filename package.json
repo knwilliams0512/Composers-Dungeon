@@ -19,7 +19,10 @@
     "win:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/stop.ps1",
     "win:update": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/update.ps1",
     "win:uninstall": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/uninstall.ps1",
-    "check:content": "node scripts/check-content.mjs"
+    "check:content": "node scripts/check-content.mjs",
+    "check:theory": "node scripts/check-theory.mjs",
+    "check:notation": "tsx scripts/check-notation.ts",
+    "check:all": "npm run check:content && npm run check:theory && npm run check:notation"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
