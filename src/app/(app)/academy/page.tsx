@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Meter } from "@/components/ui/primitives";
 import { categoryTheme, categoryVars } from "@/lib/category-theme";
 import { tierOrdinal } from "@/lib/enums";
+import { effectiveTier } from "@/lib/tier";
 import { CURRICULUM, CRAFT_SLUGS, unitForSlug } from "@/lib/curriculum";
 
 export const metadata = { title: "The Academy of Musical Arts" };
@@ -27,8 +28,15 @@ export default async function AcademyPage() {
   const completedIds = new Set(
     progress.filter((p) => p.status === "COMPLETED").map((p) => p.lessonId)
   );
-  const userOrdinal = tierOrdinal(profile.experienceTier);
+  // The declared tier is where someone started, not a ceiling: a lesson they
+  // have earned their way to never stays locked because of an answer they
+  // gave during onboarding. See @/lib/tier.
+  const userOrdinal = tierOrdinal(
+    effectiveTier(profile.experienceTier, completedIds.size)
+  );
   const overallPercent = lessons.length ? (completedIds.size / lessons.length) * 100 : 0;
+  // Lessons begun but not finished. Labelled "Started", not "Open": a learner
+  // reading "0 Open" on their first visit would think nothing was available.
   const inProgress = progress.filter((p) => p.status !== "COMPLETED").length;
 
   // The Academy is presented as the roadmap, not as a flat list sorted by
@@ -54,7 +62,7 @@ export default async function AcademyPage() {
           <div className="grid grid-cols-3 gap-2.5 text-center lg:w-72">
             {[
               { n: completedIds.size, label: "Done", cls: "text-emerald2-300", ring: "ring-emerald2-500/30" },
-              { n: inProgress, label: "Open", cls: "text-arcane-300", ring: "ring-arcane-500/30" },
+              { n: inProgress, label: "Started", cls: "text-arcane-300", ring: "ring-arcane-500/30" },
               {
                 n: lessons.length - completedIds.size,
                 label: "Left",

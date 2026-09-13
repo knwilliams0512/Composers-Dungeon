@@ -9,10 +9,10 @@ export const advancedLessons: SeedLesson[] = [
     description: "The map of all keys and how they relate.",
     category: "HARMONY",
     difficulty: 4,
-    tierRequirement: "KNOW_A_LITTLE",
+    tierRequirement: "NO_EXPERIENCE",
     order: 16,
     xpReward: 100,
-    prerequisiteSlug: "cadences-and-accompaniment",
+    prerequisiteSlug: "major-scales",
     content: [
       {
         heading: "The Wheel of Keys",
@@ -131,7 +131,7 @@ export const advancedLessons: SeedLesson[] = [
     description: "Changing keys gracefully, and borrowing dominants along the way.",
     category: "HARMONY",
     difficulty: 5,
-    tierRequirement: "KNOW_A_LITTLE",
+    tierRequirement: "BASIC_COMPOSER",
     order: 18,
     xpReward: 110,
     prerequisiteSlug: "chord-functions-inversions",
@@ -202,7 +202,7 @@ export const advancedLessons: SeedLesson[] = [
     description: "The architecture of small forms: AB, ABA, and theme & variations.",
     category: "FORM",
     difficulty: 5,
-    tierRequirement: "BASIC_COMPOSER",
+    tierRequirement: "DECENT_COMPOSER",
     order: 19,
     xpReward: 110,
     prerequisiteSlug: "modulation-secondary-dominants",
@@ -273,7 +273,7 @@ export const advancedLessons: SeedLesson[] = [
     description: "Writing a second voice, and knowing your instruments' ranges.",
     category: "ORCHESTRATION",
     difficulty: 5,
-    tierRequirement: "BASIC_COMPOSER",
+    tierRequirement: "ADVANCED_COMPOSER",
     order: 20,
     xpReward: 110,
     prerequisiteSlug: "binary-ternary-form",
@@ -342,7 +342,7 @@ export const advancedLessons: SeedLesson[] = [
     tierRequirement: "DECENT_COMPOSER",
     order: 21,
     xpReward: 130,
-    prerequisiteSlug: "countermelody-orchestration-basics",
+    prerequisiteSlug: "borrowed-chords",
     content: [
       {
         heading: "Borrowing from the Shadow Key",
@@ -466,7 +466,7 @@ export const advancedLessons: SeedLesson[] = [
     description: "Irregular meters, polyrhythm, and the fabric of sound.",
     category: "RHYTHM",
     difficulty: 7,
-    tierRequirement: "DECENT_COMPOSER",
+    tierRequirement: "ADVANCED_COMPOSER",
     order: 23,
     xpReward: 130,
     prerequisiteSlug: "counterpoint-species",
@@ -535,7 +535,7 @@ export const advancedLessons: SeedLesson[] = [
     tierRequirement: "ADVANCED_COMPOSER",
     order: 24,
     xpReward: 150,
-    prerequisiteSlug: "advanced-rhythm-texture",
+    prerequisiteSlug: "counterpoint-species",
     content: [
       {
         heading: "The Fugue Machine",

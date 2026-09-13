@@ -3,6 +3,7 @@
 
 import { db } from "@/lib/db";
 import { SKILL_LABELS, type SkillKey, tierOrdinal } from "@/lib/enums";
+import { effectiveTier } from "@/lib/tier";
 
 export interface Recommendation {
   kind: "LESSON" | "DUNGEON" | "DAILY" | "BOSS";
@@ -33,7 +34,9 @@ export async function getRecommendations(userId: string): Promise<Recommendation
   });
   const completedIds = new Set(completed.map((c) => c.lessonId));
   const lessons = await db.lesson.findMany({ orderBy: { order: "asc" } });
-  const userOrdinal = tierOrdinal(profile.experienceTier);
+  const userOrdinal = tierOrdinal(
+    effectiveTier(profile.experienceTier, completedIds.size)
+  );
   const nextLesson = lessons.find(
     (l) =>
       !completedIds.has(l.id) &&

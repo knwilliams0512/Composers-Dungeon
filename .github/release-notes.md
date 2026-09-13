@@ -313,3 +313,26 @@ uninstalling and troubleshooting: **[INSTALL.md](https://github.com/knwilliams05
 | `ComposersDungeonSetup.exe` | The installer. This is the one you want. |
 | `ComposersDungeon-*-update.zip` | The in-place update package, downloaded automatically by installed copies. |
 | `latest.json` | The update feed: version, download URL and SHA-256 checksum. |
+
+## What's new in v1.10.2
+
+**Your rank grows with you.** The question you answered on your first day —
+"how much music do you know?" — set a permanent ceiling. Answer "no experience"
+honestly and 22 of the 40 lessons and 10 of the 15 dungeon areas were sealed
+forever, because nothing ever raised that answer no matter how much of the
+Academy you finished. It is now a starting point rather than a cap: what you
+have completed counts, the rank on your hall and profile rises as you earn it,
+and every lesson and every area is reachable from a standing start.
+
+**The roadmap is walkable in order.** Five lessons asked you to finish
+something that appeared *later* in the Academy — Sharps and Flats wanted the
+keyboard lesson from the next unit, and unit 3.1 wanted a Composer's Craft
+lesson that sorts after all thirty-one numbered units. Each now builds on a
+lesson that genuinely precedes it. Lesson requirements no longer jump up and
+back down the list either, so the gate stops closing on you and reopening
+further down.
+
+**Fixes** — the Academy's counter said "0 Open" on your first visit while three
+lessons were waiting; it now reads "Started", which is what it counts. Content
+corrections that remove a lesson's prerequisite now reach installed copies
+instead of leaving that lesson gated on the old one.

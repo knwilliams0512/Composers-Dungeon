@@ -14,10 +14,10 @@ import {
   GOAL_LABELS,
   INTEREST_LABELS,
   TIER_INFO,
-  type ExperienceTier,
   type Goal,
   type MusicalInterest,
 } from "@/lib/enums";
+import { effectiveTier } from "@/lib/tier";
 
 export const metadata = { title: "Your Profile" };
 
@@ -25,7 +25,7 @@ export default async function ProfilePage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
-  const [profile, skills, specializations, allSpecs, achievementCount, artifactCount, compositionCount] =
+  const [profile, skills, specializations, allSpecs, achievementCount, artifactCount, compositionCount, lessonsCompleted] =
     await Promise.all([
       db.userProfile.findUnique({ where: { userId } }),
       db.userSkill.findMany({
@@ -41,14 +41,17 @@ export default async function ProfilePage() {
       db.userAchievement.count({ where: { userId } }),
       db.userArtifact.count({ where: { userId } }),
       db.composition.count({ where: { userId } }),
+      db.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
     ]);
   if (!profile) redirect("/login");
 
   const xp = levelFromXp(profile.totalXp);
   const goals = parseJsonArray(profile.goals) as Goal[];
   const interests = parseJsonArray(profile.interests) as MusicalInterest[];
-  const tierLabel =
-    TIER_INFO[profile.experienceTier as ExperienceTier]?.label ?? profile.experienceTier;
+  // What a composer declared at onboarding is a floor, not a ceiling, so the
+  // rank on the profile reflects what they have since earned. See @/lib/tier.
+  const rank = effectiveTier(profile.experienceTier, lessonsCompleted);
+  const tierLabel = TIER_INFO[rank]?.label ?? rank;
   const unlockedSpecIds = new Set(specializations.map((s) => s.specializationId));
 
   const rankedSkills = [...skills].sort((a, b) => b.level - a.level || b.xp - a.xp);

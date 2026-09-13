@@ -308,7 +308,7 @@ export const curriculumLessons: SeedLesson[] = [
     description: "The major scale started from each of its own degrees, and why each rotation has a colour.",
     category: "HARMONY",
     difficulty: 5,
-    tierRequirement: "BASIC_COMPOSER",
+    tierRequirement: "KNOW_A_LITTLE",
     order: 0,
     xpReward: 95,
     content: [

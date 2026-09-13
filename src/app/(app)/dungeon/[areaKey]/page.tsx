@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tierOrdinal, ROOM_TYPE_INFO, type RoomType } from "@/lib/enums";
+import { currentTierOrdinal } from "@/server/tier";
 import { Icon, ROOM_ICONS, SKILL_ICONS } from "@/components/ui/Icon";
 import { Meter, DangerRating, Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
@@ -37,9 +38,10 @@ export default async function DungeonAreaPage({
   const profile = await db.userProfile.findUnique({ where: { userId } });
   if (!profile) redirect("/login");
 
+  const userOrdinal = await currentTierOrdinal(userId, profile.experienceTier);
   const unlocked =
     profile.level >= area.levelRequirement &&
-    tierOrdinal(profile.experienceTier) >= tierOrdinal(area.tierRequirement) - 2;
+    userOrdinal >= tierOrdinal(area.tierRequirement) - 2;
   if (!unlocked) {
     return (
       <div className="card-crimson mx-auto max-w-lg p-8 text-center">

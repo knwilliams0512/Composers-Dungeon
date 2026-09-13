@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tierOrdinal, ROOM_TYPE_INFO, type RoomType } from "@/lib/enums";
+import { currentTierOrdinal } from "@/server/tier";
 import { ChallengePanel } from "@/components/dungeon/ChallengePanel";
 import { BeginTrialButton } from "@/components/dungeon/BeginTrialButton";
 import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
@@ -29,10 +30,11 @@ export default async function DungeonRoomPage({
   const profile = await db.userProfile.findUnique({ where: { userId } });
   if (!profile) redirect("/login");
 
+  const userOrdinal = await currentTierOrdinal(userId, profile.experienceTier);
   const unlocked =
     profile.level >= room.levelRequirement &&
     profile.level >= room.area.levelRequirement &&
-    tierOrdinal(profile.experienceTier) >= tierOrdinal(room.area.tierRequirement) - 2;
+    userOrdinal >= tierOrdinal(room.area.tierRequirement) - 2;
   if (!unlocked) {
     return (
       <div className="card mx-auto max-w-lg p-8 text-center">

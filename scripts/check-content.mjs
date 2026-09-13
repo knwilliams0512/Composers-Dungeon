@@ -121,6 +121,84 @@ for (const a of achievements) {
   console.log(`curriculum: ${wanted.length} roadmap slots, ${craft.length} craft lessons`);
 }
 
+// --- The roadmap is walkable ----------------------------------------------
+// Three ways a curriculum can be laid out correctly and still be impossible to
+// walk, all of which shipped at least once:
+//
+//   1. A lesson requires a prerequisite that sorts after it. You reach it, it
+//      is locked, and the thing that unlocks it is further down the page.
+//   2. A lesson asks a stricter tier than a later, harder one, so the gate
+//      closes and then opens again as you descend.
+//   3. Nothing is individually wrong, but from a standing start some lesson is
+//      never reachable at all.
+//
+// The third is the one that matters, and the only one a person would notice
+// before it was too late, so it is checked by simulation: start as a composer
+// with no experience and no lessons done, open everything the gates allow,
+// count the completions, and go round again until nothing new opens.
+{
+  const lessons = await db.lesson.findMany({ orderBy: { order: "asc" } });
+  const byId = new Map(lessons.map((l) => [l.id, l]));
+  const TIERS = ["NO_EXPERIENCE","NEW_TO_COMPOSING","KNOW_A_LITTLE","BASIC_COMPOSER","DECENT_COMPOSER","ADVANCED_COMPOSER","VIRTUOSO_REPERTOIRE"];
+  const ord = (t) => { const i = TIERS.indexOf(t); return i < 0 ? 0 : i; };
+
+  for (const l of lessons) {
+    if (!l.prerequisiteId) continue;
+    const pre = byId.get(l.prerequisiteId);
+    if (!pre) { fail(`lesson "${l.slug}" requires a lesson that does not exist`); continue; }
+    if (pre.order > l.order)
+      fail(`lesson "${l.slug}" (order ${l.order}) requires "${pre.slug}" (order ${pre.order}) - which comes later`);
+    if (ord(pre.tierRequirement) > ord(l.tierRequirement))
+      fail(`lesson "${l.slug}" (${l.tierRequirement}) requires "${pre.slug}", which asks a stricter tier (${pre.tierRequirement})`);
+  }
+
+  // Tier must not decrease along the roadmap. The craft strand runs alongside
+  // the numbered units rather than after them, so it is checked on its own.
+  const craftSlugs = new Set(
+    (readFileSync("src/lib/curriculum.ts", "utf8").match(/CRAFT_SLUGS = \[([^\]]+)\]/)?.[1] ?? "")
+      .split(",").map((x) => x.trim().replace(/"/g, "")).filter(Boolean)
+  );
+  for (const strand of [lessons.filter((l) => !craftSlugs.has(l.slug)), lessons.filter((l) => craftSlugs.has(l.slug))]) {
+    for (let i = 1; i < strand.length; i++) {
+      if (ord(strand[i].tierRequirement) < ord(strand[i - 1].tierRequirement))
+        fail(`lesson "${strand[i].slug}" asks ${strand[i].tierRequirement} after "${strand[i - 1].slug}" asked ${strand[i - 1].tierRequirement} - the gate closes and reopens`);
+    }
+  }
+
+  // The simulation. LESSONS_FOR_TIER must stay in step with src/lib/tier.ts;
+  // read it from there rather than restating it, so a change to the thresholds
+  // is checked rather than merely assumed.
+  const tierSrc = readFileSync("src/lib/tier.ts", "utf8");
+  const steps = (tierSrc.match(/LESSONS_FOR_TIER = \[([^\]]+)\]/)?.[1] ?? "")
+    .split(",").map((x) => Number(x.trim())).filter((n) => Number.isFinite(n));
+  if (steps.length !== TIERS.length) fail(`src/lib/tier.ts: ${steps.length} tier thresholds for ${TIERS.length} tiers`);
+  else {
+    const earned = (done) => { let t = 0; for (let i = 0; i < steps.length; i++) if (done >= steps[i]) t = i; return t; };
+    const open = new Set();
+    let moved = true;
+    while (moved) {
+      moved = false;
+      const allowed = earned(open.size) + 1; // the Academy grants one tier of headroom
+      for (const l of lessons) {
+        if (open.has(l.id)) continue;
+        if (ord(l.tierRequirement) > allowed) continue;
+        if (l.prerequisiteId && !open.has(l.prerequisiteId)) continue;
+        open.add(l.id); moved = true;
+      }
+    }
+    if (open.size < lessons.length) {
+      const stuck = lessons.filter((l) => !open.has(l.id));
+      fail(`${stuck.length} of ${lessons.length} lessons can never be reached from a standing start: ${stuck.map((l) => l.slug).join(", ")}`);
+    } else {
+      console.log(`roadmap: all ${lessons.length} lessons reachable from no experience`);
+    }
+    // Every area, too: the dungeon allows two tiers of headroom.
+    const topTier = earned(lessons.length) + 2;
+    const sealed = areas.filter((a) => ord(a.tierRequirement) > topTier);
+    if (sealed.length) fail(`areas never reachable even after every lesson: ${sealed.map((a) => a.key).join(", ")}`);
+  }
+}
+
 console.log(`areas ${areas.length} · rooms ${totalRooms} (${totalSecrets} secret) · bosses ${bosses.length} · artifacts ${artifacts.length} · achievements ${achievements.length} · lessons ${totalLessons} · puzzles ${totalPuzzles}`);
 if (problems.length === 0) console.log("OK - no content problems");
 else { console.log(`FAIL - ${problems.length} problems:`); problems.forEach((p) => console.log("  -", p)); }

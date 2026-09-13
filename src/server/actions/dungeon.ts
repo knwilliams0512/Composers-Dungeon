@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
 import { compositionSchema, scoreSchema } from "@/lib/validation";
+import { effectiveTier } from "@/lib/tier";
 import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
 import { runChecks, type CheckResult, type Score } from "@/lib/score";
 import {
@@ -23,14 +24,16 @@ async function getProfileOrThrow(userId: string) {
 
 /** Server-side gate: is this area unlocked for the user? */
 export async function isAreaUnlocked(userId: string, areaId: string): Promise<boolean> {
-  const [profile, area] = await Promise.all([
+  const [profile, area, lessonsCompleted] = await Promise.all([
     db.userProfile.findUnique({ where: { userId } }),
     db.dungeonArea.findUnique({ where: { id: areaId } }),
+    db.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
   ]);
   if (!profile || !area) return false;
   return (
     profile.level >= area.levelRequirement &&
-    tierOrdinal(profile.experienceTier) >= tierOrdinal(area.tierRequirement) - 2
+    tierOrdinal(effectiveTier(profile.experienceTier, lessonsCompleted)) >=
+      tierOrdinal(area.tierRequirement) - 2
   );
 }
 

@@ -8,7 +8,12 @@ import { Meter, DangerRating } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { skillTheme, categoryVars } from "@/lib/category-theme";
 import { tierOrdinal } from "@/lib/enums";
-import { countCleared, isRoomCleared, type ClearedSets } from "@/lib/dungeon-progress";
+import { effectiveTier } from "@/lib/tier";
+import {
+  countCleared,
+  isRoomCleared,
+  type ClearedSets,
+} from "@/lib/dungeon-progress";
 import { resolveSecrets } from "@/server/secrets";
 import { SecretFoundToast } from "@/components/dungeon/SecretFoundToast";
 
@@ -18,7 +23,14 @@ export default async function DungeonMapPage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
-  const [profile, areas, completedByArea, bossProgress, ownedArtifacts] = await Promise.all([
+  const [
+    profile,
+    areas,
+    completedByArea,
+    bossProgress,
+    ownedArtifacts,
+    lessonsCompleted,
+  ] = await Promise.all([
     db.userProfile.findUnique({ where: { userId } }),
     db.dungeonArea.findMany({
       orderBy: { order: "asc" },
@@ -29,16 +41,26 @@ export default async function DungeonMapPage() {
       include: { challenge: { select: { roomId: true } } },
     }),
     db.userBossProgress.findMany({ where: { userId, defeated: true } }),
-    db.userArtifact.findMany({ where: { userId }, select: { artifactId: true } }),
+    db.userArtifact.findMany({
+      where: { userId },
+      select: { artifactId: true },
+    }),
+    db.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
   ]);
   if (!profile) redirect("/login");
 
   const clearedSets: ClearedSets = {
-    challengeRoomIds: new Set(completedByArea.map((c) => c.challenge.roomId).filter(Boolean)),
+    challengeRoomIds: new Set(
+      completedByArea.map((c) => c.challenge.roomId).filter(Boolean),
+    ),
     defeatedBossIds: new Set(bossProgress.map((b) => b.bossId)),
     ownedArtifactIds: new Set(ownedArtifacts.map((a) => a.artifactId)),
   };
-  const userOrdinal = tierOrdinal(profile.experienceTier);
+  // Areas open as a composer earns their way in, not only by what they said
+  // about themselves during onboarding. See @/lib/tier.
+  const userOrdinal = tierOrdinal(
+    effectiveTier(profile.experienceTier, lessonsCompleted),
+  );
 
   // Secret rooms are stripped from every count and list below unless this
   // player has found them, so an undiscovered secret never reaches the client
@@ -48,15 +70,15 @@ export default async function DungeonMapPage() {
       .filter(
         (a) =>
           profile.level >= a.levelRequirement &&
-          userOrdinal >= tierOrdinal(a.tierRequirement) - 2
+          userOrdinal >= tierOrdinal(a.tierRequirement) - 2,
       )
-      .map((a) => a.id)
+      .map((a) => a.id),
   );
   const { visibleSecretIds, newlyFoundIds } = await resolveSecrets(
     userId,
     areas.flatMap((a) => a.rooms),
     clearedSets,
-    unlockedAreaIds
+    unlockedAreaIds,
   );
   const visible = (room: { id: string; secret: boolean }) =>
     !room.secret || visibleSecretIds.has(room.id);
@@ -73,16 +95,22 @@ export default async function DungeonMapPage() {
   const allRooms = areas.flatMap((a) => a.rooms);
   const roomsCleared = countCleared(allRooms, clearedSets);
   const areasOpen = areas.filter(
-    (a) => profile.level >= a.levelRequirement && userOrdinal >= tierOrdinal(a.tierRequirement) - 2
+    (a) =>
+      profile.level >= a.levelRequirement &&
+      userOrdinal >= tierOrdinal(a.tierRequirement) - 2,
   ).length;
-  const descentPercent = allRooms.length ? (roomsCleared / allRooms.length) * 100 : 0;
+  const descentPercent = allRooms.length
+    ? (roomsCleared / allRooms.length) * 100
+    : 0;
 
   function AreaCard({ area }: { area: (typeof areas)[number] }) {
     const unlocked =
       profile!.level >= area.levelRequirement &&
       userOrdinal >= tierOrdinal(area.tierRequirement) - 2;
     const clearedRooms = countCleared(area.rooms, clearedSets);
-    const percent = area.rooms.length ? (clearedRooms / area.rooms.length) * 100 : 0;
+    const percent = area.rooms.length
+      ? (clearedRooms / area.rooms.length) * 100
+      : 0;
     const cleared = area.rooms.length > 0 && clearedRooms === area.rooms.length;
     const theme = skillTheme(area.skillKey);
     const inner = (
@@ -119,7 +147,9 @@ export default async function DungeonMapPage() {
         <h2 className="relative mt-4 font-display text-xl leading-snug text-parchment-100">
           {area.name}
         </h2>
-        <p className="accent-text relative text-xs italic opacity-80">{area.theme}</p>
+        <p className="accent-text relative text-xs italic opacity-80">
+          {area.theme}
+        </p>
         <p className="relative mt-2 text-sm leading-relaxed text-parchment-400">
           {area.description}
         </p>
@@ -147,7 +177,11 @@ export default async function DungeonMapPage() {
                   key={r.id}
                   name={ROOM_ICONS[r.type] ?? "sword"}
                   size={12}
-                  className={isRoomCleared(r, clearedSets) ? "text-emerald2-400" : "text-white/15"}
+                  className={
+                    isRoomCleared(r, clearedSets)
+                      ? "text-emerald2-400"
+                      : "text-white/15"
+                  }
                 />
               ))}
             </span>
@@ -189,8 +223,18 @@ export default async function DungeonMapPage() {
         aside={
           <div className="grid grid-cols-3 gap-2.5 text-center lg:w-72">
             {[
-              { n: areasOpen, label: "Open", cls: "text-crimson-300", ring: "ring-crimson-500/30" },
-              { n: roomsCleared, label: "Cleared", cls: "text-emerald2-300", ring: "ring-emerald2-500/30" },
+              {
+                n: areasOpen,
+                label: "Open",
+                cls: "text-crimson-300",
+                ring: "ring-crimson-500/30",
+              },
+              {
+                n: roomsCleared,
+                label: "Cleared",
+                cls: "text-emerald2-300",
+                ring: "ring-emerald2-500/30",
+              },
               {
                 n: allRooms.length - roomsCleared,
                 label: "Ahead",
@@ -202,7 +246,9 @@ export default async function DungeonMapPage() {
                 key={s.label}
                 className={`rounded-xl bg-white/[0.05] px-4 py-3 ring-1 ring-inset backdrop-blur ${s.ring}`}
               >
-                <p className={`font-display text-2xl leading-none ${s.cls}`}>{s.n}</p>
+                <p className={`font-display text-2xl leading-none ${s.cls}`}>
+                  {s.n}
+                </p>
                 <p className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-parchment-400">
                   {s.label}
                 </p>
@@ -234,7 +280,9 @@ export default async function DungeonMapPage() {
       >
         <div
           className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full opacity-30 blur-3xl transition-opacity duration-500 group-hover:opacity-50"
-          style={{ background: "radial-gradient(circle, #e3c26d, transparent 70%)" }}
+          style={{
+            background: "radial-gradient(circle, #e3c26d, transparent 70%)",
+          }}
         />
         <div className="flex items-center gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-gold-500/50 bg-gold-500/10 text-gold-300 backdrop-blur transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">

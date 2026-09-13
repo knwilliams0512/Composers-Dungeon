@@ -177,16 +177,18 @@ async function seedLessons() {
     }
   }
 
-  // Wire prerequisites in a second pass.
+  // Wire prerequisites in a second pass. A lesson that no longer names one has
+  // its old link cleared rather than skipped: the same reason the fields above
+  // are written on update, so that dropping a prerequisite reaches a player who
+  // already has the row instead of leaving them gated on the old one forever.
   for (const l of lessons) {
-    if (!l.prerequisiteSlug) continue;
-    const prereq = await db.lesson.findUnique({ where: { slug: l.prerequisiteSlug } });
-    if (prereq) {
-      await db.lesson.update({
-        where: { slug: l.slug },
-        data: { prerequisiteId: prereq.id },
-      });
-    }
+    const prereq = l.prerequisiteSlug
+      ? await db.lesson.findUnique({ where: { slug: l.prerequisiteSlug } })
+      : null;
+    await db.lesson.update({
+      where: { slug: l.slug },
+      data: { prerequisiteId: prereq?.id ?? null },
+    });
   }
   console.log(`✔ ${lessons.length} lessons with quizzes & exercises`);
 }

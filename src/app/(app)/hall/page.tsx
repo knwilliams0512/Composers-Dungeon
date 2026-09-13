@@ -21,10 +21,10 @@ import { HallBannerArt } from "@/components/hall/HallBannerArt";
 import {
   avatarGlyph,
   TIER_INFO,
-  type ExperienceTier,
   SKILL_LABELS,
   type SkillKey,
 } from "@/lib/enums";
+import { effectiveTier } from "@/lib/tier";
 
 export const metadata = { title: "The Entrance Hall" };
 
@@ -154,8 +154,10 @@ export default async function EntranceHallPage() {
     restDays: profile.restDays,
   });
   const recommendations = await getRecommendations(userId);
-  const tierLabel =
-    TIER_INFO[profile.experienceTier as ExperienceTier]?.label ?? profile.experienceTier;
+  // The rank shown is the rank the gates use, so the hall never claims a
+  // standing the Academy and the dungeon disagree with.
+  const rank = effectiveTier(profile.experienceTier, lessonsDone);
+  const tierLabel = TIER_INFO[rank]?.label ?? rank;
   const specTitle = specializations.map((s) => s.specialization.name.replace("The ", "")).join(" / ");
 
   const ranked = [...skills].sort((a, b) => b.xp - a.xp);
