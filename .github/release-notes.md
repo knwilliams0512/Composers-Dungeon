@@ -224,6 +224,39 @@ constraints rather than subjects ("only three pitches", "never land on the
 tonic until the last note"), grouped by the kind of block you are facing,
 and each one says why it works.
 
+## What's new in v1.10.0
+
+**The Academy is a roadmap now.** Five levels, thirty-one numbered units,
+absolute beginner to virtuoso — and you can see the whole shape of it at
+once. It used to be a flat list of twenty-five lessons sorted by difficulty,
+which tells you what comes next but never what you are in the middle of.
+"Level 3, unit 3.4" is somewhere you can say you are.
+
+Level 1 is Absolute Foundations — sound, notation, rhythm, your first
+scales, and nothing assumes you have read music before. Level 2 is Intervals
+& Chords. Level 3 is How Music Moves: cadences, voice leading, function,
+non-chord tones, modes. Level 4 is Advanced Harmony & Form. Level 5 is
+Virtuoso & Professional, and it did not exist until now.
+
+**Fifteen new lessons**, written to fill units that had nothing behind them:
+what sound actually is, the staff, diatonic harmony, seventh chords, voice
+leading, non-chord tones, modes, transposition, modulation techniques,
+borrowed chords, extended and altered chords, jazz harmony, twentieth- and
+twenty-first-century theory, advanced analysis, and ear training. Forty
+lessons in total.
+
+**The Composer's Craft** sits beside the roadmap rather than inside it.
+Melody writing, phrasing and motivic development are craft, not theory — you
+can know every unit of Level 4 and still not know how to start a tune — so
+they are their own strand and assume no level.
+
+**Fixes** — "The Lock Has No Secrets" asked you to solve fifteen puzzle
+rooms when the game contains twelve, so it could never be earned. "Raise
+every skill to 5" was measured only over skills you had already practised,
+which meant six skills at 5 and three never started counted as every skill
+at 5. And a secret room that opens at five secrets found could not open in
+the same breath as the fifth — it needed a page refresh to notice.
+
 ## Install on Windows
 
 1. Download **`ComposersDungeonSetup.exe`** from **Assets** below.
@@ -233,7 +266,7 @@ and each one says why it works.
 
 No administrator rights, no Node.js, no Git, no build step, and no internet
 connection needed after this. The Node runtime, the app and a database already
-stocked with 25 lessons, 15 dungeon areas, 82 rooms, 6 bosses, 18 artifacts
+stocked with 40 lessons, 15 dungeon areas, 82 rooms, 6 bosses, 18 artifacts
 and 51 achievements are all inside the installer. It takes about a minute.
 
 Both Windows warnings appear because the installer isn't code-signed — they mean
