@@ -362,3 +362,40 @@ reachable that way today, but a future one would have been, and puzzles pay by
 room level. A new check runs over both of these classes — award-once guards,
 and achievements earned without XP — because neither fails loudly: the app just
 quietly pays nothing.
+
+## What's new in v1.10.4
+
+**The update that broke the app on launch.** If you had Composer's Dungeon
+before September, updating left it opening straight onto *"Something Broke Down
+Here"*. Four changes since then added things to the database — the houses of
+the Guild, the "every tool at once" switch, secret rooms, and the accessibility
+settings — and each one shipped without telling the updater how to add them to
+a database that already existed. So the update swapped in an app that asked for
+columns your copy had never been given: the content refresh stopped halfway
+through, and every page that read your profile failed on the first query it
+made. The Entrance Hall is the page it opens to, which is why that is where you
+saw it.
+
+The updater no longer needs to be told. Every build now carries a description
+of the database it expects, and the update compares that against the database
+you actually have and adds whatever is missing — tables, columns and indexes —
+before it touches any content. Nothing is dropped or rewritten; your
+compositions, levels, streaks and progress are read-only to it. **If you are
+seeing this error, just launch the app: it repairs itself on the way in.**
+
+A failed update also used to put the old app back but leave the database as the
+half-finished upgrade had left it, which is worse than either version alone and
+is why the error came back every single launch. The database is now backed up
+first and restored with the app, so a failed update leaves the copy you had.
+
+**One window, not a handful.** Two things were stacking windows up. The app
+runs in its own browser profile, and Edge and Chrome reopen the previous
+session after anything they judge a crash — which the error above counted as —
+so every launch restored the last set of windows on top of the new one. That
+profile is now marked as having closed cleanly before each launch, and session
+restore is turned off: the app always opens at the Entrance Hall and has
+nothing worth restoring. Separately, two launches close together could race,
+both start a server, and end up with two of them writing to the same file;
+startup is now serialised so the second one simply uses the first one's server.
+And closing one window no longer stops a server another window is still using —
+which is what made an untouched window show the error page.

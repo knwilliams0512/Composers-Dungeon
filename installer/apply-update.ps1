@@ -182,6 +182,23 @@ if (Test-Path $newSeed) {
 # --- Migrate + re-seed -------------------------------------------------------
 Write-Log "running database upgrade"
 $upgrade = Join-Path $AppDir "upgrade.js"
+$dbFile = Join-Path $DataDir "dungeon.db"
+
+# The rollback below used to put the old app back and leave the database as the
+# failed upgrade had left it - which is worse than either version on its own,
+# because the seed writes as it goes and stops wherever it broke. A player was
+# then on the old app with a part-rewritten database, every launch retried the
+# same failing update, and the app opened onto its own error page. Take a copy
+# first so "rolled back" means the whole install, data included.
+$dbBackup = Join-Path $DataDir "dungeon.db.preupdate"
+if (Test-Path $dbFile) {
+    try {
+        Copy-Item $dbFile $dbBackup -Force
+        Write-Log "database backed up before upgrade"
+    }
+    catch { Write-Log "could not back up the database: $_" }
+}
+
 if ((Test-Path $upgrade) -and (Test-Path $NodeExe)) {
     $out = & $NodeExe $upgrade $Root 2>&1
     Write-Log ($out -join "`n")
@@ -189,9 +206,17 @@ if ((Test-Path $upgrade) -and (Test-Path $NodeExe)) {
         Write-Log "upgrade script failed - rolling back"
         Remove-Item $AppDir -Recurse -Force -ErrorAction SilentlyContinue
         if (Test-Path $backup) { Move-Item $backup $AppDir }
+        if (Test-Path $dbBackup) {
+            try {
+                Copy-Item $dbBackup $dbFile -Force
+                Write-Log "database restored"
+            }
+            catch { Write-Log "could not restore the database: $_" }
+        }
         Fail "The database upgrade failed, so the previous version was restored."
     }
 }
+Remove-Item $dbBackup -Force -ErrorAction SilentlyContinue
 
 # --- Finish ------------------------------------------------------------------
 @{ version = $manifest.version } | ConvertTo-Json | Set-Content -Path $versionFile -Encoding UTF8

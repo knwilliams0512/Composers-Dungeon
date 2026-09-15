@@ -98,6 +98,12 @@ cp -r "$ROOT/public" "$PAYLOAD/app/public"
 # file tracing has no reason to keep seed-only dependencies around.
 cp -r "$ROOT/migrations" "$PAYLOAD/app/migrations"
 cp "$ROOT/installer/upgrade.js" "$PAYLOAD/app/upgrade.js"
+# The whole schema this build expects, so the updater can bring an older
+# player's database up to it without a hand-written migration for every change.
+# Four schema changes once shipped without one, which left updated installs
+# without the columns their own pages read.
+npx prisma migrate diff --from-empty --to-schema-datamodel "$ROOT/prisma/schema.prisma" \
+  --script > "$PAYLOAD/app/schema.sql"
 npx esbuild "$ROOT/prisma/seed.ts" \
   --bundle --platform=node --format=cjs --target=node18 \
   --external:@prisma/client \

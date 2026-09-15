@@ -111,13 +111,28 @@ function Test-DungeonAlive([int]$candidate) {
     catch { return $false }
 }
 
+# Two launches at once - a double-click on the shortcut, or the desktop and the
+# Start menu in quick succession - used to race here: both would find the port
+# free, both would start a server, and the two of them would be writing to the
+# same SQLite file. Hold a mutex across the probe-and-start so the second one
+# arrives after the first server exists and simply uses it.
+$startupLock = $null
+try {
+    $startupLock = New-Object System.Threading.Mutex($false, "Local\ComposersDungeonLauncher")
+    $null = $startupLock.WaitOne(60000)
+}
+catch { $startupLock = $null }
+
 if ($Port -eq 0) {
     $Port = 3000
     while ($Port -lt 3020 -and -not (Test-PortFree $Port)) {
         if (Test-DungeonAlive $Port) { break }
         $Port++
     }
-    if ($Port -ge 3020) { Show-Problem "Every port from 3000 to 3019 is busy. Close some apps and try again." }
+    if ($Port -ge 3020) {
+        if ($startupLock) { try { $startupLock.ReleaseMutex() } catch {} }
+        Show-Problem "Every port from 3000 to 3019 is busy. Close some apps and try again."
+    }
 }
 $url = "http://localhost:$Port"
 
@@ -167,6 +182,7 @@ if (Test-PortFree $Port) {
         Start-Sleep -Milliseconds 300
     }
 }
+if ($startupLock) { try { $startupLock.ReleaseMutex() } catch {} }
 
 if ($NoWindow) { Write-Host "Composer's Dungeon is running at $url"; return }
 
@@ -183,23 +199,76 @@ function Find-Browser {
     return $null
 }
 
+$profileDir = Join-Path $DataDir "window"
+
+# Whatever happened last time, this profile exited cleanly.
+#
+# Edge and Chrome record how the browser last exited. Anything they consider a
+# crash - the app window closed while the server was being replaced by an
+# update, the PC shut down with it open, a page that failed to render - makes
+# the next start restore the previous session, so it reopens the windows that
+# were up before ON TOP OF the one being asked for here. Do that a few times
+# and the app opens to a fistful of windows. Nothing here needs restoring: the
+# app always opens at the hall.
+function Reset-BrowserSession {
+    foreach ($prefs in @(
+            (Join-Path $profileDir "Default\Preferences"),
+            (Join-Path $profileDir "Preferences"))) {
+        if (-not (Test-Path $prefs)) { continue }
+        try {
+            $raw = Get-Content $prefs -Raw -ErrorAction Stop
+            $clean = $raw `
+                -replace '"exit_type"\s*:\s*"[^"]*"', '"exit_type":"Normal"' `
+                -replace '"exited_cleanly"\s*:\s*(true|false)', '"exited_cleanly":true'
+            if ($clean -ne $raw) {
+                # Not Set-Content -Encoding UTF8: Windows PowerShell writes a
+                # BOM, and Chrome discards a Preferences file it cannot parse -
+                # which would wipe the profile this is trying to preserve.
+                [System.IO.File]::WriteAllText($prefs, $clean, (New-Object System.Text.UTF8Encoding($false)))
+            }
+        }
+        catch {
+            # A profile we cannot rewrite is not a reason to refuse to open.
+        }
+    }
+}
+Reset-BrowserSession
+
 $browser = Find-Browser
 if ($browser) {
     # Its own profile keeps this a separately-closable window whose lifetime we
     # can follow — and keeps you signed in between launches.
     $window = Start-Process -FilePath $browser -PassThru -ArgumentList @(
         "--app=$url/hall",
-        "--user-data-dir=`"$(Join-Path $DataDir 'window')`"",
+        "--user-data-dir=`"$profileDir`"",
         "--no-first-run",
         "--autoplay-policy=no-user-gesture-required",
         "--no-default-browser-check",
+        # Never offer to restore a previous session, and never show the
+        # "didn't shut down correctly" bar inside an app window.
+        "--disable-session-crashed-bubble",
+        "--hide-crash-restore-bubble",
         "--window-size=1280,860"
     )
     if (-not $KeepRunning -and $startedServer) {
         $window.WaitForExit()
         Start-Sleep -Milliseconds 400
-        try { if (-not $server.HasExited) { $server.Kill() } } catch {}
-        Remove-Item (Join-Path $DataDir "server.pid") -ErrorAction SilentlyContinue
+
+        # Only the launcher that started the server stops it — but if a second
+        # window is still open against the same server, closing the first one
+        # must not pull the floor out from under it. That is what produced an
+        # error page in a window the player had not touched.
+        $stillOpen = $false
+        try {
+            $stillOpen = @(Get-CimInstance Win32_Process -Filter "Name='msedge.exe' OR Name='chrome.exe'" -ErrorAction Stop |
+                Where-Object { $_.CommandLine -and $_.CommandLine.Contains($profileDir) -and $_.CommandLine.Contains("--app=") }).Count -gt 0
+        }
+        catch { $stillOpen = $false }
+
+        if (-not $stillOpen) {
+            try { if (-not $server.HasExited) { $server.Kill() } } catch {}
+            Remove-Item (Join-Path $DataDir "server.pid") -ErrorAction SilentlyContinue
+        }
     }
 }
 else {
