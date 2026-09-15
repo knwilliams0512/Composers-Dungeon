@@ -399,3 +399,21 @@ both start a server, and end up with two of them writing to the same file;
 startup is now serialised so the second one simply uses the first one's server.
 And closing one window no longer stops a server another window is still using —
 which is what made an untouched window show the error page.
+
+## What's new in v1.10.5
+
+**The repair no longer depends on the update working.** v1.10.4 taught the
+updater how to bring an older database up to date — but it could only help if
+the update step itself ran, and for anyone whose update was failing, that was
+the one part that never got the chance. The app now runs the same check every
+single time it starts, before it serves a page: it compares your database
+against the shape this build expects and adds anything missing. On a database
+that is already current it does nothing and costs a fraction of a second.
+**Launch the app and it fixes itself — no reinstall, nothing to download.**
+
+**The error page tells you what actually happened.** It used to show a
+reference number and point at a log file inside a folder most people have no
+reason to know how to open, which is a strange thing to do in an app where the
+person reading the error is the person who could act on it. It now shows the
+real message — the version, the database, and the end of the app's own error
+log — with a button to copy the lot.

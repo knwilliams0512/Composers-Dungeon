@@ -136,6 +136,30 @@ if ($Port -eq 0) {
 }
 $url = "http://localhost:$Port"
 
+# --- Repair the database before serving from it ------------------------------
+# Every launch, not just after an update. The update path is the one that broke
+# people - it failed on a database missing columns nobody had written a
+# migration for, rolled the app back, and left them opening onto an error page
+# with no route to a fix. Doing the schema check here means the app repairs
+# itself on the way in whatever state it was left in, and it is cheap: on a
+# database that is already current it only reads.
+if (Test-PortFree $Port) {
+    $upgradeScript = Join-Path $AppDir "upgrade.js"
+    if ((Test-Path $upgradeScript) -and (Test-Path $NodeExe)) {
+        try {
+            $repair = & $NodeExe $upgradeScript $Root --schema-only 2>&1
+            if ($repair) {
+                Add-Content -Path (Join-Path $DataDir "update.log") `
+                    -Value ("[{0}] startup schema check: {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), ($repair -join "; ")) `
+                    -ErrorAction SilentlyContinue
+            }
+        }
+        catch {
+            # Never the reason the app will not open.
+        }
+    }
+}
+
 # --- Server -----------------------------------------------------------------
 $startedServer = $false
 if (Test-PortFree $Port) {

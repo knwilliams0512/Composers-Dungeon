@@ -15,6 +15,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = process.argv[2] || path.join(__dirname, "..");
+// `node upgrade.js <root> --schema-only` does the schema work and stops. The
+// launcher runs that on every start: relying on the update step alone means a
+// player whose update never ran, or ran and rolled back, stays broken with no
+// way out but a reinstall — which is exactly the state the missing migrations
+// left people in, with the one component that could have repaired it being the
+// one that had failed.
+const schemaOnly = process.argv.includes("--schema-only");
 const appDir = path.join(root, "app");
 const dbPath = path.join(root, "data", "dungeon.db");
 
@@ -173,10 +180,15 @@ async function reconcileSchema() {
 
 async function main() {
   const applied = await migrate();
-  console.log(`${applied} migration(s) applied.`);
+  if (!schemaOnly || applied > 0) console.log(`${applied} migration(s) applied.`);
 
   const reconciled = await reconcileSchema();
   console.log(`${reconciled} schema change(s) reconciled.`);
+
+  if (schemaOnly) {
+    await db.$disconnect();
+    return;
+  }
 
   // The seed is idempotent: it upserts reference content and leaves player
   // data alone, so running it after every update is how new content lands.
