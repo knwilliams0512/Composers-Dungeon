@@ -50,6 +50,9 @@ export async function checkAchievements(
     allSkills,
     guildPosts,
     skillCount,
+    drillRuns,
+    drillBest,
+    drillPerfect,
   ] = await Promise.all([
     tx.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
     tx.composition.count({ where: { userId } }),
@@ -79,6 +82,16 @@ export async function checkAchievements(
     tx.userSkill.findMany({ where: { userId }, select: { level: true } }),
     tx.guildPost.count({ where: { userId } }),
     tx.skill.count(),
+    // The Proving Grounds.
+    tx.drillResult.count({ where: { userId } }),
+    tx.drillResult.findFirst({ where: { userId }, orderBy: { score: "desc" }, select: { score: true } }),
+    // A clean round: every question right, and enough of them to mean it.
+    // count() cannot compare two columns, and `total >= 10` alone would have
+    // counted every long round as flawless.
+    tx.$queryRaw<{ n: bigint }[]>`
+      SELECT COUNT(*) AS n FROM "DrillResult"
+      WHERE "userId" = ${userId} AND "total" >= 10 AND "correct" = "total"
+    `,
   ]);
 
   const uniqueRooms = new Set(
@@ -120,6 +133,9 @@ export async function checkAchievements(
     ALL_SKILLS_LEVEL: lowestSkill,
     GUILD_POSTS: guildPosts,
     TOTAL_XP: profile.totalXp,
+    DRILL_RUNS: drillRuns,
+    DRILL_SCORE: drillBest?.score ?? 0,
+    DRILL_FLAWLESS: Number(drillPerfect?.[0]?.n ?? 0),
   };
 
   const unlocked: UnlockedAchievement[] = [];

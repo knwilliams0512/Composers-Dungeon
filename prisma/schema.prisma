@@ -46,6 +46,7 @@ model User {
   specializations UserSpecialization[]
   guildMembership GuildMember?
   guildsFounded   Guild[]              @relation("guildFounder")
+  drillResults    DrillResult[]
 }
 
 model UserProfile {
@@ -81,10 +82,10 @@ model UserProfile {
   // and `reduceMotion` defaults to null meaning "whatever the operating
   // system says" — an explicit choice here overrides the OS, but never
   // silently replaces it.
-  reduceMotion   Boolean? 
-  textScale      String   @default("NORMAL") // NORMAL|LARGE|LARGER
-  highContrast   Boolean  @default(false)
-  readableFont   Boolean  @default(false)
+  reduceMotion Boolean?
+  textScale    String   @default("NORMAL") // NORMAL|LARGE|LARGER
+  highContrast Boolean  @default(false)
+  readableFont Boolean  @default(false)
 
   onboardingComplete Boolean @default(false)
   placementResult    String? // JSON summary of the Placement Trial, display-only
@@ -297,9 +298,9 @@ model DungeonRoom {
 /// One player finding one secret room. The row's existence is the discovery;
 /// it is written once, server-side, and never removed.
 model RoomDiscovery {
-  id     String @id @default(cuid())
+  id     String      @id @default(cuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   roomId String
   room   DungeonRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
@@ -644,4 +645,21 @@ model GuildMember {
   joinedAt DateTime @default(now())
 
   @@unique([guildId, userId])
+}
+
+/// One finished run at a Proving Grounds drill. Kept per attempt rather than
+/// as a single best, so the profile can show that you are getting faster and
+/// not only that you once got lucky.
+model DrillResult {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drill     String // enum: DrillKey, see src/lib/drills.ts
+  score     Int
+  correct   Int
+  total     Int
+  bestCombo Int      @default(0)
+  playedAt  DateTime @default(now())
+
+  @@index([userId, drill])
 }

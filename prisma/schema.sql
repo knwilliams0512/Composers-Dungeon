@@ -486,6 +486,19 @@ CREATE TABLE "GuildMember" (
     CONSTRAINT "GuildMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "DrillResult" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "drill" TEXT NOT NULL,
+    "score" INTEGER NOT NULL,
+    "correct" INTEGER NOT NULL,
+    "total" INTEGER NOT NULL,
+    "bestCombo" INTEGER NOT NULL DEFAULT 0,
+    "playedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "DrillResult_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -572,4 +585,7 @@ CREATE UNIQUE INDEX "GuildMember_userId_key" ON "GuildMember"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GuildMember_guildId_userId_key" ON "GuildMember"("guildId", "userId");
+
+-- CreateIndex
+CREATE INDEX "DrillResult_userId_drill_idx" ON "DrillResult"("userId", "drill");
 

@@ -417,3 +417,36 @@ reason to know how to open, which is a strange thing to do in an app where the
 person reading the error is the person who could act on it. It now shows the
 real message — the version, the database, and the end of the app's own error
 log — with a button to copy the lot.
+
+## What's new in v1.11.0
+
+**The Proving Grounds.** A new place in the sidebar, and a different kind of
+work from anywhere else in the app. The Academy explains a minor sixth and the
+Dungeon asks you to write with one; neither ever asks you to *recognise* one,
+at speed, which is the thing that separates knowing the name from knowing the
+sound. Six drills, one question at a time, and a combo that builds while you
+are right and resets the moment you are not.
+
+- **Interval Ear** — two notes sound; name the distance between them.
+- **Chord Colour** — a chord sounds; major, minor, diminished, augmented, and
+  the five sevenths once you are past the triads.
+- **The Seven Doors** — a scale runs past; name the mode it came from, through
+  all seven and harmonic minor.
+- **Sight of the Staff** — a note on the treble or bass staff, ledger lines
+  and all; name it before the next one arrives.
+- **The Gatekeeper's Seal** — sharps and flats at the clef; name the key, major
+  or relative minor, out to seven of each.
+- **Echo of the Drum** — a rhythm is struck; strike it back, with the button or
+  the space bar.
+
+Each drill gets harder while you are on a run: more choices to pick between,
+and material you have not been asked for yet — the sevenths, the far keys, the
+off-beats. Every answer tells you what the right one was and why, so a wrong
+guess is still a lesson. Rounds are 45 to 75 seconds, each keeps a personal
+best, and the XP goes into the skill the drill actually trains.
+
+**Seven new achievements** for the Grounds, including two that ask for a
+flawless round of ten or more rather than just a big number.
+
+Nothing else changed. Your compositions, progress, streaks and everything in
+the Academy and the Dungeon are exactly where you left them.

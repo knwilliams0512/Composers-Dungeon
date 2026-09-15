@@ -27,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/academy", label: "Academy", short: "Academy", icon: "book", tint: "#8fbcff", mobile: true },
   { href: "/dungeon", label: "Dungeon", short: "Dungeon", icon: "arch", tint: "#a3b4ff", mobile: true },
   { href: "/workshop", label: "Workshop", short: "Write", icon: "quill", tint: "#6fe9b4", mobile: true },
+  { href: "/trials", label: "Proving Grounds", short: "Trials", icon: "bolt", tint: "#6fe9b4", mobile: true },
   { href: "/bosses", label: "Bosses", short: "Bosses", icon: "skull", tint: "#eef0fa" },
   { href: "/studio", label: "Studio", short: "Studio", icon: "waveform", tint: "#7fd6ff", mobile: true },
   { href: "/library", label: "Library", short: "Library", icon: "scroll", tint: "#9cc6ff", mobile: true },

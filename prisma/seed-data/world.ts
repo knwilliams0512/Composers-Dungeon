@@ -788,6 +788,17 @@ export const achievements = [
   { key: "secret-1", name: "The Unmarked Door", description: "Find your first secret room.", icon: "🚪", xpReward: 200, criteria: "SECRETS_FOUND", threshold: 1 },
   { key: "secret-5", name: "Cartographer of the Hidden", description: "Find 5 secret rooms.", icon: "🗺️", xpReward: 600, criteria: "SECRETS_FOUND", threshold: 5 },
   { key: "secret-10", name: "There Is Always Another Room", description: "Find 10 secret rooms.", icon: "🕳️", xpReward: 1500, criteria: "SECRETS_FOUND", threshold: 10 },
+
+  // The Proving Grounds. Runs and best score are the volume and the ceiling;
+  // flawless rounds are the one that actually asks for mastery, and it only
+  // counts rounds long enough that a clean sheet means something.
+  { key: "drill-1", name: "First Blood on the Sand", description: "Finish a round in the Proving Grounds.", icon: "⚡", xpReward: 150, criteria: "DRILL_RUNS", threshold: 1 },
+  { key: "drill-10", name: "Regular of the Grounds", description: "Finish 10 rounds in the Proving Grounds.", icon: "🥁", xpReward: 500, criteria: "DRILL_RUNS", threshold: 10 },
+  { key: "drill-50", name: "The Sand Knows Your Step", description: "Finish 50 rounds in the Proving Grounds.", icon: "🏟️", xpReward: 1800, criteria: "DRILL_RUNS", threshold: 50 },
+  { key: "drill-score-300", name: "Quick Ear", description: "Score 300 in a single round.", icon: "👂", xpReward: 400, criteria: "DRILL_SCORE", threshold: 300 },
+  { key: "drill-score-750", name: "Faster Than Thought", description: "Score 750 in a single round.", icon: "🌠", xpReward: 1200, criteria: "DRILL_SCORE", threshold: 750 },
+  { key: "drill-flawless", name: "Not One Wrong", description: "Finish a round of ten or more with every answer right.", icon: "💎", xpReward: 900, criteria: "DRILL_FLAWLESS", threshold: 1 },
+  { key: "drill-flawless-5", name: "The Unerring", description: "Finish five flawless rounds of ten or more.", icon: "👑", xpReward: 2200, criteria: "DRILL_FLAWLESS", threshold: 5 },
   { key: "rooms-10", name: "Ten Doors Deep", description: "Clear 10 different Dungeon rooms.", icon: "🔦", xpReward: 200, criteria: "ROOMS_CLEARED", threshold: 10 },
   { key: "rooms-30", name: "Knows Every Corridor", description: "Clear 30 different Dungeon rooms.", icon: "🧭", xpReward: 700, criteria: "ROOMS_CLEARED", threshold: 30 },
   { key: "rooms-60", name: "The Dungeon Holds No Surprises", description: "Clear 60 different Dungeon rooms.", icon: "🏴", xpReward: 2000, criteria: "ROOMS_CLEARED", threshold: 60 },

@@ -101,6 +101,9 @@ const NEEDS_SYNC = {
     "src/server/actions/lessons.ts",
     "src/server/actions/boss.ts",
   ],
+  DRILL_RUNS: ["src/server/actions/trials.ts"],
+  DRILL_SCORE: ["src/server/actions/trials.ts"],
+  DRILL_FLAWLESS: ["src/server/actions/trials.ts"],
 };
 const used = new Set();
 for (const [criteria, files] of Object.entries(NEEDS_SYNC)) {
