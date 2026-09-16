@@ -41,7 +41,79 @@ function Show-Problem($message) {
     exit 1
 }
 
-if (-not (Test-Path $NodeExe)) { Show-Problem "This install looks damaged (node.exe is missing).`n`nReinstall Composer's Dungeon." }
+<#
+    The end of a log file, for putting inside the dialog.
+
+    Naming a path and stopping there asks the person least able to debug this
+    to go and find a file in a folder they have no reason to know about. The
+    error is three lines long and they are looking straight at a dialog box;
+    put it in the dialog.
+#>
+function Get-LogTail($path, [int]$lines = 14) {
+    if (-not (Test-Path $path)) { return $null }
+    try {
+        $tail = Get-Content $path -Tail $lines -ErrorAction Stop |
+            Where-Object { $_ -and $_.Trim() -ne "" }
+        if (-not $tail) { return $null }
+        # Long stack frames make the box unreadable; keep the message lines.
+        return ($tail | ForEach-Object {
+                if ($_.Length -gt 150) { $_.Substring(0, 150) + "..." } else { $_ }
+            }) -join "`n"
+    }
+    catch { return $null }
+}
+
+<# Everything the app needs to be on disk before it is worth starting. #>
+function Test-Install($root, $appDir) {
+    $missing = @()
+    foreach ($item in @(
+            @{ path = (Join-Path $root "node.exe"); name = "the Node runtime (node.exe)" },
+            @{ path = (Join-Path $appDir "server.js"); name = "the app server (app\server.js)" },
+            @{ path = (Join-Path $appDir ".next"); name = "the built pages (app\.next)" },
+            @{ path = (Join-Path $appDir "node_modules\.prisma\client"); name = "the database client" }
+        )) {
+        if (-not (Test-Path $item.path)) { $missing += $item.name }
+    }
+    # The database engine is a native library; antivirus quarantines it more
+    # often than anything else here, and without it the server exits at once.
+    $engine = Get-ChildItem -Path (Join-Path $appDir "node_modules\.prisma\client") `
+        -Filter "query_engine-windows.dll.node" -ErrorAction SilentlyContinue
+    if (-not $engine) { $missing += "the database engine (query_engine-windows.dll.node)" }
+    elseif ($engine.Length -lt 1MB) { $missing += "the database engine (it is there but truncated)" }
+
+    # Files in a OneDrive-synced folder can be placeholders: the name is on
+    # disk and Test-Path says yes, but the bytes are still in the cloud. Node
+    # cannot load a native library in that state, and the Desktop is synced by
+    # default on a Windows 11 machine signed into a Microsoft account.
+    foreach ($f in @((Join-Path $root "node.exe"), $engine.FullName)) {
+        if (-not $f -or -not (Test-Path $f)) { continue }
+        try {
+            $attr = (Get-Item $f -Force -ErrorAction Stop).Attributes
+            if ($attr -band [System.IO.FileAttributes]::Offline) {
+                $missing += "$(Split-Path $f -Leaf) (OneDrive has not downloaded it yet)"
+            }
+        }
+        catch {}
+    }
+    # Returned through @() at every call site: PowerShell unrolls an empty
+    # array on return, and $null.Count is not something to rely on.
+    return $missing
+}
+
+$damage = @(Test-Install $Root $AppDir)
+if ($damage.Count -gt 0) {
+    Show-Problem ("Composer's Dungeon is missing some of its own files:`n  - " +
+        ($damage -join "`n  - ") +
+        "`n`nThe usual cause is antivirus removing one, or an install that did not finish." +
+        $(if ($Root -match "OneDrive" -or $Root -match "\\Desktop\\" -or $Root -match "\\Documents\\") {
+            "`n`nThis copy is installed under a folder Windows may be syncing to OneDrive," +
+            " which can leave large files in the cloud rather than on the disk." +
+            " Installing to a plain folder such as C:\Users\$env:USERNAME\ComposersDungeon" +
+            " avoids that."
+        } else { "" }) +
+        "`n`nReinstall from ComposersDungeonSetup.exe - your compositions, levels and" +
+        " streaks live in the data folder and are not touched by installing over the top.")
+}
 
 # The database engine is a native DLL that needs the Microsoft Visual C++
 # runtime. Nearly every PC has it (games install it constantly), but on a
@@ -189,19 +261,44 @@ if (Test-PortFree $Port) {
         catch {}
     }
 
-    $server = Start-Process -FilePath $NodeExe -ArgumentList @("`"$(Join-Path $AppDir 'server.js')`"") `
-        -WorkingDirectory $AppDir -NoNewWindow -PassThru `
-        -RedirectStandardOutput $log -RedirectStandardError "$log.err"
+    try {
+        $server = Start-Process -FilePath $NodeExe -ArgumentList @("`"$(Join-Path $AppDir 'server.js')`"") `
+            -WorkingDirectory $AppDir -NoNewWindow -PassThru `
+            -RedirectStandardOutput $log -RedirectStandardError "$log.err"
+    }
+    catch {
+        Show-Problem ("Composer's Dungeon could not run its own server.`n`n" +
+            "Windows said:`n$($_.Exception.Message)`n`n" +
+            "This usually means antivirus is blocking node.exe, or the app folder is" +
+            " somewhere Windows will not run programs from. Try installing to a plain" +
+            " folder such as C:\Users\$env:USERNAME\ComposersDungeon.")
+    }
     $startedServer = $true
     # The installer reads this to stop a running copy before replacing files.
     Set-Content -Path (Join-Path $DataDir "server.pid") -Value $server.Id -Encoding ASCII
 
     $deadline = (Get-Date).AddSeconds(60)
     while (-not (Test-DungeonAlive $Port)) {
-        if ($server.HasExited) { Show-Problem "Composer's Dungeon couldn't start.`n`nDetails are in:`n$log" }
+        if ($server.HasExited) {
+            $why = Get-LogTail "$log.err"
+            if (-not $why) { $why = Get-LogTail $log }
+            $missing = @(Test-Install $Root $AppDir)
+            $detail = if ($missing.Count -gt 0) {
+                "This install is missing:`n  - " + ($missing -join "`n  - ") +
+                "`n`nThat usually means antivirus removed a file, or the install did not finish." +
+                "`nReinstalling from ComposersDungeonSetup.exe will replace them. Your work is kept."
+            }
+            elseif ($why) { "What went wrong:`n`n$why" }
+            else { "Details are in:`n$log" }
+            Show-Problem ("Composer's Dungeon couldn't start.`n`n" + $detail + "`n`nFull log: $log.err")
+        }
         if ((Get-Date) -gt $deadline) {
             try { $server.Kill() } catch {}
-            Show-Problem "Composer's Dungeon didn't start within a minute.`n`nDetails are in:`n$log"
+            $why = Get-LogTail "$log.err"
+            if (-not $why) { $why = Get-LogTail $log }
+            Show-Problem ("Composer's Dungeon didn't start within a minute.`n`n" +
+                $(if ($why) { "What went wrong:`n`n$why" } else { "Details are in:`n$log" }) +
+                "`n`nFull log: $log.err")
         }
         Start-Sleep -Milliseconds 300
     }

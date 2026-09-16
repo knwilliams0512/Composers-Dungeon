@@ -450,3 +450,30 @@ flawless round of ten or more rather than just a big number.
 
 Nothing else changed. Your compositions, progress, streaks and everything in
 the Academy and the Dungeon are exactly where you left them.
+
+## What's new in v1.11.1
+
+**When it won't start, it now tells you why.** The failure dialog used to name
+a log file and stop there, which asks the person least equipped to debug it to
+go and find a three-line error inside a folder they have no reason to know
+about. It now puts the error in the dialog itself.
+
+It also checks the install before starting rather than after failing, and names
+exactly what is wrong: a missing Node runtime, missing built pages, a missing
+or truncated database engine — and, specifically, a file Windows has left in
+the cloud. A copy installed under Desktop, Documents or OneDrive can end up
+with its large files synced rather than downloaded; the name is on disk and
+everything looks present, but the bytes are not there, and the app cannot load
+a database engine in that state. If that is what has happened, the dialog now
+says so and suggests installing somewhere plain instead.
+
+If Windows blocks Node from running at all — antivirus, or a folder programs
+are not allowed to run from — that now produces a clear message rather than a
+silent failure.
+
+**Fixes** — `version.json` is written without a byte-order mark, so any JSON
+parser that is not PowerShell's can read it. A new check runs over both
+PowerShell scripts for structural errors and for the specific traps already
+hit once (a BOM-writing `Set-Content`, a path matched with `-like` where
+brackets are wildcards, a function called with parentheses that PowerShell
+would read as a single array argument).

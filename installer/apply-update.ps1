@@ -219,7 +219,12 @@ if ((Test-Path $upgrade) -and (Test-Path $NodeExe)) {
 Remove-Item $dbBackup -Force -ErrorAction SilentlyContinue
 
 # --- Finish ------------------------------------------------------------------
-@{ version = $manifest.version } | ConvertTo-Json | Set-Content -Path $versionFile -Encoding UTF8
+# Written without a BOM: Windows PowerShell's -Encoding UTF8 adds one, and any
+# JSON parser that is not PowerShell's chokes on it.
+[System.IO.File]::WriteAllText(
+    $versionFile,
+    (@{ version = $manifest.version } | ConvertTo-Json),
+    (New-Object System.Text.UTF8Encoding($false)))
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $backup -Recurse -Force -ErrorAction SilentlyContinue
 Write-Log ("updated to " + $manifest.version)
