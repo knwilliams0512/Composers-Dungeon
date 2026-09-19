@@ -497,3 +497,19 @@ with `ComposersDungeonSetup.exe` from the release page. That replaces the
 launcher itself — which an automatic update cannot always do — and your
 compositions, levels and streaks live in the data folder, which installing does
 not touch.
+
+## What's new in v1.11.3
+
+**The app repairs itself when files go missing.** The startup check added in
+1.11.1 did its job — it reported an install missing its built pages, its
+database client and its database engine — but then it could only suggest a
+reinstall, which is a poor answer when the app is perfectly capable of fetching
+those files itself. The update package *is* the app folder, so it now downloads
+and lays it down again, and carries on starting if that worked.
+
+The most common reason for files to vanish from a working install is antivirus
+quarantining the database engine, which is a 19 MB unsigned native library and
+exactly the shape of thing a scanner dislikes. If the repair cannot stick —
+because the files are removed again as fast as they arrive — the message now
+says so and points at the real fix: allow the Composer's Dungeon folder in your
+antivirus settings.

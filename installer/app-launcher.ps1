@@ -100,11 +100,38 @@ function Test-Install($root, $appDir) {
     return $missing
 }
 
+# An incomplete install is not a dead end. The app can fetch its own files:
+# the update package carries exactly the app folder, so laying it down again
+# restores whatever went missing. Antivirus quarantining the database engine
+# is the usual reason, and telling someone to reinstall is a poor answer when
+# the app is perfectly capable of doing it itself.
 $damage = @(Test-Install $Root $AppDir)
+if ($damage.Count -gt 0 -and -not $SkipUpdate) {
+    $updater = Join-Path $PSScriptRoot "apply-update.ps1"
+    if (Test-Path $updater) {
+        Add-Content -Path (Join-Path $DataDir "update.log") `
+            -Value ("[{0}] install incomplete ({1}) - repairing" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), ($damage -join "; ")) `
+            -ErrorAction SilentlyContinue
+        try {
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $updater -Root $Root -Silent -Repair
+        }
+        catch {
+            # Offline, or the feed is down. The message below still stands.
+        }
+        $damage = @(Test-Install $Root $AppDir)
+        if ($damage.Count -eq 0) {
+            Add-Content -Path (Join-Path $DataDir "update.log") `
+                -Value ("[{0}] repair succeeded" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss")) `
+                -ErrorAction SilentlyContinue
+        }
+    }
+}
 if ($damage.Count -gt 0) {
     Show-Problem ("Composer's Dungeon is missing some of its own files:`n  - " +
         ($damage -join "`n  - ") +
-        "`n`nThe usual cause is antivirus removing one, or an install that did not finish." +
+        "`n`nThe app tried to download them again and could not, so it is either offline" +
+        " or something on this PC is removing them as fast as they arrive." +
+        " The usual cause is antivirus: allow the Composer's Dungeon folder in its settings." +
         $(if ($Root -match "OneDrive" -or $Root -match "\\Desktop\\" -or $Root -match "\\Documents\\") {
             "`n`nThis copy is installed under a folder Windows may be syncing to OneDrive," +
             " which can leave large files in the cloud rather than on the disk." +

@@ -27,7 +27,13 @@ param(
     [string]$Root,
     [switch]$Silent,
     [switch]$Relaunch,
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    # Fetch and lay down the current version's files even though the version
+    # number says there is nothing to do. Used when the launcher finds the
+    # install itself is incomplete - antivirus quarantining the database
+    # engine, or an install that did not finish - where "already up to date"
+    # is true and useless.
+    [switch]$Repair
 )
 
 $ErrorActionPreference = "Stop"
@@ -102,7 +108,10 @@ if ($manifest.url -notmatch '^https://') {
     Fail "The update package must be served over HTTPS."
 }
 
-if ((Compare-Version $manifest.version $current) -le 0) {
+if ($Repair) {
+    Write-Log "repair requested - reinstalling $($manifest.version) over the current files"
+}
+elseif ((Compare-Version $manifest.version $current) -le 0) {
     Write-Log "already up to date"
     if ($CheckOnly) { Write-Output "uptodate $current" }
     exit 0

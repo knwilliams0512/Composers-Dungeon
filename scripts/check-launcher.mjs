@@ -128,6 +128,14 @@ for (const dll of ["vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll"])
 // A dead app cannot ask someone to go and find a log file.
 if (!/Start-Process notepad\.exe/.test(launcher))
   fail("installer/app-launcher.ps1", "no longer opens the log when startup fails");
+// An incomplete install has to be repairable without a reinstall.
+if (!/-Repair/.test(launcher))
+  fail("installer/app-launcher.ps1", "no longer repairs an incomplete install");
+const updater = readFileSync("installer/apply-update.ps1", "utf8");
+if (!/\[switch\]\$Repair/.test(updater))
+  fail("installer/apply-update.ps1", "has no -Repair switch for the launcher to call");
+if (!/if \(\$Repair\)/.test(updater))
+  fail("installer/apply-update.ps1", "-Repair does not bypass the version check, so it would do nothing");
 
 console.log(`launcher: ${FILES.length} PowerShell files checked for structure and known traps`);
 if (problems.length === 0) console.log("OK - no launcher problems");
