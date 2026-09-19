@@ -6,6 +6,8 @@ import { BossFight } from "@/components/bosses/BossFight";
 import { Icon } from "@/components/ui/Icon";
 import { Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { briefForBoss } from "@/lib/boss-brief";
+import { resolveFreedom } from "@/lib/composer-freedom";
 
 export default async function BossPage({ params }: { params: { bossKey: string } }) {
   const userId = await getSessionUserId();
@@ -51,6 +53,20 @@ export default async function BossPage({ params }: { params: { bossKey: string }
     include: { objectives: true },
   });
 
+  // The final blow is a composition, judged like any other. A boss is the
+  // hardest thing in the game, so the composer opens fully here whatever the
+  // player's usual tier.
+  const brief = briefForBoss(boss);
+  const lessonsCompleted = await db.lessonProgress.count({
+    where: { userId, status: "COMPLETED" },
+  });
+  const freedom = resolveFreedom({
+    level: profile.level,
+    lessonsCompleted,
+    fullFreedom: profile.fullFreedom,
+    cap: brief.freedomCap,
+  });
+
   return (
     <div className="mx-auto max-w-3xl">
       <ScrollProgress />
@@ -63,6 +79,8 @@ export default async function BossPage({ params }: { params: { bossKey: string }
 
       <div className="mt-4">
         <BossFight
+        brief={brief}
+        freedom={freedom}
         boss={{
           key: boss.key,
           name: boss.name,

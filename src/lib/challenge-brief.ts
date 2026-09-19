@@ -8,8 +8,8 @@
  * means something concrete rather than the player ticking their own box.
  */
 
-import { freedomTier } from "@/lib/composer-freedom";
-import { emptyScore, type Check, type Score } from "@/lib/score";
+import { freedomTier, minimumTierFor } from "@/lib/composer-freedom";
+import { emptyScore, minNotesFor, type Check, type Score } from "@/lib/score";
 
 export interface ChallengeLike {
   difficulty: number;
@@ -61,7 +61,7 @@ export function checksForChallenge(c: ChallengeLike, bars: number): Check[] {
   const checks: Check[] = [
     { id: "fills-all-bars" },
     { id: "in-key" },
-    { id: "min-notes", value: Math.max(6, bars * 2) },
+    { id: "min-notes", value: minNotesFor(bars, parseMeter(c.meter)) },
     { id: "ends-on-tonic" },
   ];
 
@@ -99,16 +99,15 @@ export function briefForChallenge(c: ChallengeLike): Brief {
   let cap = freedomCapForDifficulty(c.difficulty);
   const rawBars = c.lengthBars ?? 8;
 
-  // Provisional checks decide whether harmony is needed, which sets a floor on
-  // the tier — you cannot be asked for chords with the chord lane hidden.
-  const provisional = checksForChallenge(c, rawBars);
-  if (provisional.some((x) => x.id.startsWith("chords") || x.id === "authentic-cadence")) {
-    cap = Math.max(cap, 2);
-  }
-  if (provisional.some((x) => x.id === "melody-fits-chords")) cap = Math.max(cap, 2);
+  // Provisional checks set a floor on the tier: you cannot be asked for chords
+  // with the chord lane hidden, nor for more note lengths than the toolbar has.
+  cap = Math.max(cap, minimumTierFor(checksForChallenge(c, rawBars)));
 
   const bars = Math.max(2, Math.min(rawBars, freedomTier(cap).maxBars));
   const checks = checksForChallenge(c, bars);
+  // Shortening the piece to fit the tier can change the checks, which can in
+  // turn need a higher tier than the one that did the shortening.
+  cap = Math.max(cap, minimumTierFor(checks));
 
   return {
     setup: emptyScore({

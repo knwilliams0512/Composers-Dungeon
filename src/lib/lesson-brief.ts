@@ -8,8 +8,8 @@
  * in 3/4 — so the exercise is about the thing you just read.
  */
 
-import { freedomTier } from "@/lib/composer-freedom";
-import { emptyScore, type Check, type Score } from "@/lib/score";
+import { freedomTier, minimumTierFor } from "@/lib/composer-freedom";
+import { emptyScore, minNotesFor, type Check, type Score } from "@/lib/score";
 import type { Brief } from "@/lib/challenge-brief";
 
 interface Setup {
@@ -77,10 +77,9 @@ export function briefForLesson(lesson: {
   const cap = lesson.difficulty <= 2 ? 1 : lesson.difficulty <= 5 ? 2 : lesson.difficulty <= 8 ? 3 : 4;
 
   const extras = EXTRA_CHECKS[lesson.slug] ?? [];
-  const needsChords = extras.some(
-    (c) => c.id === "chords-every-bar" || c.id === "authentic-cadence" || c.id === "melody-fits-chords"
-  );
-  const freedomCap = Math.max(cap, needsChords ? 2 : 1);
+  // The cap keeps the editor simple, but never so simple that the exercise's
+  // own standards cannot be met with the tools on offer.
+  const freedomCap = Math.max(cap, minimumTierFor(extras));
 
   const bars = Math.min(setup.bars ?? 4, freedomTier(freedomCap).maxBars);
 
@@ -90,7 +89,7 @@ export function briefForLesson(lesson: {
     { id: "fills-all-bars" },
     { id: "in-key" },
     { id: "ends-on-tonic" },
-    { id: "min-notes", value: Math.max(6, bars * 2) },
+    { id: "min-notes", value: minNotesFor(bars, setup.meter ?? { beats: 4, unit: 4 }) },
     ...extras,
   ];
   const seen = new Set<string>();

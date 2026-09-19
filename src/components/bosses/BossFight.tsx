@@ -7,6 +7,10 @@ import { AwardBanner } from "@/components/ui/AwardBanner";
 import { Meter } from "@/components/ui/primitives";
 import type { AwardResult } from "@/lib/progression";
 import { Icon } from "@/components/ui/Icon";
+import { ScoreEditor } from "@/components/composer/ScoreEditor";
+import type { Freedom } from "@/lib/composer-freedom";
+import type { Brief } from "@/lib/challenge-brief";
+import type { CheckResult, Score } from "@/lib/score";
 
 interface BossDto {
   key: string;
@@ -32,9 +36,13 @@ interface BossDto {
 
 export function BossFight({
   boss,
+  brief,
+  freedom,
   initialProgress,
 }: {
   boss: BossDto;
+  brief: Brief;
+  freedom: Freedom;
   initialProgress: {
     started: boolean;
     currentHp: number;
@@ -62,6 +70,8 @@ export function BossFight({
   const [reflection, setReflection] = useState("");
   const [scoreLink, setScoreLink] = useState("");
   const [visibility, setVisibility] = useState("PRIVATE");
+  const [score, setScore] = useState<Score>(brief.setup);
+  const [failed, setFailed] = useState<CheckResult[] | null>(null);
 
   const hpPercent = (currentHp / boss.totalHp) * 100;
   const activePhase =
@@ -90,16 +100,19 @@ export function BossFight({
   async function strike(objectiveId: string, withComposition: boolean) {
     setBusy(true);
     setError(null);
+    setFailed(null);
     const res = await completeBossObjective({
       bossKey: boss.key,
       objectiveId,
       composition: withComposition
         ? { title, reflection, scoreLink, visibility }
         : undefined,
+      score: withComposition ? score : undefined,
     });
     setBusy(false);
     if (!res.ok) {
       setError(res.error ?? "The strike glances off");
+      setFailed(res.results?.filter((r) => !r.passed) ?? null);
       return;
     }
     setCompletedIds((ids) => [...ids, objectiveId]);
@@ -249,7 +262,25 @@ export function BossFight({
               Complete each musical objective in your score, then strike. The final
               blow demands the finished composition itself.
             </p>
-            {error && <p className="mb-3 text-sm text-crimson-400">{error}</p>}
+            {error && (
+              <div className="mb-3 rounded-lg border border-crimson-600/50 bg-abyss-900/60 p-3">
+                <p className="flex items-center gap-2 text-sm text-crimson-400">
+                  <Icon name="warning" size={15} /> {error}
+                </p>
+                {failed && failed.length > 0 && (
+                  <ul className="mt-2 space-y-1.5 text-[13px] text-parchment-400">
+                    {failed.map((r) => (
+                      <li key={r.id} className="flex gap-2">
+                        <Icon name="target" size={13} className="mt-0.5 shrink-0 text-crimson-400" />
+                        <span>
+                          {r.label} — <span className="text-parchment-500">{r.detail}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
             <ul className="space-y-3">
               {boss.objectives.map((obj) => {
                 const done = completedIds.includes(obj.id);
@@ -294,6 +325,26 @@ export function BossFight({
                             strike(obj.id, true);
                           }}
                         >
+                          <div className="rounded-lg border border-crimson-700/40 bg-abyss-900/50 p-3">
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                              <h4 className="heading-display text-base">Write the Final Piece</h4>
+                              <span className="pill-arcane">
+                                <Icon name="quill" size={11} /> {freedom.name} tools
+                              </span>
+                            </div>
+                            <p className="mb-3 text-sm text-parchment-500">
+                              {brief.setup.bars} bars in {brief.setup.key}{" "}
+                              {brief.setup.mode}, {brief.setup.meter.beats}/
+                              {brief.setup.meter.unit}. The fight sets the terms; the music is
+                              yours.
+                            </p>
+                            <ScoreEditor
+                              score={score}
+                              onChange={setScore}
+                              freedom={freedom}
+                              checks={brief.checks}
+                            />
+                          </div>
                           <div>
                             <label className="label">Composition Title</label>
                             <input

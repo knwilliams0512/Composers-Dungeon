@@ -211,6 +211,10 @@ function Tool({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      // The visible label is a musical glyph, and a button's own content wins
+      // over its title when a screen reader works out what to announce — so
+      // without this, half the toolbar reads out as unnamed symbols.
+      aria-label={title}
       aria-pressed={active}
       className={`rounded px-1.5 py-0.5 text-xs leading-none transition-colors disabled:opacity-25 ${
         wide ? "min-w-[2.1rem]" : "min-w-[1.6rem]"

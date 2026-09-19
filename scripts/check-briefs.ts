@@ -16,6 +16,7 @@
 import {
   analyze,
   emptyScore,
+  isDiatonic,
   keyPitchClass,
   runChecks,
   scaleDegree,
@@ -29,12 +30,15 @@ import {
   type ScoreNote,
 } from "../src/lib/score";
 import { briefForLesson } from "../src/lib/lesson-brief";
+import { freedomTier, type Freedom } from "../src/lib/composer-freedom";
 import { briefForChallenge } from "../src/lib/challenge-brief";
 import { beginnerLessons } from "../prisma/seed-data/lessons-beginner";
 import { advancedLessons } from "../prisma/seed-data/lessons-advanced";
 import { curriculumLessons } from "../prisma/seed-data/lessons-curriculum";
 import { PrismaClient } from "@prisma/client";
-import { challengeComponents } from "../prisma/seed-data/world";
+import { challengeComponents, bosses } from "../prisma/seed-data/world";
+import { expansionBosses } from "../prisma/seed-data/world-expansion";
+import { briefForBoss, BOSS_BRIEF_KEYS } from "../src/lib/boss-brief";
 
 /* --- a tiny seeded RNG, so a failure reported here reproduces exactly ------ */
 function rng(seed: number) {
@@ -46,89 +50,132 @@ function rng(seed: number) {
 }
 
 /**
- * Rhythms for one bar, as (offset, duration) pairs. Several leave a gap so
- * "leaves space for breath" can pass, and the mix of lengths covers
- * "at least N different note lengths".
+ * Rhythms for one bar, as (offset, duration) pairs, using only the note lengths
+ * this exercise actually offers and only the grid columns it can be placed on.
+ * An Apprentice has quarter and half notes on a quarter-note grid; asking that
+ * player for three distinct lengths would be asking for something the editor
+ * cannot express, however satisfiable the check looks on paper.
  */
-function barRhythms(barTicks: number, beat: number): number[][][] {
-  const q = beat;
-  const e = Math.max(1, Math.floor(beat / 2));
+const rhythmCache = new Map<string, number[][][]>();
+function barRhythms(barTicks: number, durations: number[], gridStep: number): number[][][] {
+  // Enumerating these is the expensive part, and it depends only on the bar
+  // and the toolbar — not on the seed. Without this it was recomputed for
+  // every one of up to six thousand attempts per brief.
+  const cacheKey = `${barTicks}|${durations.join(",")}|${gridStep}`;
+  const cached = rhythmCache.get(cacheKey);
+  if (cached) return cached;
+  const computed = buildBarRhythms(barTicks, durations, gridStep);
+  rhythmCache.set(cacheKey, computed);
+  return computed;
+}
+
+function buildBarRhythms(barTicks: number, durations: number[], gridStep: number): number[][][] {
+  const usable = durations.filter((d) => d % gridStep === 0 && d <= barTicks).sort((a, b) => a - b);
+  if (!usable.length) return [];
   const out: number[][][] = [];
 
-  // All quarters, full bar.
-  const even: number[][] = [];
-  for (let t = 0; t + q <= barTicks; t += q) even.push([t, q]);
-  if (even.length) out.push(even);
-
-  // Quarters with the last beat shortened, leaving a rest at the bar's end.
-  if (even.length > 1) {
-    const breathing = even.map(([t, d], i) => (i === even.length - 1 ? [t, e] : [t, d]));
-    out.push(breathing);
-  }
-
-  // Long note first, then movement — gives a third distinct duration.
-  if (barTicks >= q * 2) {
-    const longFirst: number[][] = [[0, q * 2]];
-    for (let t = q * 2; t + q <= barTicks; t += q) longFirst.push([t, q]);
-    out.push(longFirst);
-  }
-
-  // Quarters broken into eighths in the second half.
-  if (even.length >= 2) {
-    const mixed: number[][] = [];
-    const half = Math.floor(even.length / 2);
-    even.forEach(([t, d], i) => {
-      if (i < half) mixed.push([t, d]);
-      else {
-        mixed.push([t, e]);
-        if (t + e + e <= barTicks) mixed.push([t + e, e]);
-      }
-    });
-    out.push(mixed);
-  }
+  // Every rhythm the offered lengths can tile a bar with, shortest-first and
+  // capped so a sixteenth-note tier does not explode combinatorially.
+  const build = (prefix: number[][], at: number, depth: number) => {
+    if (out.length >= 64 || depth > 16) return;
+    if (at === barTicks) { out.push(prefix); return; }
+    // A bar may also stop short, leaving a rest — "space for breath".
+    if (at > 0 && at < barTicks && prefix.length >= 1) out.push(prefix);
+    for (const d of usable) {
+      if (at + d > barTicks) continue;
+      build([...prefix, [at, d]], at + d, depth + 1);
+    }
+  };
+  build([], 0, 0);
   return out.filter((r) => r.length > 0);
 }
 
-/** One attempt at a composition that meets the brief. */
-function attempt(setup: Score, checks: Check[], seed: number): Score | null {
+/** One attempt at a composition that meets the brief, within the given tools. */
+function attempt(setup: Score, checks: Check[], freedom: Freedom, seed: number): Score | null {
   const rand = rng(seed);
   const pick = <T,>(xs: T[]): T => xs[Math.floor(rand() * xs.length) % xs.length];
 
   const barTicks = ticksPerBar(setup.meter);
   const beat = ticksPerBeat(setup.meter);
-  const rhythms = barRhythms(barTicks, beat);
+  const rhythms = barRhythms(barTicks, freedom.durations, freedom.gridStep);
   if (!rhythms.length) return null;
 
-  // The diatonic ladder the melody walks, centred near the middle of the staff.
+  // Exactly the pitches the editor puts on screen: the tonic at or above
+  // middle C, then `rows` rungs upward. Nothing below the tonic is reachable.
   const tonicPc = ((keyPitchClass(setup.key) % 12) + 12) % 12;
-  const ladder = scalePitches(setup.key, setup.mode, 55, 84);
-  const startIdx = ladder.findIndex((p) => p >= 60 && p % 12 === tonicPc);
-  if (startIdx < 0) return null;
+  const tonic = 60 + tonicPc;
+  const all = freedom.chromatic
+    ? Array.from({ length: 37 }, (_, i) => tonic - 12 + i)
+    : scalePitches(setup.key, setup.mode, tonic - 12, tonic + 24);
+  const from = all.findIndex((p) => p >= tonic);
+  const onScreen = all.slice(from, from + freedom.rows);
+  // A chromatic tier shows every semitone, but "stays in the key" still means
+  // the scale — a player picks the diatonic rows out of the ones on offer, so
+  // the search does too.
+  const ladder = onScreen.filter((p) => isDiatonic(p, setup.key, setup.mode));
+  if (ladder.length < 2) return null;
 
-  // Harmony: tonic throughout, with a V–I close. This satisfies both
-  // "every bar is harmonised" and "ends with a V–I cadence".
+  const wantsChords = checks.some(
+    (c) => c.id === "chords-every-bar" || c.id === "authentic-cadence" || c.id === "melody-fits-chords"
+  );
   const chords: ScoreChord[] = [];
-  for (let b = 0; b < setup.bars; b++) {
-    const degree = setup.bars >= 2 && b === setup.bars - 2 ? 5 : 1;
-    chords.push({ start: b * barTicks, duration: barTicks, degree, quality: triadFor(degree, setup.key, setup.mode).quality });
+  if (freedom.chords) {
+    for (let b = 0; b < setup.bars; b++) {
+      // The cadence needs V then I; everything before sits on the tonic.
+      let degree = setup.bars >= 2 && b === setup.bars - 2 ? 5 : 1;
+      if (!freedom.chordDegrees.includes(degree)) degree = freedom.chordDegrees[0] ?? 1;
+      chords.push({
+        start: b * barTicks,
+        duration: barTicks,
+        degree,
+        quality: triadFor(degree, setup.key, setup.mode).quality,
+      });
+    }
+  } else if (wantsChords) {
+    // The exercise demands harmony the editor will not let this player write.
+    return null;
   }
 
-  const chordToneIdx = (b: number) => {
-    const degree = chords[b].degree;
-    const tones = triadFor(degree, setup.key, setup.mode).pitches.map((p) => ((p % 12) + 12) % 12);
+  const chordToneAt = (b: number) => {
+    if (!chords[b]) return () => true;
+    const tones = triadFor(chords[b].degree, setup.key, setup.mode).pitches.map((p) => ((p % 12) + 12) % 12);
     return (i: number) => tones.includes(((ladder[i] % 12) + 12) % 12);
   };
 
-  // Walk the ladder bar by bar, stepping by one or two rungs and steering
-  // strong beats onto chord tones.
+  // Compose to a note budget. "At least N notes" and "leave space for breath"
+  // pull against each other, and picking rhythms blindly satisfies neither:
+  // the search has to aim for bars full enough to reach N while still spending
+  // one bar on a rest.
+  const minNotes = checks.find((c) => c.id === "min-notes")?.value ?? 0;
+  const needsRest = checks.some((c) => c.id === "uses-rests");
+  const full = rhythms.filter((r) => r[r.length - 1][0] + r[r.length - 1][1] === barTicks);
+  const gapped = rhythms.filter((r) => r[r.length - 1][0] + r[r.length - 1][1] < barTicks);
+  const densest = [...(full.length ? full : rhythms)].sort((x, y) => y.length - x.length);
+  // One bar carries the rest, chosen by seed so different attempts breathe in
+  // different places.
+  const restBar = needsRest && gapped.length ? Math.floor(rand() * setup.bars) % setup.bars : -1;
+
   const melody: ScoreNote[] = [];
-  let idx = startIdx;
-  const motifBar = rhythms.indexOf(rhythms[0]);
+  let idx = 0;
   let firstBarShape: number[] | null = null;
+  let firstBarRhythm: number[][] | null = null;
 
   for (let b = 0; b < setup.bars; b++) {
-    const rhythm = b === 1 && firstBarShape ? rhythms[motifBar] : pick(rhythms);
-    const isChordTone = chordToneIdx(b);
+    const barsLeft = setup.bars - b;
+    const stillNeeded = minNotes - melody.length;
+    const perBar = barsLeft > 0 ? Math.ceil(stillNeeded / barsLeft) : 0;
+    const roomy = rhythms.filter((r) => r.length >= perBar);
+    const pool = b === restBar
+      ? gapped.filter((r) => r.length >= Math.min(perBar, Math.max(...gapped.map((g) => g.length))))
+      : roomy.length
+        ? roomy
+        : densest;
+    // Bar two restates bar one, so the motif check has something to find. It
+    // reuses bar one's rhythm rather than the first enumerated one, which is
+    // a single note followed by a rest and quietly spent the note budget.
+    const rhythm: number[][] =
+      b === 1 && firstBarRhythm ? firstBarRhythm : pick(pool.length ? pool : densest);
+    const isChordTone = chordToneAt(b);
     const shape: number[] = [];
 
     for (let i = 0; i < rhythm.length; i++) {
@@ -137,53 +184,54 @@ function attempt(setup: Score, checks: Check[], seed: number): Score | null {
       const strong = abs % (beat * 2) === 0;
 
       if (b === 1 && firstBarShape && i < firstBarShape.length) {
-        // Bring the opening figure back, so "a recognisable idea comes back"
-        // has something to find.
         idx = firstBarShape[i];
       } else {
         const candidates: number[] = [];
-        for (const d of [-2, -1, 1, 2, 0]) {
+        // The opening note has nowhere to step from: it should be allowed to
+        // be the tonic itself, which is also what "starts on a chord tone"
+        // most wants. Without this the search always stepped away first.
+        for (const d of melody.length === 0 ? [0, 2, 4] : [-2, -1, 1, 2]) {
           const j = idx + d;
           if (j < 0 || j >= ladder.length) continue;
-          if (d === 0 && melody.length) continue;
-          if (strong && !isChordTone(j)) continue;
+          if (strong && chords.length && !isChordTone(j)) continue;
           candidates.push(j);
         }
-        if (!candidates.length) {
-          const relaxed = [-2, -1, 1, 2].map((d) => idx + d).filter((j) => j >= 0 && j < ladder.length);
-          if (!relaxed.length) return null;
-          idx = pick(relaxed);
-        } else {
-          idx = pick(candidates);
-        }
+        const relaxed = (melody.length === 0 ? [0, 2, 4] : [-2, -1, 1, 2])
+          .map((d) => idx + d)
+          .filter((j) => j >= 0 && j < ladder.length);
+        const from2 = candidates.length ? candidates : relaxed;
+        if (!from2.length) return null;
+        idx = pick(from2);
       }
       shape.push(idx);
       melody.push({ start: abs, duration: rhythm[i][1], pitch: ladder[idx] });
     }
-    if (b === 0) firstBarShape = shape;
+    if (b === 0) {
+      firstBarShape = shape;
+      firstBarRhythm = rhythm;
+    }
   }
+  if (!melody.length) return null;
 
-  // Land the final note on the tonic — the ending is not negotiable.
+  // The ending is not negotiable: land on the tonic.
   const last = melody[melody.length - 1];
   let tonicIdx = -1;
   for (let j = 0; j < ladder.length; j++) {
-    if (((ladder[j] % 12) + 12) % 12 === tonicPc) {
-      if (tonicIdx < 0 || Math.abs(ladder[j] - last.pitch) < Math.abs(ladder[tonicIdx] - last.pitch)) tonicIdx = j;
-    }
+    if (((ladder[j] % 12) + 12) % 12 === tonicPc) { tonicIdx = j; break; }
   }
   if (tonicIdx < 0) return null;
   last.pitch = ladder[tonicIdx];
 
   const score: Score = { ...setup, melody, chords };
 
-  // "One clear high point": if the peak is struck more than once, pull the
-  // later copies down a step. A composer would do the same by ear.
+  // "One clear high point": pull later copies of the peak down a rung, as a
+  // composer would by ear.
   const a = analyze(score);
   if (a.highest !== null) {
-    let seenPeak = false;
+    let seen = false;
     for (const n of melody) {
       if (n.pitch !== a.highest) continue;
-      if (!seenPeak) { seenPeak = true; continue; }
+      if (!seen) { seen = true; continue; }
       const below = ladder.filter((p) => p < n.pitch).pop();
       if (below !== undefined && n !== last) n.pitch = below;
     }
@@ -191,9 +239,9 @@ function attempt(setup: Score, checks: Check[], seed: number): Score | null {
   return score;
 }
 
-function solve(setup: Score, checks: Check[]): { score: Score; tries: number } | null {
+function solve(setup: Score, checks: Check[], freedom: Freedom): { score: Score; tries: number } | null {
   for (let seed = 1; seed <= 6000; seed++) {
-    const s = attempt(setup, checks, seed);
+    const s = attempt(setup, checks, freedom, seed);
     if (!s) continue;
     if (runChecks(s, checks).passed) return { score: s, tries: seed };
   }
@@ -201,6 +249,10 @@ function solve(setup: Score, checks: Check[]): { score: Score; tries: number } |
 }
 
 async function main() {
+  // A full sweep of the generated trial space takes minutes; CD_BRIEF_SCOPE
+  // limits a run to the handwritten briefs for a quick check.
+  const scope = process.env.CD_BRIEF_SCOPE ?? "all";
+
 /* --- run it over every brief in the game ---------------------------------- */
 
 // Negative control. A checker that can only ever print OK proves nothing, and
@@ -216,26 +268,57 @@ async function main() {
     { id: "min-notes", value: 8 },
     { id: "single-climax" },
   ];
-  if (solve(impossible, contradiction)) {
+  if (solve(impossible, contradiction, freedomTier(5))) {
     console.log("FAIL - the negative control was 'solved'; this checker cannot detect an impossible brief");
     process.exit(1);
   }
   console.log("briefs: negative control rejected as expected");
 }
 
-const lessons = [...beginnerLessons, ...curriculumLessons, ...advancedLessons];
 let failures = 0;
 let hardest = { slug: "", tries: 0 };
+
+// Boss final blows.
+const allBosses = [...bosses, ...(expansionBosses as any[])];
+console.log(`briefs: checking ${allBosses.length} boss final blows`);
+for (const b of allBosses) {
+  const brief = briefForBoss({ key: b.key, difficulty: (b as any).difficulty });
+  const found = solve(brief.setup, brief.checks, freedomTier(brief.freedomCap));
+  if (!found) {
+    failures++;
+    console.log(`  IMPOSSIBLE  boss "${b.key}"`);
+    console.log(`              ${brief.checks.map((c) => c.id + (c.value !== undefined ? `=${c.value}` : "")).join(", ")}`);
+    const probe = attempt(brief.setup, brief.checks, freedomTier(brief.freedomCap), 1);
+    if (probe) {
+      for (const r of runChecks(probe, brief.checks).results) {
+        if (!r.passed) console.log(`              unmet on a sample run: ${r.label} — ${r.detail}`);
+      }
+    }
+  } else if (found.tries > hardest.tries) {
+    hardest = { slug: `boss "${b.key}"`, tries: found.tries };
+  }
+}
+
+// Every boss must be covered by a hand-written brief, or its climax quietly
+// falls back to a generic eight bars that has nothing to do with the fight.
+for (const b of allBosses) {
+  if (!BOSS_BRIEF_KEYS.includes(b.key)) {
+    failures++;
+    console.log(`  NO BRIEF    boss "${b.key}" falls back to the generic default`);
+  }
+}
+
+const lessons = [...beginnerLessons, ...curriculumLessons, ...advancedLessons];
 
 console.log(`briefs: checking ${lessons.length} lesson composition exercises`);
 for (const l of lessons) {
   const brief = briefForLesson({ slug: l.slug, difficulty: l.difficulty, category: l.category });
-  const found = solve(brief.setup, brief.checks);
+  const found = solve(brief.setup, brief.checks, freedomTier(brief.freedomCap));
   if (!found) {
     failures++;
     console.log(`  IMPOSSIBLE  ${l.slug}`);
     console.log(`              ${brief.checks.map((c) => c.id + (c.value !== undefined ? `=${c.value}` : "")).join(", ")}`);
-    const probe = attempt(brief.setup, brief.checks, 1);
+    const probe = attempt(brief.setup, brief.checks, freedomTier(brief.freedomCap), 1);
     if (probe) {
       for (const r of runChecks(probe, brief.checks).results) {
         if (!r.passed) console.log(`              unmet on a sample run: ${r.label} — ${r.detail}`);
@@ -267,12 +350,12 @@ for (const c of trials) {
   if (seenShape.has(shape)) continue;
   seenShape.add(shape);
   const brief = briefForChallenge(c);
-  const found = solve(brief.setup, brief.checks);
+  const found = solve(brief.setup, brief.checks, freedomTier(brief.freedomCap));
   if (!found) {
     failures++;
     console.log(`  IMPOSSIBLE  trial "${c.title}" (${c.type}, difficulty ${c.difficulty}, ${c.keySig ?? "no key"}, ${c.meter ?? "no meter"}, ${c.lengthBars ?? "?"} bars)`);
     console.log(`              ${brief.checks.map((k) => k.id + (k.value !== undefined ? `=${k.value}` : "")).join(", ")}`);
-    const probe = attempt(brief.setup, brief.checks, 1);
+    const probe = attempt(brief.setup, brief.checks, freedomTier(brief.freedomCap), 1);
     if (probe) {
       for (const r of runChecks(probe, brief.checks).results) {
         if (!r.passed) console.log(`              unmet on a sample run: ${r.label} — ${r.detail}`);
@@ -288,6 +371,7 @@ console.log(`briefs: ${seenShape.size} distinct trial shapes among ${trials.leng
 // combining any legal key, meter, length and skill for that difficulty. The
 // seeded rows are a sample of that space, not the whole of it, so walk the
 // generator's own component table and check every combination it can produce.
+if (scope === "all") {
 const keys = challengeComponents.filter((c) => c.type === "KEY");
 const meters = challengeComponents.filter((c) => c.type === "METER");
 const lengths = challengeComponents.filter((c) => c.type === "LENGTH");
@@ -312,12 +396,12 @@ for (let difficulty = 1; difficulty <= 10; difficulty++) {
             skillKey: skillKey as string | null,
           };
           const brief = briefForChallenge(c);
-          const found = solve(brief.setup, brief.checks);
+          const found = solve(brief.setup, brief.checks, freedomTier(brief.freedomCap));
           if (!found) {
             failures++;
             console.log(`  IMPOSSIBLE  generated trial: difficulty ${difficulty}, ${k.value}, ${m.value}, ${l.value} bars, skill ${skillKey ?? "none"}`);
             console.log(`              ${brief.checks.map((x) => x.id + (x.value !== undefined ? `=${x.value}` : "")).join(", ")}`);
-            const probe = attempt(brief.setup, brief.checks, 1);
+            const probe = attempt(brief.setup, brief.checks, freedomTier(brief.freedomCap), 1);
             if (probe) {
               for (const r of runChecks(probe, brief.checks).results) {
                 if (!r.passed) console.log(`              unmet on a sample run: ${r.label} — ${r.detail}`);
@@ -332,6 +416,9 @@ for (let difficulty = 1; difficulty <= 10; difficulty++) {
   }
 }
 console.log(`briefs: checked ${combos} generated trial combinations`);
+} else {
+  console.log("briefs: generated trial sweep skipped (CD_BRIEF_SCOPE set)");
+}
 await db.$disconnect();
 
 if (failures) {

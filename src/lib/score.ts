@@ -235,6 +235,22 @@ export function totalTicks(score: Pick<Score, "meter" | "bars">): number {
   return ticksPerBar(score.meter) * score.bars;
 }
 
+/**
+ * How many notes to ask for in a piece of this length and meter.
+ *
+ * "bars * 2" alone ignores how much music a bar actually holds. In 2/4 at the
+ * Apprentice tier a bar holds exactly two quarter notes, so bars * 2 asked for
+ * every tick of the piece to carry a note — and any trial that also wanted a
+ * second note length or a moment of silence became unwinnable, because both
+ * cost notes the count could not spare. The demand is now capped below what
+ * the meter can hold, leaving room to write a half note and to breathe.
+ */
+export function minNotesFor(bars: number, meter: ScoreMeter): number {
+  const quartersPerBar = ticksPerBar(meter) / 4;
+  const roomToSpare = Math.floor(bars * quartersPerBar * 0.75);
+  return Math.max(6, Math.min(bars * 2, roomToSpare));
+}
+
 export function emptyScore(init: Partial<Score> = {}): Score {
   return {
     version: 1,

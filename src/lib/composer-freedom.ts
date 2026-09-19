@@ -152,4 +152,45 @@ export function resolveFreedom(input: {
   return cappedFreedom(freedomForPlayer(input.level, input.lessonsCompleted), input.cap);
 }
 
+/**
+ * The lowest tier whose toolbar can actually satisfy these standards.
+ *
+ * An exercise sets a freedom cap to keep the editor simple, and separately
+ * lists the standards the piece is judged by. Nothing connected the two, so a
+ * cap could be tighter than the standards it was paired with — and the lesson
+ * on note values asked for three different note lengths while capping the
+ * player at the Apprentice tier, which offers two. There was no way to pass it:
+ * the editor would not let you write the third length.
+ *
+ * Briefs raise their cap to this floor, so a standard is never asked for with
+ * the tool to meet it withheld.
+ */
+export function minimumTierFor(checks: { id: string; value?: number }[]): number {
+  let needed = 1;
+  const atLeast = (tier: number) => {
+    if (tier > needed) needed = tier;
+  };
+
+  for (const check of checks) {
+    switch (check.id) {
+      case "rhythmic-variety": {
+        const wanted = check.value ?? 2;
+        const tier = TIERS.find((t) => t.durations.length >= wanted);
+        atLeast(tier ? tier.tier : TIERS.length);
+        break;
+      }
+      case "chords-every-bar":
+      case "authentic-cadence":
+      case "melody-fits-chords": {
+        const tier = TIERS.find((t) => t.chords);
+        atLeast(tier ? tier.tier : TIERS.length);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return needed;
+}
+
 export const ALL_TIERS = TIERS;

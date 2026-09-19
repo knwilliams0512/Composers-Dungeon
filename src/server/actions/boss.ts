@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
-import { compositionSchema } from "@/lib/validation";
+import { compositionSchema, scoreSchema } from "@/lib/validation";
+import { briefForBoss } from "@/lib/boss-brief";
+import { runChecks, type CheckResult, type Score } from "@/lib/score";
 import {
   awardProgress,
   checkSpecializations,
@@ -42,6 +44,8 @@ export interface BossObjectiveResult {
   award?: AwardResult;
   rewardArtifact?: string;
   newSpecializations?: string[];
+  /** Which standards the final composition missed, when it fell short. */
+  results?: CheckResult[];
 }
 
 /**
@@ -59,6 +63,8 @@ export async function completeBossObjective(input: {
     scoreLink?: string;
     visibility?: string;
   };
+  /** The final blow's piece, written in the composer. */
+  score?: unknown;
 }): Promise<BossObjectiveResult> {
   const userId = await requireUserId();
   const boss = await db.boss.findUnique({
@@ -97,6 +103,36 @@ export async function completeBossObjective(input: {
     }
   }
 
+  // The final blow is a piece of music, judged by the same engine that judges
+  // a lesson exercise or a dungeon trial. Anything less and the hardest thing
+  // in the game would be the one place you could win by typing a title.
+  let finalScore: Score | null = null;
+  if (objective.finalBlow) {
+    const brief = briefForBoss(boss);
+    const parsedScore = scoreSchema.safeParse(input.score);
+    if (!parsedScore.success) {
+      return { ok: false, error: "Write the final piece in the composer before striking." };
+    }
+    finalScore = parsedScore.data as Score;
+    if (
+      finalScore.key !== brief.setup.key ||
+      finalScore.mode !== brief.setup.mode ||
+      finalScore.bars !== brief.setup.bars ||
+      finalScore.meter.beats !== brief.setup.meter.beats ||
+      finalScore.meter.unit !== brief.setup.meter.unit
+    ) {
+      return { ok: false, error: "This piece does not match what the fight demands." };
+    }
+    const verdict = runChecks(finalScore, brief.checks);
+    if (!verdict.passed) {
+      return {
+        ok: false,
+        error: `The blow glances off — ${verdict.passedCount} of ${verdict.results.length} standards met.`,
+        results: verdict.results,
+      };
+    }
+  }
+
   let compositionId: string | null = null;
   if (input.composition?.title) {
     const parsed = compositionSchema.safeParse({
@@ -110,7 +146,12 @@ export async function completeBossObjective(input: {
       return { ok: false, error: parsed.error.errors[0]?.message ?? "Invalid composition" };
     }
     const comp = await db.composition.create({
-      data: { userId, ...parsed.data, source: "BOSS" },
+      data: {
+        userId,
+        ...parsed.data,
+        source: "BOSS",
+        ...(finalScore ? { score: JSON.stringify(finalScore) } : {}),
+      },
     });
     compositionId = comp.id;
   }
