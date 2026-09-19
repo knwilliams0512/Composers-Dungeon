@@ -13,7 +13,7 @@ import { applyEnsemble } from "@/lib/studio/edit";
  * everything while the Studio lists only what it can open.
  */
 
-const STUDIO_SOURCE = "STUDIO";
+import { MAX_STUDIO_BYTES, STUDIO_SOURCE, readableStudioScore } from "@/lib/studio/validate";
 
 export async function createStudioScore(input: {
   title?: string;
@@ -41,36 +41,17 @@ export async function createStudioScore(input: {
   return { ok: true, id: created.id };
 }
 
-/**
- * A server action's arguments arrive from the browser, so the TypeScript type
- * on `score` guarantees nothing at runtime. This was the one mutation in the
- * app writing client-supplied structure straight to the database: a payload
- * missing `info` threw on the next line and surfaced as the app breaking, and
- * nothing bounded how much got stored.
- */
-function readableScore(score: unknown): StudioScore | null {
-  if (!score || typeof score !== "object") return null;
-  const s = score as Partial<StudioScore>;
-  if (!s.info || typeof s.info !== "object") return null;
-  if (typeof s.info.title !== "string" || typeof s.info.subtitle !== "string") return null;
-  if (!Array.isArray(s.parts) || !Array.isArray(s.measures)) return null;
-  return s as StudioScore;
-}
-
-/** Two megabytes is far beyond any real score and far below trouble. */
-const MAX_SCORE_BYTES = 2_000_000;
-
 export async function saveStudioScore(
   id: string,
   score: StudioScore
 ): Promise<{ ok: boolean; error?: string }> {
   const userId = await requireUserId();
 
-  const checked = readableScore(score);
+  const checked = readableStudioScore(score);
   if (!checked) return { ok: false, error: "That score could not be read, so it was not saved." };
 
   const serialised = JSON.stringify(checked);
-  if (serialised.length > MAX_SCORE_BYTES) {
+  if (serialised.length > MAX_STUDIO_BYTES) {
     return { ok: false, error: "This score is too large to save. Split it into movements." };
   }
 

@@ -71,10 +71,17 @@ export function StudioEditor({
   initialScore,
   scoreId,
   onSave,
+  onChange,
 }: {
   initialScore: StudioScore;
   scoreId: string;
   onSave?: (score: StudioScore) => Promise<{ ok: boolean }>;
+  /**
+   * Reports the score as it is written, for hosts that submit it themselves
+   * rather than autosaving — a dungeon trial keeps the current score so its
+   * own submit button can send it.
+   */
+  onChange?: (score: StudioScore) => void;
 }) {
   const [score, setScore] = useState<StudioScore>(initialScore);
   const [selection, setSelection] = useState<Selection>({ kind: "none" });
@@ -128,7 +135,10 @@ export function StudioEditor({
         setShowLeft(false);
         setShowRight(false);
         setBottomPanel("none");
-        setZoom((z) => Math.min(z, (window.innerWidth - 24) / 210));
+        // Floored: with no lower bound, a very narrow or not-yet-measured
+        // window makes this negative, and the page is then drawn with a
+        // negative width, which is not a valid SVG at all.
+        setZoom((z) => Math.max(0.5, Math.min(z, (window.innerWidth - 24) / 210)));
       }
     };
     measure();
@@ -181,6 +191,16 @@ export function StudioEditor({
     });
     setSaveState("dirty");
   }, []);
+
+  /* ---- Reporting the score outward -------------------------------------- */
+
+  // Held in a ref so a host that passes an inline callback does not re-run
+  // this on every render of its own.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current?.(score);
+  }, [score]);
 
   /* ---- Autosave --------------------------------------------------------- */
 

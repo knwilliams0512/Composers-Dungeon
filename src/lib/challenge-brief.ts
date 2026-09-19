@@ -26,15 +26,37 @@ export interface Brief {
   freedomCap: number;
 }
 
-const KEY_PATTERN = /^([A-G](?:#|b|♯|♭)?)\s*(major|minor|maj|min|m)?/i;
+/**
+ * Letter, then an optional accidental written any of the ways it is written,
+ * then an optional mode.
+ *
+ * The spelled-out forms matter: the challenge generator's own key list says
+ * "B-flat major" and "F-sharp minor", and an earlier pattern that accepted
+ * only "#" and "b" read those as B major and F major. Five of the twelve keys
+ * in the game were silently wrong — the trial named one key on screen and was
+ * set, and graded, in another.
+ */
+const KEY_PATTERN =
+  /^([A-G])\s*(#|♯|b|♭|[-\s]?sharp|[-\s]?flat)?[\s-]*(major|minor|maj|min|m)?/i;
 
 export function parseKey(raw?: string | null): { key: string; mode: "major" | "minor" } {
   if (!raw) return { key: "C", mode: "major" };
   const m = KEY_PATTERN.exec(raw.trim());
   if (!m) return { key: "C", mode: "major" };
-  const key = m[1].replace("♯", "#").replace("♭", "b");
-  const rest = (m[2] ?? "").toLowerCase();
-  return { key, mode: rest.startsWith("min") || rest === "m" ? "minor" : "major" };
+
+  const accidental = (m[2] ?? "").toLowerCase().replace(/[-\s]/g, "");
+  const suffix =
+    accidental === "#" || accidental === "♯" || accidental === "sharp"
+      ? "#"
+      : accidental === "b" || accidental === "♭" || accidental === "flat"
+        ? "b"
+        : "";
+
+  const rest = (m[3] ?? "").toLowerCase();
+  return {
+    key: m[1].toUpperCase() + suffix,
+    mode: rest.startsWith("min") || rest === "m" ? "minor" : "major",
+  };
 }
 
 export function parseMeter(raw?: string | null): { beats: number; unit: number } {
@@ -90,6 +112,24 @@ export function checksForChallenge(c: ChallengeLike, bars: number): Check[] {
 function dedupe(checks: Check[]): Check[] {
   const seen = new Set<string>();
   return checks.filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
+}
+
+/**
+ * Which trials are written on a full score rather than the piano roll.
+ *
+ * The grid composer is one line and a harmony lane, which is the right tool
+ * for learning to write a tune. It is the wrong tool for a trial whose whole
+ * subject is orchestration, and for the deepest trials in the game, where what
+ * is being tested is a score. Both of those get the score maker.
+ */
+export function usesFullScore(c: {
+  difficulty: number;
+  skillKey?: string | null;
+  areaSkillKey?: string | null;
+}): boolean {
+  const skill = (c.skillKey ?? c.areaSkillKey ?? "").toUpperCase();
+  if (skill === "ORCHESTRATION" || skill === "INSTRUMENTATION") return true;
+  return c.difficulty >= 8;
 }
 
 export function briefForChallenge(c: ChallengeLike): Brief {

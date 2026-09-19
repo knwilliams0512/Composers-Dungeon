@@ -6,7 +6,7 @@ import { tierOrdinal, ROOM_TYPE_INFO, type RoomType } from "@/lib/enums";
 import { currentTierOrdinal } from "@/server/tier";
 import { ChallengePanel } from "@/components/dungeon/ChallengePanel";
 import { BeginTrialButton } from "@/components/dungeon/BeginTrialButton";
-import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
+import { briefForChallenge, parseChecks, usesFullScore } from "@/lib/challenge-brief";
 import { resolveFreedom } from "@/lib/composer-freedom";
 import { PuzzlePanel } from "@/components/dungeon/PuzzlePanel";
 import { TreasurePanel } from "@/components/dungeon/TreasurePanel";
@@ -105,8 +105,19 @@ export default async function DungeonRoomPage({
 
   const puzzle = room.puzzleData ? sanitizePuzzle(room.puzzleData) : null;
 
+  // A trial written on a full score needs the width a score needs. Squeezed
+  // into the reading column, the staves end up a finger wide between the
+  // instrument list and the tool panel, and the editor is unusable.
+  const wide =
+    activeChallenge !== null &&
+    usesFullScore({
+      difficulty: activeChallenge.challenge.difficulty,
+      skillKey: activeChallenge.challenge.skillKey,
+      areaSkillKey: room.area.skillKey,
+    });
+
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className={wide ? "mx-auto max-w-[1600px]" : "mx-auto max-w-3xl"}>
       <Link
         href={`/dungeon/${room.area.key}`}
         className="text-sm text-parchment-500 hover:text-gold-300"
@@ -133,6 +144,7 @@ export default async function DungeonRoomPage({
       {(room.type === "CHALLENGE" || room.type === "CURSE" || room.type === "EVENT") &&
         (activeChallenge ? (
           <ChallengePanel
+            fullScore={wide}
             challenge={{
               userChallengeId: activeChallenge.id,
               title: activeChallenge.challenge.title,

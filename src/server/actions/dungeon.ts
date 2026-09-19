@@ -6,6 +6,12 @@ import { requireUserId } from "@/lib/auth";
 import { compositionSchema, scoreSchema } from "@/lib/validation";
 import { effectiveTier } from "@/lib/tier";
 import { briefForChallenge, parseChecks } from "@/lib/challenge-brief";
+import { flattenStudioScore } from "@/lib/studio/flatten";
+import {
+  MAX_STUDIO_BYTES,
+  STUDIO_SOURCE,
+  readableStudioScore,
+} from "@/lib/studio/validate";
 import { runChecks, type CheckResult, type Score } from "@/lib/score";
 import {
   awardProgress,
@@ -163,6 +169,12 @@ export interface ChallengeCompletionResult {
 export async function completeChallenge(input: {
   userChallengeId: string;
   score: Score;
+  /**
+   * A full score written in the Studio, for the trials deep enough to demand
+   * one. When present it is the submission: the server flattens it to sounding
+   * pitch and grades that, so the client's own reading is never trusted.
+   */
+  studioScore?: unknown;
   composition: {
     title: string;
     description?: string;
@@ -189,16 +201,40 @@ export async function completeChallenge(input: {
     return { ok: false, error: parsedComp.error.errors[0]?.message ?? "Invalid composition" };
   }
 
-  const parsedScore = scoreSchema.safeParse(input.score);
-  if (!parsedScore.success) {
-    return { ok: false, error: "That piece could not be read. Try again from the composer." };
-  }
-  const score = parsedScore.data as Score;
-
   // The brief the challenge was created with is the standard. Regenerating it
   // for older rows keeps trials made before the composer existed playable.
   const brief = briefForChallenge(uc.challenge);
   const checks = parseChecks(uc.challenge.checks) ?? brief.checks;
+
+  let score: Score;
+  let studioJson: string | null = null;
+
+  if (input.studioScore !== undefined) {
+    const studio = readableStudioScore(input.studioScore);
+    if (!studio) {
+      return { ok: false, error: "That score could not be read. Try again from the score maker." };
+    }
+    studioJson = JSON.stringify(studio);
+    if (studioJson.length > MAX_STUDIO_BYTES) {
+      return { ok: false, error: "This score is too large to submit. Split it into movements." };
+    }
+    // Flattened here, not on the client: the grading has to be done on what the
+    // score actually sounds, by code the player cannot reach.
+    score = flattenStudioScore(studio, {
+      key: brief.setup.key,
+      mode: brief.setup.mode,
+      meter: brief.setup.meter,
+      bars: brief.setup.bars,
+      tempo: brief.setup.tempo,
+      instrument: brief.setup.instrument,
+    });
+  } else {
+    const parsedScore = scoreSchema.safeParse(input.score);
+    if (!parsedScore.success) {
+      return { ok: false, error: "That piece could not be read. Try again from the composer." };
+    }
+    score = parsedScore.data as Score;
+  }
 
   // The setup is not the player's to change: a trial in 3/4 must be in 3/4.
   if (
@@ -231,8 +267,15 @@ export async function completeChallenge(input: {
       scoreLink: "",
       visibility: parsedComp.data.visibility,
       challengeId: uc.id,
-      source: uc.challenge.type === "DAILY" ? "DAILY" : "CHALLENGE",
-      score: JSON.stringify(score),
+      // A full score is kept in the score maker's own format, so it reopens
+      // there with every part intact; the flattened reading was only used to
+      // grade it.
+      source: studioJson
+        ? STUDIO_SOURCE
+        : uc.challenge.type === "DAILY"
+          ? "DAILY"
+          : "CHALLENGE",
+      score: studioJson ?? JSON.stringify(score),
     },
   });
 

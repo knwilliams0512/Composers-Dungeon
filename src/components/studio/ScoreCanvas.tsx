@@ -198,8 +198,11 @@ function PageView({
     }
   };
 
-  const pxW = page.width * zoom;
-  const pxH = page.height * zoom;
+  // A page is never smaller than this on screen; sizes are clamped here too so
+  // no caller can produce an SVG with a negative or zero dimension.
+  const safeZoom = Math.max(0.5, zoom);
+  const pxW = Math.max(1, page.width * safeZoom);
+  const pxH = Math.max(1, page.height * safeZoom);
 
   return (
     <div

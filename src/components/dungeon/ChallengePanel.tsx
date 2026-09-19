@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { completeChallenge, rerollChallenge } from "@/server/actions/dungeon";
 import { AwardBanner } from "@/components/ui/AwardBanner";
 import { ScoreEditor } from "@/components/composer/ScoreEditor";
+import { StudioEditor } from "@/components/studio/StudioEditor";
+import { emptyStudioScore, type StudioScore } from "@/lib/studio/model";
+import { applyEnsemble } from "@/lib/studio/edit";
+import { flattenStudioScore } from "@/lib/studio/flatten";
+import { runChecks } from "@/lib/score";
 import { Icon } from "@/components/ui/Icon";
 import type { AwardResult } from "@/lib/progression";
 import type { Check, CheckResult, Score } from "@/lib/score";
@@ -31,14 +36,36 @@ export function ChallengePanel({
   setup,
   checks,
   freedom,
+  fullScore = false,
 }: {
   challenge: ChallengeView;
   setup: Score;
   checks: Check[];
   freedom: Freedom;
+  /**
+   * Deep trials are written in the score maker rather than the piano roll:
+   * at this level the thing being tested is a score, not a line.
+   */
+  fullScore?: boolean;
 }) {
   const router = useRouter();
   const [score, setScore] = useState<Score>(setup);
+  // The score maker's own document, when this trial uses it. It starts as a
+  // string orchestra in the trial's key and meter, with exactly the number of
+  // bars the brief asks for.
+  const [studio, setStudio] = useState<StudioScore>(() =>
+    applyEnsemble(
+      emptyStudioScore({
+        key: setup.key,
+        mode: setup.mode,
+        meter: setup.meter,
+        tempo: setup.tempo,
+        info: { title: challenge.title, subtitle: "", composer: "", arranger: "", lyricist: "", copyright: "", description: "" },
+        measures: Array.from({ length: setup.bars }, (_, i) => ({ id: `m${i}` })),
+      }),
+      "string-orchestra"
+    )
+  );
   const [title, setTitle] = useState("");
   const [reflection, setReflection] = useState("");
   const [visibility, setVisibility] = useState("PRIVATE");
@@ -58,6 +85,7 @@ export function ChallengePanel({
     const res = await completeChallenge({
       userChallengeId: challenge.userChallengeId,
       score,
+      studioScore: fullScore ? studio : undefined,
       composition: { title, reflection, visibility },
     });
     setBusy(false);
@@ -169,14 +197,29 @@ export function ChallengePanel({
         <div className="mb-3 flex items-center justify-between">
           <h3 className="heading-display text-lg">Write It Here</h3>
           <span className="pill-arcane">
-            <Icon name="quill" size={11} /> {freedom.name} tools
+            <Icon name="quill" size={11} />{" "}
+            {fullScore ? "Full score" : `${freedom.name} tools`}
           </span>
         </div>
         <p className="mb-3 text-sm text-parchment-500">
-          The key, meter, length and instrument are already set for you. All that is missing is
-          the music.
+          {fullScore
+            ? "This trial is written on a full score. Add and remove parts, write for each of them, and the standards below are read from everything sounding together."
+            : "The key, meter, length and instrument are already set for you. All that is missing is the music."}
         </p>
-        <ScoreEditor score={score} onChange={setScore} freedom={freedom} checks={checks} />
+        {fullScore ? (
+          <div className="space-y-3">
+            <div className="h-[78vh] min-h-[560px] overflow-hidden rounded-lg border border-abyss-600">
+              <StudioEditor
+                initialScore={studio}
+                scoreId={challenge.userChallengeId}
+                onChange={setStudio}
+              />
+            </div>
+            <LiveStandards studio={studio} setup={setup} checks={checks} />
+          </div>
+        ) : (
+          <ScoreEditor score={score} onChange={setScore} freedom={freedom} checks={checks} />
+        )}
       </div>
 
       {/* ---- Submit --------------------------------------------------------- */}
@@ -253,5 +296,58 @@ export function ChallengePanel({
         </p>
       </form>
     </div>
+  );
+}
+
+
+/**
+ * The standards, read off the full score as it is written.
+ *
+ * It flattens with the same function the server uses, so what a writer sees
+ * here is what the submission will be judged on — no second opinion, and no
+ * pleasant surprise at the moment of truth.
+ */
+function LiveStandards({
+  studio,
+  setup,
+  checks,
+}: {
+  studio: StudioScore;
+  setup: Score;
+  checks: Check[];
+}) {
+  const flat = flattenStudioScore(studio, {
+    key: setup.key,
+    mode: setup.mode,
+    meter: setup.meter,
+    bars: setup.bars,
+    tempo: setup.tempo,
+    instrument: setup.instrument,
+  });
+  const verdict = runChecks(flat, checks);
+
+  return (
+    <section className="card p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <h4 className="heading-display text-base">The Standard</h4>
+        <span className={verdict.passed ? "pill-emerald" : "pill"}>
+          {verdict.passedCount} of {verdict.results.length} met
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {verdict.results.map((r) => (
+          <li key={r.id} className="flex gap-2 text-[13px]">
+            <Icon
+              name={r.passed ? "check" : "target"}
+              size={13}
+              className={`mt-0.5 shrink-0 ${r.passed ? "text-emerald-400" : "text-parchment-600"}`}
+            />
+            <span className={r.passed ? "text-parchment-300" : "text-parchment-400"}>
+              {r.label} <span className="text-parchment-600">— {r.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
