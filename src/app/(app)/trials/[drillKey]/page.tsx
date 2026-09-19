@@ -22,11 +22,14 @@ export default async function DrillPage({ params }: { params: { drillKey: string
   const key = toKey(params.drillKey);
   if (!key) notFound();
 
-  const best = await db.drillResult.findFirst({
-    where: { userId, drill: key },
-    orderBy: { score: "desc" },
-    select: { score: true },
-  });
+  // As on the index: no table yet means no personal best, not a broken page.
+  const best = await db.drillResult
+    .findFirst({
+      where: { userId, drill: key },
+      orderBy: { score: "desc" },
+      select: { score: true },
+    })
+    .catch(() => null);
 
   return (
     <div className="mx-auto max-w-2xl">

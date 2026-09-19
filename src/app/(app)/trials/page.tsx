@@ -14,10 +14,14 @@ export default async function TrialsPage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
-  const results = await db.drillResult.findMany({
-    where: { userId },
-    orderBy: { playedAt: "desc" },
-  });
+  // A database that has not caught up with the app yet has no DrillResult
+  // table, and a page that dies on that shows an error where an empty scoreboard
+  // would do. The launcher repairs the schema on every start, so this is the
+  // gap between an update landing and the next launch — not a reason to lose
+  // the whole page.
+  const results = await db.drillResult
+    .findMany({ where: { userId }, orderBy: { playedAt: "desc" } })
+    .catch(() => [] as Awaited<ReturnType<typeof db.drillResult.findMany>>);
 
   const bestFor = new Map<string, number>();
   const runsFor = new Map<string, number>();

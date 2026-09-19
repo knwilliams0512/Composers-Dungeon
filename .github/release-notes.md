@@ -537,3 +537,23 @@ start — instead of the one line that mattered. The checks that finally caught
 it are permanent now: the startup check names what is absent, the failure
 dialog carries the error and opens the log, and a build that forgets to ship
 the runtime fails.
+
+## What's new in v1.11.5
+
+**Clicking Proving Grounds no longer drops you at the sign-in page.** Four
+routes — the Proving Grounds, the Workshop, the Studio and Settings — were
+missing from the list of pages that require a signed-in session. That did not
+make them public: each page still checks for itself. What it did was change
+*when* the check happens. A listed page redirects before anything is drawn; an
+unlisted one draws the app shell first, sits on "Lighting the torches…", and
+only then throws you to sign in. All four are on the list now, so they behave
+like every other page.
+
+**The Proving Grounds no longer needs the database to have caught up.** If a
+copy had the new app but not yet the table that stores your scores, the page
+failed outright rather than showing an empty scoreboard. It now opens either
+way — the scores appear once the table is there, which the app sets up on the
+next launch.
+
+A new check fails the build if a page is ever added without being added to that
+list, which is how these four drifted out of it unnoticed.
