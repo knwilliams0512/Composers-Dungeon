@@ -89,6 +89,11 @@ Section "Composer's Dungeon" SecMain
   SetOutPath "$INSTDIR"
   File "${PAYLOAD}\node.exe"
   File "${PAYLOAD}\version.json"
+  ; The Visual C++ runtime the database engine links, kept beside node.exe so
+  ; Windows finds it there. No separate redistributable, no administrator.
+  File "${PAYLOAD}\vcruntime140.dll"
+  File "${PAYLOAD}\vcruntime140_1.dll"
+  File "${PAYLOAD}\msvcp140.dll"
 
   SetOutPath "$INSTDIR\app"
   File /r "${PAYLOAD}\app\*.*"

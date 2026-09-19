@@ -137,6 +137,28 @@ if (!/\[switch\]\$Repair/.test(updater))
 if (!/if \(\$Repair\)/.test(updater))
   fail("installer/apply-update.ps1", "-Repair does not bypass the version check, so it would do nothing");
 
+// The Visual C++ runtime the database engine links has to travel WITH the app.
+// A PC without vcruntime140_1.dll cannot load the engine, the server exits
+// instantly, and nothing on screen says why — which is what the first machine
+// this shipped to actually hit.
+const DLLS = ["vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll"];
+const build = readFileSync("scripts/windows/build-installer.sh", "utf8");
+const nsi = readFileSync("installer/composers-dungeon.nsi", "utf8");
+for (const dll of DLLS) {
+  if (!build.includes(dll))
+    fail("scripts/windows/build-installer.sh", `does not fetch ${dll} into the payload`);
+  if (!nsi.includes(dll))
+    fail("installer/composers-dungeon.nsi", `does not install ${dll} beside node.exe`);
+}
+if (!/unpacked\\runtime/.test(updater))
+  fail("installer/apply-update.ps1", "the update no longer carries the runtime libraries");
+if (!/zip -qr "\$UPDATE_ZIP" app launch seed runtime/.test(build))
+  fail("scripts/windows/build-installer.sh", "the update package no longer includes runtime/");
+// And the launcher must accept the app's own copy, or it would demand a
+// system-wide install the app no longer needs.
+if (!/Test-Path \(Join-Path \$Root \$_\)/.test(launcher))
+  fail("installer/app-launcher.ps1", "no longer accepts the runtime shipped beside node.exe");
+
 console.log(`launcher: ${FILES.length} PowerShell files checked for structure and known traps`);
 if (problems.length === 0) console.log("OK - no launcher problems");
 else { console.log(`FAIL - ${problems.length} problems:`); problems.forEach((p) => console.log("  -", p)); }

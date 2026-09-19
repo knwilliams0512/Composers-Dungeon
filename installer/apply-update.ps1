@@ -187,6 +187,14 @@ $newSeed = Join-Path $staging "unpacked\seed"
 if (Test-Path $newSeed) {
     Copy-Item (Join-Path $newSeed "*") (Join-Path $Root "seed") -Recurse -Force -ErrorAction SilentlyContinue
 }
+# The Visual C++ runtime goes beside node.exe at the install root. Carried by
+# the update as well as the installer, so a PC missing it is fixed by launching
+# rather than by downloading a Microsoft redistributable.
+$newRuntime = Join-Path $staging "unpacked\runtime"
+if (Test-Path $newRuntime) {
+    Copy-Item (Join-Path $newRuntime "*") $Root -Force -ErrorAction SilentlyContinue
+    Write-Log "runtime libraries refreshed"
+}
 
 # --- Migrate + re-seed -------------------------------------------------------
 Write-Log "running database upgrade"

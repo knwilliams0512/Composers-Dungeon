@@ -151,13 +151,41 @@ if ($damage.Count -gt 0) {
 # have the first without the other two. Missing either, the engine fails to
 # load and the server exits before it prints anything useful.
 $vcParts = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
-$vcMissing = @($vcParts | Where-Object { -not (Test-Path (Join-Path $env:SystemRoot "System32\$_")) })
+# The app ships its own copies beside node.exe, and Windows searches the
+# running executable's own directory first, so those are what actually get
+# loaded. Only a PC missing them BOTH locally and in System32 has a problem -
+# and since 1.11.4 that should not happen, because the installer and the
+# update both lay them down.
+$vcMissing = @($vcParts | Where-Object {
+        -not (Test-Path (Join-Path $Root $_)) -and
+        -not (Test-Path (Join-Path $env:SystemRoot "System32\$_"))
+    })
 if ($vcMissing.Count -gt 0) {
-    Show-Problem ("Composer's Dungeon needs the Microsoft Visual C++ Runtime, and this PC is missing:`n  - " +
-        ($vcMissing -join "`n  - ") +
-        "`n`nInstall it (free, one minute) from:`n" +
-        "https://aka.ms/vs/17/release/vc_redist.x64.exe`n`n" +
-        "Then launch Composer's Dungeon again.")
+    # The app carries these itself, so reaching here means its own copies are
+    # gone too - and the update can put them back.
+    $runtimeRepaired = $false
+    if (-not $SkipUpdate) {
+        $updater = Join-Path $PSScriptRoot "apply-update.ps1"
+        if (Test-Path $updater) {
+            try {
+                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $updater -Root $Root -Silent -Repair
+            }
+            catch {}
+            $vcMissing = @($vcParts | Where-Object {
+                    -not (Test-Path (Join-Path $Root $_)) -and
+                    -not (Test-Path (Join-Path $env:SystemRoot "System32\$_"))
+                })
+            $runtimeRepaired = $vcMissing.Count -eq 0
+        }
+    }
+    if (-not $runtimeRepaired) {
+        Show-Problem ("Composer's Dungeon needs these Microsoft runtime libraries, and they are" +
+            " neither in its own folder nor on this PC:`n  - " + ($vcMissing -join "`n  - ") +
+            "`n`nThe app normally ships its own copies, so something is removing them -" +
+            " usually antivirus. Allowing the Composer's Dungeon folder in its settings fixes it." +
+            "`n`nFailing that, installing the Microsoft Visual C++ Runtime puts them on the PC" +
+            " for good:`nhttps://aka.ms/vs/17/release/vc_redist.x64.exe")
+    }
 }
 
 # --- First run: database + secret -------------------------------------------

@@ -54,6 +54,34 @@ fi
 unzip -o -q "$NODE_ZIP" "node-v$NODE_VERSION-win-x64/node.exe" -d "$CACHE"
 cp "$CACHE/node-v$NODE_VERSION-win-x64/node.exe" "$PAYLOAD/node.exe"
 
+# --- 1b. The Visual C++ runtime, shipped beside node.exe ---------------------
+# The database engine is a native DLL that links vcruntime140.dll,
+# vcruntime140_1.dll and msvcp140.dll. A PC missing any of them cannot load the
+# engine, and the server exits before printing anything a person could act on -
+# which is exactly what happened to the first machine this was installed on.
+#
+# Windows looks for a DLL in the directory of the running executable before
+# anywhere else, so a copy next to node.exe is found and used without an
+# installer, without administrator rights, and without touching the system
+# copies of anything. Microsoft documents this as local deployment and the
+# files are redistributable.
+say "Fetching the Visual C++ runtime to ship alongside"
+VCR_DIR="$CACHE/msvc-runtime"
+if [ ! -f "$VCR_DIR/vcruntime140_1.dll" ]; then
+  rm -rf "$VCR_DIR" && mkdir -p "$VCR_DIR/wheel"
+  python3 -m pip download msvc-runtime --no-deps --platform win_amd64 \
+    --only-binary=:all: -d "$VCR_DIR" >/dev/null
+  unzip -o -q "$VCR_DIR"/msvc_runtime-*.whl -d "$VCR_DIR/wheel"
+  for dll in vcruntime140.dll vcruntime140_1.dll msvcp140.dll; do
+    found="$(find "$VCR_DIR/wheel" -name "$dll" | head -1)"
+    [ -n "$found" ] || { echo "Could not find $dll in the msvc-runtime package." >&2; exit 1; }
+    cp "$found" "$VCR_DIR/$dll"
+  done
+fi
+for dll in vcruntime140.dll vcruntime140_1.dll msvcp140.dll; do
+  cp "$VCR_DIR/$dll" "$PAYLOAD/$dll"
+done
+
 # --- 2. Build with the Windows Prisma engine --------------------------------
 say "Generating the Prisma client (with the Windows query engine)"
 # Temporary schema patch: contributors on Linux/macOS shouldn't pay for a
@@ -135,10 +163,16 @@ mkdir -p "$UPDATE_DIR"
 cp -r "$PAYLOAD/app" "$UPDATE_DIR/app"
 cp -r "$PAYLOAD/launch" "$UPDATE_DIR/launch"
 cp -r "$PAYLOAD/seed" "$UPDATE_DIR/seed"
+# Carried by the update as well as the installer, so a machine missing the
+# runtime is fixed by launching rather than by reinstalling.
+mkdir -p "$UPDATE_DIR/runtime"
+for dll in vcruntime140.dll vcruntime140_1.dll msvcp140.dll; do
+  cp "$PAYLOAD/$dll" "$UPDATE_DIR/runtime/$dll"
+done
 
 UPDATE_ZIP="$ROOT/dist/ComposersDungeon-$VERSION-update.zip"
 rm -f "$UPDATE_ZIP"
-( cd "$UPDATE_DIR" && zip -qr "$UPDATE_ZIP" app launch seed )
+( cd "$UPDATE_DIR" && zip -qr "$UPDATE_ZIP" app launch seed runtime )
 UPDATE_SHA="$(sha256sum "$UPDATE_ZIP" | cut -d" " -f1 | tr "a-f" "A-F")"
 
 cat > "$ROOT/dist/latest.json" <<JSON

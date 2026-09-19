@@ -513,3 +513,27 @@ exactly the shape of thing a scanner dislikes. If the repair cannot stick —
 because the files are removed again as fast as they arrive — the message now
 says so and points at the real fix: allow the Composer's Dungeon folder in your
 antivirus settings.
+
+## What's new in v1.11.4
+
+**The actual reason it would not start.** Composer's Dungeon opens its database
+through a small native library, and that library needs three Microsoft runtime
+files. This PC had two of them and not the third — `vcruntime140_1.dll` — so
+the database engine could not load, the server stopped before it printed
+anything, and all you ever saw was "Composer's Dungeon couldn't start."
+
+Nothing to install, and no need to know any of that: **the app now carries
+those three files itself**, next to its own copy of Node. Windows looks in a
+program's own folder before anywhere else, so they are simply found. No
+administrator rights, no Microsoft download, and nothing on your PC is changed.
+
+They come with the installer and with the update, so an existing copy is fixed
+by launching it. If they ever go missing, the app fetches them back the same
+way it now repairs any other missing file.
+
+Five releases were spent on this without seeing it, because the app kept
+reporting a symptom — a page that would not load, a server that would not
+start — instead of the one line that mattered. The checks that finally caught
+it are permanent now: the startup check names what is absent, the failure
+dialog carries the error and opens the log, and a build that forgets to ship
+the runtime fails.
