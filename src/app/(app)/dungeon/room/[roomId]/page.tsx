@@ -11,6 +11,7 @@ import { resolveFreedom } from "@/lib/composer-freedom";
 import { PuzzlePanel } from "@/components/dungeon/PuzzlePanel";
 import { TreasurePanel } from "@/components/dungeon/TreasurePanel";
 import { Icon } from "@/components/ui/Icon";
+import { Panel } from "@/components/ui/primitives";
 
 export default async function DungeonRoomPage({
   params,
@@ -102,6 +103,8 @@ export default async function DungeonRoomPage({
       })) > 0
     : false;
 
+  const puzzle = room.puzzleData ? sanitizePuzzle(room.puzzleData) : null;
+
   return (
     <div className="mx-auto max-w-3xl">
       <Link
@@ -155,12 +158,16 @@ export default async function DungeonRoomPage({
           <BeginTrialButton roomId={room.id} isCurse={room.type === "CURSE"} />
         ))}
 
-      {room.type === "PUZZLE" && room.puzzleData && (
-        <PuzzlePanel
-          roomId={room.id}
-          alreadySolved={puzzleSolved}
-          puzzle={sanitizePuzzle(room.puzzleData)}
-        />
+      {room.type === "PUZZLE" && room.puzzleData && puzzle && (
+        <PuzzlePanel roomId={room.id} alreadySolved={puzzleSolved} puzzle={puzzle} />
+      )}
+      {room.type === "PUZZLE" && room.puzzleData && !puzzle && (
+        <Panel title="The Riddle Is Worn Away" icon="warning" tone="crimson" className="mt-6">
+          <p className="text-[15px] leading-[1.75] text-parchment-300">
+            Something has scratched this puzzle past reading. The rest of the dungeon is
+            untouched — try another room.
+          </p>
+        </Panel>
       )}
 
       {room.type === "TREASURE" && room.artifact && (
@@ -208,19 +215,30 @@ export default async function DungeonRoomPage({
   );
 }
 
-/** Strips answers/solutions before the puzzle definition reaches the client. */
+/**
+ * Strips answers/solutions before the puzzle definition reaches the client.
+ *
+ * Returns null rather than throwing on a column that will not parse: a single
+ * bad puzzle row should cost the player that puzzle, not the whole room.
+ */
 function sanitizePuzzle(raw: string): {
   kind: string;
   prompt: string;
   choices?: string[];
   pieces?: { id: string; label: string }[];
-} {
-  const parsed = JSON.parse(raw) as {
+} | null {
+  let parsed: {
     kind: string;
     prompt: string;
     choices?: string[];
     pieces?: { id: string; label: string }[];
   };
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed.kind !== "string" || typeof parsed.prompt !== "string") return null;
   return {
     kind: parsed.kind,
     prompt: parsed.prompt,

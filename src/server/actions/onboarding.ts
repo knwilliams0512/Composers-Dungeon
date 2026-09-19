@@ -37,6 +37,16 @@ export interface PlacementQuestionDto {
   choices: string[];
 }
 
+/** Random order, so the trial does not always open with the same question. */
+function shuffle<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 /** Serves the next adaptive placement question (answer withheld). */
 export async function getPlacementQuestion(input: {
   difficulty: number;
@@ -56,14 +66,23 @@ export async function getPlacementQuestion(input: {
       },
       take: 20,
     });
-    if (candidates.length > 0) {
-      const q = candidates[Math.floor(Math.random() * candidates.length)];
+    // Skip any question whose choices will not parse rather than throwing: a
+    // single bad row would otherwise end the Placement Trial mid-way, on the
+    // player's very first screen in the app.
+    for (const q of shuffle(candidates)) {
+      let choices: string[];
+      try {
+        choices = JSON.parse(q.choices);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(choices) || choices.length < 2) continue;
       return {
         id: q.id,
         subject: q.subject,
         difficulty: q.difficulty,
         prompt: q.prompt,
-        choices: JSON.parse(q.choices) as string[],
+        choices,
       };
     }
   }

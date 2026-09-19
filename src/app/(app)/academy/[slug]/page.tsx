@@ -79,12 +79,17 @@ export default async function LessonPage({ params }: { params: { slug: string } 
     parseJson<{ piece: string; composer: string; why: string }[]>(lesson.listening) ?? [];
   const routine = parseJson<string[]>(lesson.practiceRoutine) ?? [];
 
+  // A question whose choices column will not parse is unanswerable, but it is
+  // no reason to take the whole lesson down with it — parseJson is right here.
+  // One malformed row used to throw before the page rendered anything at all.
   const quizQuestions =
-    lesson.quiz?.questions.map((q) => ({
-      id: q.id,
-      prompt: q.prompt,
-      choices: JSON.parse(q.choices) as string[],
-    })) ?? [];
+    lesson.quiz?.questions
+      .map((q) => ({
+        id: q.id,
+        prompt: q.prompt,
+        choices: parseJson<string[]>(q.choices) ?? [],
+      }))
+      .filter((q) => q.choices.length > 0) ?? [];
 
   const brief = briefForLesson(lesson);
   const [playerProfile, lessonsCompleted] = await Promise.all([

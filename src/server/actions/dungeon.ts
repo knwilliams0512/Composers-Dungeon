@@ -286,12 +286,19 @@ export async function solvePuzzle(input: {
     return { ok: false, error: "This room is still locked to you" };
   }
 
-  const puzzle = JSON.parse(room.puzzleData) as {
+  let puzzle: {
     kind: string;
     answerIndex?: number;
     solution?: string[];
     explanation?: string;
   };
+  try {
+    puzzle = JSON.parse(room.puzzleData);
+  } catch {
+    // Throwing here would surface as the app breaking rather than as one
+    // puzzle being unavailable.
+    return { ok: false, error: "This puzzle could not be read. Try another room." };
+  }
 
   let correct = false;
   if (puzzle.kind === "MULTIPLE_CHOICE") {
