@@ -477,3 +477,23 @@ PowerShell scripts for structural errors and for the specific traps already
 hit once (a BOM-writing `Set-Content`, a path matched with `-like` where
 brackets are wildcards, a function called with parentheses that PowerShell
 would read as a single array argument).
+
+## What's new in v1.11.2
+
+**If it won't start, the log now opens by itself.** A dead app cannot sensibly
+ask you to go and find a text file inside a folder you have never opened — so
+when the server fails to start, the error is quoted in the dialog *and* the
+full log opens in Notepad. Nothing to hunt for.
+
+**A real gap in the startup check.** The app checked this PC for
+`vcruntime140.dll` before starting, but the database engine also links
+`vcruntime140_1.dll` and `msvcp140.dll`, and a PC can easily have the first
+without the other two. Missing either, the engine fails to load and the server
+exits before printing anything you could act on. All three are checked now, and
+the message names which one is absent.
+
+**If the app will not start and updating has not helped**, install over the top
+with `ComposersDungeonSetup.exe` from the release page. That replaces the
+launcher itself — which an automatic update cannot always do — and your
+compositions, levels and streaks live in the data folder, which installing does
+not touch.

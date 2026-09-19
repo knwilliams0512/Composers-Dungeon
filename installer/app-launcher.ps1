@@ -119,10 +119,16 @@ if ($damage.Count -gt 0) {
 # runtime. Nearly every PC has it (games install it constantly), but on a
 # clean machine its absence surfaces as a cryptic server error — catch it
 # here with an actionable message instead.
-$vcrt = Join-Path $env:SystemRoot "System32\vcruntime140.dll"
-if (-not (Test-Path $vcrt)) {
-    Show-Problem ("Composer's Dungeon needs the Microsoft Visual C++ Runtime, which this PC doesn't have yet.`n`n" +
-        "Install it (free, one minute) from:`n" +
+# vcruntime140.dll alone was not enough to check: the engine also links
+# vcruntime140_1.dll (added in VS2019) and msvcp140.dll, and a PC can easily
+# have the first without the other two. Missing either, the engine fails to
+# load and the server exits before it prints anything useful.
+$vcParts = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
+$vcMissing = @($vcParts | Where-Object { -not (Test-Path (Join-Path $env:SystemRoot "System32\$_")) })
+if ($vcMissing.Count -gt 0) {
+    Show-Problem ("Composer's Dungeon needs the Microsoft Visual C++ Runtime, and this PC is missing:`n  - " +
+        ($vcMissing -join "`n  - ") +
+        "`n`nInstall it (free, one minute) from:`n" +
         "https://aka.ms/vs/17/release/vc_redist.x64.exe`n`n" +
         "Then launch Composer's Dungeon again.")
 }
@@ -290,7 +296,17 @@ if (Test-PortFree $Port) {
             }
             elseif ($why) { "What went wrong:`n`n$why" }
             else { "Details are in:`n$log" }
-            Show-Problem ("Composer's Dungeon couldn't start.`n`n" + $detail + "`n`nFull log: $log.err")
+            # Open the log as well as quoting it. When the app is dead this is
+            # the only thing the person can act on, and asking them to find a
+            # file inside a folder they have never opened is how three rounds
+            # of this went by without anyone seeing the actual error.
+            try {
+                $toOpen = if (Test-Path "$log.err") { "$log.err" } else { $log }
+                if (Test-Path $toOpen) { Start-Process notepad.exe $toOpen -ErrorAction SilentlyContinue }
+            }
+            catch {}
+            Show-Problem ("Composer's Dungeon couldn't start.`n`n" + $detail +
+                "`n`nThe full log has been opened in Notepad, and is at:`n$log.err")
         }
         if ((Get-Date) -gt $deadline) {
             try { $server.Kill() } catch {}

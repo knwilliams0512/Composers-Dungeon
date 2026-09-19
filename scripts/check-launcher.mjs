@@ -121,6 +121,13 @@ if (!/--schema-only/.test(launcher))
   fail("installer/app-launcher.ps1", "no longer runs the startup schema repair");
 if (!/Test-Install/.test(launcher))
   fail("installer/app-launcher.ps1", "no longer checks the install before starting");
+// The database engine links all three; checking one of them was a real hole.
+for (const dll of ["vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll"])
+  if (!launcher.includes(dll))
+    fail("installer/app-launcher.ps1", `no longer checks for ${dll}, which the database engine links`);
+// A dead app cannot ask someone to go and find a log file.
+if (!/Start-Process notepad\.exe/.test(launcher))
+  fail("installer/app-launcher.ps1", "no longer opens the log when startup fails");
 
 console.log(`launcher: ${FILES.length} PowerShell files checked for structure and known traps`);
 if (problems.length === 0) console.log("OK - no launcher problems");
