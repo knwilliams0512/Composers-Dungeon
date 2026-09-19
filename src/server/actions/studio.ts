@@ -41,11 +41,38 @@ export async function createStudioScore(input: {
   return { ok: true, id: created.id };
 }
 
+/**
+ * A server action's arguments arrive from the browser, so the TypeScript type
+ * on `score` guarantees nothing at runtime. This was the one mutation in the
+ * app writing client-supplied structure straight to the database: a payload
+ * missing `info` threw on the next line and surfaced as the app breaking, and
+ * nothing bounded how much got stored.
+ */
+function readableScore(score: unknown): StudioScore | null {
+  if (!score || typeof score !== "object") return null;
+  const s = score as Partial<StudioScore>;
+  if (!s.info || typeof s.info !== "object") return null;
+  if (typeof s.info.title !== "string" || typeof s.info.subtitle !== "string") return null;
+  if (!Array.isArray(s.parts) || !Array.isArray(s.measures)) return null;
+  return s as StudioScore;
+}
+
+/** Two megabytes is far beyond any real score and far below trouble. */
+const MAX_SCORE_BYTES = 2_000_000;
+
 export async function saveStudioScore(
   id: string,
   score: StudioScore
 ): Promise<{ ok: boolean; error?: string }> {
   const userId = await requireUserId();
+
+  const checked = readableScore(score);
+  if (!checked) return { ok: false, error: "That score could not be read, so it was not saved." };
+
+  const serialised = JSON.stringify(checked);
+  if (serialised.length > MAX_SCORE_BYTES) {
+    return { ok: false, error: "This score is too large to save. Split it into movements." };
+  }
 
   const existing = await db.composition.findUnique({ where: { id } });
   if (!existing || existing.userId !== userId) {
@@ -57,9 +84,9 @@ export async function saveStudioScore(
   await db.composition.update({
     where: { id },
     data: {
-      title: score.info.title.slice(0, 120) || "Untitled Score",
-      description: score.info.subtitle.slice(0, 400),
-      score: JSON.stringify(score),
+      title: checked.info.title.slice(0, 120) || "Untitled Score",
+      description: checked.info.subtitle.slice(0, 400),
+      score: serialised,
     },
   });
 

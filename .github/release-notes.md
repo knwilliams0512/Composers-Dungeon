@@ -557,3 +557,45 @@ next launch.
 
 A new check fails the build if a page is ever added without being added to that
 list, which is how these four drifted out of it unnoticed.
+
+## What's new in v1.12.0
+
+**Boss fights ask for music now.** Every other place the game wants a piece —
+a lesson exercise, a dungeon trial — hands you the composer and judges what
+you write. The boss fight, which is the end of all of it, accepted a title
+typed into a box. Each of the six bosses now sets a brief drawn from its own
+phases: the Chromatic Serpent wants a theme and its transformation, the Iron
+Metronome fights in 7/8 and wants varied rhythm with room to breathe, the Pale
+Soprano wants a shaped, singable line, and the Forgotten Composer wants melody,
+harmony, rhythm, counterpoint and form at once. The final blow is graded by
+the same engine as everything else, and tells you which standards you missed.
+
+**Two exercises could not be completed by anyone.** The lesson on note values
+asks for three different note lengths while limiting you to the Apprentice
+toolbar, which offers two — there was no way to pass it. And any rhythm trial
+in 2/4 at difficulty 2 asked for more notes than a 2/4 bar can hold at that
+level, *and* for a second note length, *and* for a rest, which is three demands
+on the same handful of beats. Both are fixed at the root: an exercise now
+raises its own toolbar to whatever its standards need, and the note count is
+capped below what the meter can actually hold.
+
+Finding those meant teaching the checks to compose. A new check writes a real
+piece for every exercise in the game — all 40 lesson exercises, every dungeon
+trial, all 7,857 combinations the trial generator can produce, and all six boss
+briefs — using only the tools that exercise actually grants. If it cannot write
+one, the build fails.
+
+**One bad row no longer takes a page down with it.** Four places read stored
+data with nothing to catch a row saved by an older version of the app. A
+lesson's quiz dropped the whole page if a single question was unreadable; a
+puzzle room fell over instead of saying the riddle was worn away; and the
+Placement Trial could break on a new player's very first screen. Each failure
+is now local to the thing that failed.
+
+**Smaller fixes.** Deleting a guild post asks first, rather than doing it on
+one click of an unlabelled ✕. The Library stops loading every piece you have
+ever written at once. Buttons that show only a musical symbol — the note
+lengths, the studio toolbar, the like button — now say what they are to a
+screen reader instead of reading out as symbols. And a helper that could be
+called from outside with anyone's account id is no longer reachable that way,
+with a check to keep it that way.
