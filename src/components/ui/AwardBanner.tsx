@@ -3,6 +3,7 @@
 import type { AwardResult } from "@/lib/progression";
 import { SKILL_LABELS } from "@/lib/enums";
 import { Icon } from "@/components/ui/Icon";
+import { CountUp } from "@/components/ui/CountUp";
 
 /** Renders the outcome of a progression award: XP, level-ups, achievements. */
 export function AwardBanner({
@@ -16,11 +17,11 @@ export function AwardBanner({
 }) {
   if (!award && (!extra || extra.length === 0)) return null;
   return (
-    <div className="card-gold animate-rise space-y-2 p-4">
+    <div className={`card-gold animate-rise space-y-2 p-4 ${award?.leveledUp ? "award-levelled" : ""}`}>
       {award && (
         <p className="font-display text-lg text-gold-300">
-          <Icon name="sparkle" size={16} className="mr-1 inline text-gold-400" />+
-          {award.xpAwarded} XP
+          <Icon name="sparkle" size={16} className="mr-1 inline text-gold-400" />
+          <CountUp to={award.xpAwarded} prefix="+" suffix=" XP" />
           {award.streakBonusApplied && (
             <span className="ml-2 inline-flex items-center gap-1 text-sm text-crimson-400">
               <Icon name="flame" size={13} /> flame bonus
@@ -29,9 +30,11 @@ export function AwardBanner({
         </p>
       )}
       {award?.leveledUp && (
-        <p className="text-parchment-100">
-          <Icon name="trophy" size={15} className="mr-1 inline text-gold-400" />
-          You have reached <strong>Composer Level {award.newLevel}</strong>!
+        <p className="level-up flex items-center gap-2 text-parchment-100">
+          <Icon name="trophy" size={17} className="level-up-mark shrink-0 text-gold-400" />
+          <span>
+            You have reached <strong>Composer Level {award.newLevel}</strong>!
+          </span>
         </p>
       )}
       {award?.skillLevelUps.map((s) => (

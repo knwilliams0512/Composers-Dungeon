@@ -112,8 +112,8 @@ export function ChallengePanel({
   if (conquered) {
     return (
       <div className="space-y-4">
-        <div className="card-gold lit-edge p-5 text-center">
-          <Icon name="trophy" size={30} className="mx-auto text-gold-400" />
+        <div className="victory card-gold lit-edge p-5 text-center">
+          <Icon name="trophy" size={30} className="level-up-mark mx-auto text-gold-400" />
           <h2 className="heading-display mt-2 text-2xl">Challenge Conquered</h2>
           <p className="mt-1 text-sm text-parchment-400">
             Every standard met. The piece is yours, and it is in your Library.

@@ -442,3 +442,215 @@ html[data-font="readable"] button {
 .skip-link:focus {
   transform: translateY(0);
 }
+
+/* ===========================================================================
+   The opening titles.
+
+   Plays once per launch, over everything, and never takes a click — the
+   overlay is pointer-events: none from first frame to last, so the app
+   underneath is usable throughout. Motion preferences are honoured by the
+   component, which does not render at all when motion is reduced.
+   ======================================================================== */
+
+.opening {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(60% 60% at 50% 45%, rgba(20, 17, 32, 0.92), rgba(8, 7, 14, 0.985)),
+    #07060c;
+  animation: opening-in 380ms ease-out both;
+}
+
+.opening-out {
+  animation: opening-out 600ms ease-in both;
+}
+
+.opening-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(45% 45% at 50% 42%, rgba(227, 194, 109, 0.1), transparent 70%);
+  animation: opening-breathe 2.6s ease-in-out both;
+}
+
+.opening-art {
+  width: min(78vw, 520px);
+  height: auto;
+  filter: drop-shadow(0 0 24px rgba(227, 194, 109, 0.22));
+}
+
+/* Each rule sweeps out from the left. */
+.opening-rule {
+  transform-origin: 40px center;
+  animation: opening-rule 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The clef writes itself: a long dash offset pulled back to zero. */
+.opening-clef {
+  stroke-dasharray: 640;
+  stroke-dashoffset: 640;
+  animation: opening-write 1250ms cubic-bezier(0.4, 0, 0.2, 1) 380ms both;
+}
+
+.opening-spark {
+  opacity: 0;
+  animation: opening-spark 1400ms ease-out 900ms both;
+}
+
+.opening-words {
+  position: absolute;
+  bottom: clamp(16%, 22vh, 28%);
+  text-align: center;
+  padding: 0 16px;
+}
+
+.opening-title {
+  font-family: var(--font-display), serif;
+  font-size: clamp(1.6rem, 5.2vw, 2.8rem);
+  letter-spacing: 0.02em;
+  color: #f0d598;
+  text-shadow: 0 0 26px rgba(227, 194, 109, 0.38);
+  animation: opening-strike 900ms cubic-bezier(0.22, 1, 0.36, 1) 1150ms both;
+}
+
+.opening-tagline {
+  margin-top: 0.5rem;
+  font-size: clamp(0.62rem, 2vw, 0.72rem);
+  text-transform: uppercase;
+  letter-spacing: 0.42em;
+  color: rgba(214, 199, 170, 0.62);
+  animation: opening-strike 900ms cubic-bezier(0.22, 1, 0.36, 1) 1420ms both;
+}
+
+@keyframes opening-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes opening-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(1.04); }
+}
+
+@keyframes opening-rule {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes opening-write {
+  from { stroke-dashoffset: 640; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes opening-spark {
+  0%   { opacity: 0; transform: scale(0.6); }
+  45%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.45; transform: scale(1); }
+}
+
+@keyframes opening-breathe {
+  0%   { opacity: 0; }
+  40%  { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
+@keyframes opening-strike {
+  from { opacity: 0; transform: translateY(14px); letter-spacing: 0.28em; }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Belt and braces: if the component ever renders with motion reduced, it is
+   a still frame rather than a sequence. */
+html[data-motion="reduce"] .opening { display: none; }
+
+/* ===========================================================================
+   Reward feel.
+
+   Levelling up, conquering a trial and felling a boss are the three moments
+   the game is played for. They get a flourish; everything else stays quiet so
+   these still read as special. All of it is switched off under reduced motion
+   by the blanket rule further up.
+   ======================================================================== */
+
+/* The award card lights along its edge when a level was gained. */
+.award-levelled {
+  animation: award-flare 1400ms ease-out both;
+}
+
+.level-up {
+  animation: rise 420ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+.level-up-mark {
+  animation: level-mark 900ms cubic-bezier(0.22, 1, 0.36, 1) 220ms both;
+}
+
+@keyframes award-flare {
+  0%   { box-shadow: 0 0 0 0 rgba(227, 194, 109, 0); }
+  25%  { box-shadow: 0 0 34px 6px rgba(227, 194, 109, 0.38); }
+  100% { box-shadow: 0 0 0 0 rgba(227, 194, 109, 0); }
+}
+
+@keyframes level-mark {
+  0%   { transform: scale(0.5) rotate(-14deg); opacity: 0; }
+  55%  { transform: scale(1.25) rotate(4deg); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* A burst of light behind a victory panel. Drawn with one element and a
+   pseudo-element, so there is nothing to clean up and nothing to schedule. */
+.victory {
+  position: relative;
+  overflow: hidden;
+  animation: victory-settle 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.victory::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(227, 194, 109, 0.26) 0deg,
+    transparent 24deg,
+    rgba(227, 194, 109, 0.22) 60deg,
+    transparent 92deg,
+    rgba(227, 194, 109, 0.26) 150deg,
+    transparent 190deg,
+    rgba(227, 194, 109, 0.2) 250deg,
+    transparent 300deg
+  );
+  animation: victory-rays 2600ms linear both;
+  pointer-events: none;
+}
+
+.victory > * {
+  position: relative;
+}
+
+@keyframes victory-settle {
+  0%   { transform: scale(0.94); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+@keyframes victory-rays {
+  0%   { transform: rotate(0deg) scale(0.6); opacity: 0; }
+  18%  { opacity: 0.9; }
+  100% { transform: rotate(140deg) scale(1.15); opacity: 0; }
+}
+
+/* The boss health bar takes a hit: a shake, then a flash on the damage. */
+.struck {
+  animation: struck 480ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes struck {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-6px); }
+  32%      { transform: translateX(5px); }
+  52%      { transform: translateX(-3px); }
+  74%      { transform: translateX(2px); }
+}

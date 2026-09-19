@@ -7,6 +7,7 @@ import { AwardBanner } from "@/components/ui/AwardBanner";
 import { Meter } from "@/components/ui/primitives";
 import type { AwardResult } from "@/lib/progression";
 import { Icon } from "@/components/ui/Icon";
+import { CountUp } from "@/components/ui/CountUp";
 import { ScoreEditor } from "@/components/composer/ScoreEditor";
 import type { Freedom } from "@/lib/composer-freedom";
 import type { Brief } from "@/lib/challenge-brief";
@@ -180,11 +181,15 @@ export function BossFight({
                 </span>
               )}
             </div>
-            <Meter percent={hpPercent} color={defeated ? "emerald" : "crimson"} thick />
+            {/* Keyed on the running total so each landed blow replays the
+                shake rather than animating once and never again. */}
+            <div key={`hp-${currentHp}`} className={lastHit && !defeated ? "struck" : undefined}>
+              <Meter percent={hpPercent} color={defeated ? "emerald" : "crimson"} thick />
+            </div>
             {lastHit && !defeated && (
               <p className="mt-2 animate-rise text-sm text-crimson-400">
                 <Icon name="sword" size={15} className="mr-1 inline" />
-                {lastHit.toLocaleString()} damage!
+                <CountUp to={lastHit} suffix=" damage!" />
               </p>
             )}
           </div>
@@ -192,7 +197,7 @@ export function BossFight({
       </section>
 
       {defeated && (
-        <section className="card-gold aura lit-edge relative overflow-hidden p-7 text-center">
+        <section className="victory card-gold aura lit-edge relative overflow-hidden p-7 text-center">
           <div
             className="pointer-events-none absolute -top-16 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full opacity-30 blur-3xl"
             style={{ background: "radial-gradient(circle, #f0d894, transparent 70%)" }}

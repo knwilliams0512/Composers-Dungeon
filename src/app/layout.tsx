@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cinzel, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
+import { OpeningTitles } from "@/components/ui/OpeningTitles";
 
 const display = Cinzel({
   subsets: ["latin"],
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <OpeningTitles />
         <ServiceWorkerRegistrar />
       </body>
     </html>

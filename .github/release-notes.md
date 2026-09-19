@@ -599,3 +599,47 @@ lengths, the studio toolbar, the like button — now say what they are to a
 screen reader instead of reading out as symbols. And a helper that could be
 called from outside with anyone's account id is no longer reachable that way,
 with a check to keep it that way.
+
+## What's new in v1.13.0
+
+**The app opens properly now.** Launching it used to mean a dark page and then,
+abruptly, the Entrance Hall. Now five staff lines draw themselves across the
+dark, a clef writes itself onto them and catches the light, and the title
+strikes before the whole thing dissolves into the game. It plays once per
+launch, never takes a click — you can sign in straight through it — and anyone
+who has asked for less motion never sees it.
+
+**Level 6: The Full Score.** A whole new level of the Academy, above Virtuoso,
+for composers writing pages rather than lines. Six lessons: the score itself
+and the order every player expects to find their staff in; transposing
+instruments in both directions; divisi against double stops, what a hand can
+actually reach, and harmonics; extended techniques notated so a performer can
+play them; balance, the orchestral pyramid, and doubling as colour rather than
+volume; and holding twenty minutes together with thematic transformation,
+pacing and transitions that are prepared.
+
+**The Hall of a Hundred Staves.** The deepest area in the dungeon, at level 25.
+Eleven rooms — a half-copied score somebody has to finish, a transposing gate
+where only one of four doors is in the right key, a vault of passages that were
+written and then refused by an orchestra, a drawer that only opens once every
+other door in the Hall has — and at the podium, the Silent Orchestra:
+ninety-nine players who will play exactly what is on the page and nothing you
+meant but did not write.
+
+**The score maker is in the deep trials.** Trials at difficulty 8 and above,
+and anything about orchestration, are now written on a real full score rather
+than the piano roll — every part, every staff, the proper engraver, with the
+page widened to give a score the room it needs. The dungeon learned to grade
+one: your score is flattened to sounding pitch through each instrument's own
+transposition, and the harmony read back out of what actually sounds, bar by
+bar.
+
+**Five of the twelve keys in the game were wrong.** The key reader understood
+"F♯" but not "F-sharp", which is how the game writes them — so a trial that
+said B-flat major was set, and graded, in B major. Every spelling is fixed and
+checked.
+
+**Smaller things.** XP counts up rather than simply being there. Levelling up
+lights the card. Conquering a trial and felling a boss both get a burst of
+light, and the boss's health bar takes the hit. And the score maker no longer
+tries to draw a page with a negative width on a very narrow window.
