@@ -22,7 +22,16 @@ function accessibilityScript(prefs: {
   highContrast: boolean;
   readableFont: boolean;
 }): string {
-  return `(function(){var d=document.documentElement;var p=${JSON.stringify(prefs)};
+  // JSON.stringify does not escape "<", so a value containing "</script>"
+  // would close this tag and run whatever followed. The only string here is
+  // checked against an allowlist before it is stored, so this is not reachable
+  // today — but inline JSON should not depend on that staying true.
+  const safe = JSON.stringify(prefs)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+  return `(function(){var d=document.documentElement;var p=${safe};
 if(p.textScale&&p.textScale!=="NORMAL")d.setAttribute("data-text",p.textScale);
 if(p.reduceMotion===true)d.setAttribute("data-motion","reduce");
 if(p.highContrast)d.setAttribute("data-contrast","high");

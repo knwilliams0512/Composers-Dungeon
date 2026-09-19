@@ -103,13 +103,24 @@ async function CompositionsTab({
   q: string;
   sort: "asc" | "desc";
 }) {
-  const compositions = await db.composition.findMany({
-    where: { userId, ...(q ? { title: { contains: q } } : {}) },
-    orderBy: { createdAt: sort },
-  });
+  // Every other list in the app caps what it loads; this one did not, and each
+  // row carries a whole score, so a long-lived library would have shipped
+  // megabytes of notation to the browser to draw a page of thumbnails.
+  const PAGE = 100;
+  const where = { userId, ...(q ? { title: { contains: q } } : {}) };
+  const [compositions, totalCount] = await Promise.all([
+    db.composition.findMany({ where, orderBy: { createdAt: sort }, take: PAGE }),
+    db.composition.count({ where }),
+  ]);
   return (
     <div className="space-y-6">
       <NewCompositionForm />
+      {totalCount > compositions.length && (
+        <p className="text-sm text-parchment-500">
+          Showing the {sort === "desc" ? "newest" : "oldest"} {compositions.length} of{" "}
+          {totalCount} pieces. Search by title to find the rest.
+        </p>
+      )}
       {compositions.length === 0 ? (
         <p className="text-parchment-500">
           No compositions yet{q && " matching that search"}. The blank page is the
