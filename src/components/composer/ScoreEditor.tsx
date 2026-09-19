@@ -538,6 +538,11 @@ export function ScoreEditor({
                 title={`${NOTE_NAMES[d] ?? "custom"} note — ${beatLabel(d, beatTicks)} beat${
                   d / beatTicks === 1 ? "" : "s"
                 }`}
+                // The button shows a glyph and a beat count, and a button's own
+                // content beats its title when a screen reader names it, so
+                // without this the palette announces as symbols and numbers.
+                aria-label={`${NOTE_NAMES[d] ?? "Custom"} note`}
+                aria-pressed={duration === d}
                 className={`flex min-w-[2.6rem] flex-col items-center gap-0.5 rounded px-2 py-1 leading-none transition-colors ${
                   duration === d
                     ? "bg-gold-600 text-abyss-950"

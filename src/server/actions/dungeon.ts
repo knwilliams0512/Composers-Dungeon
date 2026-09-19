@@ -23,8 +23,15 @@ async function getProfileOrThrow(userId: string) {
   return profile;
 }
 
-/** Server-side gate: is this area unlocked for the user? */
-export async function isAreaUnlocked(userId: string, areaId: string): Promise<boolean> {
+/**
+ * Server-side gate: is this area unlocked for the user?
+ *
+ * Not exported. Every export from a "use server" file becomes an endpoint the
+ * browser can call, and this one takes a userId as an argument — exported, it
+ * let anyone ask what any account had unlocked. It has only ever been used by
+ * the actions in this file, which pass the caller's own id.
+ */
+async function isAreaUnlocked(userId: string, areaId: string): Promise<boolean> {
   const [profile, area, lessonsCompleted] = await Promise.all([
     db.userProfile.findUnique({ where: { userId } }),
     db.dungeonArea.findUnique({ where: { id: areaId } }),
