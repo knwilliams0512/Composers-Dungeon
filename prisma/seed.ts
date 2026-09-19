@@ -3,9 +3,16 @@ import bcrypt from "bcryptjs";
 import { beginnerLessons } from "./seed-data/lessons-beginner";
 import { advancedLessons } from "./seed-data/lessons-advanced";
 import { curriculumLessons } from "./seed-data/lessons-curriculum";
+import { orchestralLessons } from "./seed-data/lessons-orchestral";
 import { ALL_UNITS, CRAFT_SLUGS } from "../src/lib/curriculum";
 import { lessonDetail } from "./seed-data/lesson-detail";
 import { areaDetail, bossDetail } from "./seed-data/world-detail";
+import {
+  orchestralArea,
+  orchestralAreaDetail,
+  orchestralArtifacts,
+  orchestralBosses,
+} from "./seed-data/world-orchestral";
 import {
   artifacts,
   bosses,
@@ -72,6 +79,7 @@ async function seedLessons() {
     ...beginnerLessons,
     ...advancedLessons,
     ...curriculumLessons,
+    ...orchestralLessons,
   ];
   const skillByKey = new Map(
     (await db.skill.findMany()).map((s) => [s.key, s.id])
@@ -217,14 +225,14 @@ async function seedPlacementQuestions() {
 }
 
 async function seedArtifacts() {
-  for (const a of [...artifacts, ...expansionArtifacts]) {
+  for (const a of [...artifacts, ...expansionArtifacts, ...orchestralArtifacts]) {
     await db.artifact.upsert({ where: { key: a.key }, create: a, update: a });
   }
-  console.log(`✔ ${artifacts.length + expansionArtifacts.length} artifacts`);
+  console.log(`✔ ${artifacts.length + expansionArtifacts.length + orchestralArtifacts.length} artifacts`);
 }
 
 async function seedBosses() {
-  for (const b of [...bosses, ...expansionBosses]) {
+  for (const b of [...bosses, ...expansionBosses, ...orchestralBosses]) {
     const rewardArtifact = b.rewardArtifactKey
       ? await db.artifact.findUnique({ where: { key: b.rewardArtifactKey } })
       : null;
@@ -260,11 +268,12 @@ async function seedBosses() {
       }
     }
   }
-  console.log(`✔ ${bosses.length + expansionBosses.length} bosses with phases & objectives`);
+  console.log(`✔ ${bosses.length + expansionBosses.length + orchestralBosses.length} bosses with phases & objectives`);
 }
 
 async function seedDungeon() {
-  const allAreas = [...dungeonAreas, ...expansionAreas];
+  const allAreas = [...dungeonAreas, ...expansionAreas, orchestralArea];
+  const detail: typeof areaDetail = { ...areaDetail, ...orchestralAreaDetail };
   for (const area of allAreas) {
     const areaFields = {
       name: area.name,
@@ -276,10 +285,10 @@ async function seedDungeon() {
       skillKey: area.skillKey,
       order: area.order,
       special: area.special ?? false,
-      lore: areaDetail[area.key]?.lore ?? null,
-      dangerRating: areaDetail[area.key]?.dangerRating ?? 1,
-      survivalTips: areaDetail[area.key]?.survivalTips
-        ? JSON.stringify(areaDetail[area.key].survivalTips)
+      lore: detail[area.key]?.lore ?? null,
+      dangerRating: detail[area.key]?.dangerRating ?? 1,
+      survivalTips: detail[area.key]?.survivalTips
+        ? JSON.stringify(detail[area.key]!.survivalTips)
         : null,
     };
     const dbArea = await db.dungeonArea.upsert({

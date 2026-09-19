@@ -119,6 +119,22 @@ export const CURRICULUM: CurriculumLevel[] = [
       { unit: "5.6", title: "Ear Training & Fluency", blurb: "Solfège, dictation, improvisation and reading a full score without an instrument.", slugs: ["ear-training-fluency"] },
     ],
   },
+  {
+    level: 6,
+    name: "The Full Score",
+    summary:
+      "For composers writing pages rather than lines: the orchestral score itself — its order, its transpositions, its sections, its colours, and the architecture that holds twenty minutes together.",
+    icon: "layers",
+    accent: "#c98f4b",
+    units: [
+      { unit: "6.1", title: "The Full Score", blurb: "Staff order, brackets and braces, a2 and divisi, and what goes above the staff versus below it.", slugs: ["full-score-layout"] },
+      { unit: "6.2", title: "Transposing Instruments", blurb: "Writing the note the player reads: B♭, A, F and E♭ instruments, and the ones that move only by an octave.", slugs: ["transposing-instruments"] },
+      { unit: "6.3", title: "The String Section", blurb: "Divisi against double stops, what a hand can reach, natural and artificial harmonics, and the bow as a dynamic.", slugs: ["string-section-writing"] },
+      { unit: "6.4", title: "Extended Techniques", blurb: "Flutter-tongue, multiphonics, mutes, Bartók pizzicato and scordatura — notated so they can actually be played.", slugs: ["extended-techniques"] },
+      { unit: "6.5", title: "Balance, Blend & Colour", blurb: "Why one trombone covers a flute section, the orchestral pyramid, doubling as colour, and texture as structure.", slugs: ["orchestral-balance-colour"] },
+      { unit: "6.6", title: "Large-Form Architecture", blurb: "Thematic transformation, pacing in minutes, placing the climax, and writing the transitions that join sections.", slugs: ["large-form-architecture"] },
+    ],
+  },
 ];
 
 /**

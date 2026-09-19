@@ -84,6 +84,24 @@ const BOSS_BRIEFS: Record<string, BossSetup> = {
       { id: "uses-rests" },
     ],
   },
+  // Ninety-nine players reading exactly what is on the page: the longest span
+  // in the game, harmonised throughout, with an idea that has to come back.
+  "silent-orchestra": {
+    key: "Eb",
+    mode: "major",
+    bars: 16,
+    tempo: 88,
+    checks: [
+      { id: "motif-repetition" },
+      { id: "single-climax" },
+      { id: "chords-every-bar" },
+      { id: "authentic-cadence" },
+      { id: "melody-fits-chords", value: 0.6 },
+      { id: "leap-recovery" },
+      { id: "rhythmic-variety", value: 3 },
+      { id: "uses-rests" },
+    ],
+  },
   // "A line that works against its own shadow… every rise becomes a fall."
   "canon-that-eats-itself": {
     key: "A",

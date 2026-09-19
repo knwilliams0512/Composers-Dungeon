@@ -35,9 +35,11 @@ import { briefForChallenge } from "../src/lib/challenge-brief";
 import { beginnerLessons } from "../prisma/seed-data/lessons-beginner";
 import { advancedLessons } from "../prisma/seed-data/lessons-advanced";
 import { curriculumLessons } from "../prisma/seed-data/lessons-curriculum";
+import { orchestralLessons } from "../prisma/seed-data/lessons-orchestral";
 import { PrismaClient } from "@prisma/client";
 import { challengeComponents, bosses } from "../prisma/seed-data/world";
 import { expansionBosses } from "../prisma/seed-data/world-expansion";
+import { orchestralBosses } from "../prisma/seed-data/world-orchestral";
 import { briefForBoss, BOSS_BRIEF_KEYS } from "../src/lib/boss-brief";
 
 /* --- a tiny seeded RNG, so a failure reported here reproduces exactly ------ */
@@ -279,7 +281,7 @@ let failures = 0;
 let hardest = { slug: "", tries: 0 };
 
 // Boss final blows.
-const allBosses = [...bosses, ...(expansionBosses as any[])];
+const allBosses = [...bosses, ...(expansionBosses as any[]), ...(orchestralBosses as any[])];
 console.log(`briefs: checking ${allBosses.length} boss final blows`);
 for (const b of allBosses) {
   const brief = briefForBoss({ key: b.key, difficulty: (b as any).difficulty });
@@ -308,7 +310,7 @@ for (const b of allBosses) {
   }
 }
 
-const lessons = [...beginnerLessons, ...curriculumLessons, ...advancedLessons];
+const lessons = [...beginnerLessons, ...curriculumLessons, ...advancedLessons, ...orchestralLessons];
 
 console.log(`briefs: checking ${lessons.length} lesson composition exercises`);
 for (const l of lessons) {

@@ -41,6 +41,14 @@ const SETUPS: Record<string, Setup> = {
   "advanced-rhythm-texture": { key: "E", mode: "minor", meter: { beats: 6, unit: 8 }, bars: 8 },
   "fugue-large-form": { key: "D", mode: "minor", bars: 8 },
   "virtuoso-writing": { key: "A", mode: "minor", bars: 8, instrument: "PIANO" },
+  // Level 6 — the full score. Bigger spans and keys with real signatures,
+  // because a composer arriving here is writing pages, not phrases.
+  "full-score-layout": { key: "Bb", mode: "major", bars: 8 },
+  "transposing-instruments": { key: "F", mode: "major", bars: 8 },
+  "string-section-writing": { key: "D", mode: "minor", bars: 8 },
+  "extended-techniques": { key: "C", mode: "minor", bars: 8 },
+  "orchestral-balance-colour": { key: "Eb", mode: "major", bars: 8 },
+  "large-form-architecture": { key: "G", mode: "minor", bars: 8 },
 };
 
 /** Extra standards for lessons whose whole point is one specific skill. */
@@ -66,6 +74,16 @@ const EXTRA_CHECKS: Record<string, Check[]> = {
   "binary-ternary-form": [{ id: "motif-repetition" }],
   "fugue-large-form": [{ id: "motif-repetition" }, { id: "leap-recovery" }],
   "virtuoso-writing": [{ id: "rhythmic-variety", value: 3 }, { id: "range-limit", value: 24 }],
+  "full-score-layout": [{ id: "chords-every-bar" }, { id: "authentic-cadence" }],
+  "transposing-instruments": [{ id: "chords-every-bar" }, { id: "melody-fits-chords", value: 0.6 }],
+  "string-section-writing": [{ id: "mostly-stepwise", value: 0.6 }, { id: "leap-recovery" }],
+  "extended-techniques": [{ id: "rhythmic-variety", value: 3 }, { id: "uses-rests" }],
+  "orchestral-balance-colour": [
+    { id: "chords-every-bar" },
+    { id: "melody-fits-chords", value: 0.6 },
+    { id: "single-climax" },
+  ],
+  "large-form-architecture": [{ id: "motif-repetition" }, { id: "single-climax" }, { id: "authentic-cadence" }],
 };
 
 export function briefForLesson(lesson: {
