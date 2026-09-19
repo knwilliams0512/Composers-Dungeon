@@ -36,7 +36,19 @@ export async function submitLessonQuiz(input: {
   });
   if (!lesson?.quiz) return { ok: false, error: "Lesson or quiz not found" };
 
-  const byId = new Map(lesson.quiz.questions.map((q) => [q.id, q]));
+  // Score against the questions that can actually be served. The lesson page
+  // skips any whose choices column will not parse, so counting all of them
+  // here would reject a complete answer set as incomplete and make the lesson
+  // impossible to pass.
+  const answerable = lesson.quiz.questions.filter((q) => {
+    try {
+      const choices = JSON.parse(q.choices);
+      return Array.isArray(choices) && choices.length > 0;
+    } catch {
+      return false;
+    }
+  });
+  const byId = new Map(answerable.map((q) => [q.id, q]));
   let correct = 0;
   const results = parsed.data.answers
     .filter((a) => byId.has(a.questionId))
@@ -52,7 +64,10 @@ export async function submitLessonQuiz(input: {
       };
     });
 
-  const totalQuestions = lesson.quiz.questions.length;
+  const totalQuestions = answerable.length;
+  if (totalQuestions === 0) {
+    return { ok: false, error: "This quiz has no readable questions. Please report this lesson." };
+  }
   if (results.length !== totalQuestions) {
     return { ok: false, error: "Answer every question before submitting" };
   }

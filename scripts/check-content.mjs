@@ -96,6 +96,50 @@ for (const a of achievements) {
   if (cap !== undefined && a.threshold > cap) fail(`achievement "${a.key}": needs ${a.threshold}, game has ${cap} - unwinnable`);
 }
 
+// --- Quiz and placement questions ----------------------------------------
+// Drills and puzzles were already checked for being answerable; the lesson
+// quizzes and the Placement Trial were not. A choices column that will not
+// parse, or an answerIndex pointing past the end of its own choices, is a
+// question with no right answer — the player loses marks on it every time and
+// nothing in the app says why.
+const quizQuestions = await db.quizQuestion.findMany({
+  include: { quiz: { include: { lesson: true } } },
+});
+let placementCount = 0;
+for (const q of quizQuestions) {
+  const where = q.quiz?.lesson?.slug
+    ? `lesson "${q.quiz.lesson.slug}"`
+    : q.placement
+      ? "placement trial"
+      : "a quiz with no lesson";
+  const label = `${where} question "${q.prompt.slice(0, 48)}"`;
+  if (q.placement) placementCount++;
+
+  let choices;
+  try {
+    choices = JSON.parse(q.choices);
+  } catch {
+    fail(`${label}: choices column is not valid JSON - unanswerable`);
+    continue;
+  }
+  if (!Array.isArray(choices)) { fail(`${label}: choices are not a list`); continue; }
+  if (choices.length < 2) { fail(`${label}: only ${choices.length} choice(s)`); continue; }
+  if (choices.some((c) => typeof c !== "string" || c.trim() === "")) {
+    fail(`${label}: has a blank choice`);
+  }
+  if (new Set(choices).size !== choices.length) fail(`${label}: duplicate choices`);
+  if (!Number.isInteger(q.answerIndex)) {
+    fail(`${label}: answerIndex is not an integer`);
+  } else if (q.answerIndex < 0 || q.answerIndex >= choices.length) {
+    fail(`${label}: answerIndex ${q.answerIndex} is outside its ${choices.length} choices - no right answer`);
+  }
+  if (!q.prompt.trim()) fail(`${label}: empty prompt`);
+}
+if (placementCount < 8) {
+  fail(`the Placement Trial asks 8 questions but only ${placementCount} are marked placement`);
+}
+console.log(`quiz questions ${quizQuestions.length} (${placementCount} placement) - all answerable`);
+
 // --- Curriculum -----------------------------------------------------------
 // The roadmap names the lessons it expects. A unit pointing at a slug that
 // does not exist renders an empty unit; a lesson on neither the roadmap nor
