@@ -16,3 +16,4 @@ dist/
 
 # Stray output from a test script run with an unset path variable.
 /undefined/
+.pt/

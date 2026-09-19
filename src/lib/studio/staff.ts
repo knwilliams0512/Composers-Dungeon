@@ -186,3 +186,80 @@ export const DURATION_PALETTE = [
   { base: 0.5, label: "32nd", symbol: "𝅘𝅥𝅰" },
   { base: 0.25, label: "64th", symbol: "𝅘𝅥𝅱" },
 ] as const;
+
+/* -------------------------------------------------------------------------- */
+/* Beaming                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export interface BeamableEvent {
+  /** Absolute tick where the event begins. */
+  start: number;
+  /** Length in ticks. */
+  duration: number;
+}
+
+/**
+ * Which notes join under a beam.
+ *
+ * Every eighth and shorter note used to be drawn with its own flag, which is
+ * how handwritten music looks and not how engraved music looks: a bar of eight
+ * eighths came out as eight separate flags rather than two beamed groups of
+ * four, and was noticeably harder to read.
+ *
+ * The rule used here is the conventional one. A beam never crosses a beat, so
+ * the beat is the unit — except in compound time (6/8, 9/8, 12/8), where the
+ * beat people feel is the dotted one, and eighths group in threes. Notes at or
+ * above a beat in length are never beamed, a gap ends a group, and a group of
+ * one keeps its flag.
+ *
+ * Returns groups of start ticks, in order, only for groups worth beaming.
+ */
+export function beamGroups(
+  events: BeamableEvent[],
+  meter: { beats: number; unit: number },
+  barStart: number,
+  barTicks: number
+): number[][] {
+  const perBeat = 16 / meter.unit;
+  // Compound time is felt in dotted beats of three eighths. 3/8 counts: its
+  // bar is one such group, and its three eighths beam together rather than
+  // standing alone as three separate beats.
+  const compound = meter.unit === 8 && meter.beats % 3 === 0;
+  const unit = compound ? perBeat * 3 : perBeat;
+
+  const sorted = [...events]
+    .filter((e) => e.start >= barStart && e.start < barStart + barTicks)
+    .sort((a, b) => a.start - b.start);
+
+  const groups: number[][] = [];
+  let current: BeamableEvent[] = [];
+
+  const flush = () => {
+    if (current.length > 1) groups.push(current.map((e) => e.start));
+    current = [];
+  };
+
+  for (const e of sorted) {
+    const v = noteValue(e.duration);
+    const beamable = v.stemmed && v.flags > 0;
+    if (!beamable) { flush(); continue; }
+
+    if (current.length > 0) {
+      const prev = current[current.length - 1];
+      const contiguous = Math.abs(prev.start + prev.duration - e.start) < 0.01;
+      // A beam stays inside one beat, so a note that starts in a later unit
+      // begins a new group even if it follows on directly.
+      const sameUnit =
+        Math.floor((prev.start - barStart) / unit) === Math.floor((e.start - barStart) / unit);
+      if (!contiguous || !sameUnit) flush();
+    }
+    current.push(e);
+  }
+  flush();
+  return groups;
+}
+
+/** Beam levels for a note: 1 for an eighth, 2 for a sixteenth, and so on. */
+export function beamLevels(duration: number): number {
+  return noteValue(duration).flags;
+}

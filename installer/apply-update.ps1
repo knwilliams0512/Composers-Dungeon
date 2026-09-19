@@ -126,11 +126,24 @@ if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 $zip = Join-Path $staging "update.zip"
 
-try {
-    Invoke-WebRequest -Uri $manifest.url -OutFile $zip -UseBasicParsing -TimeoutSec 600
+# Three tries: a home connection drops a 15 MB transfer often enough that one
+# failure is not an answer, and the alternative the person is offered is
+# reinstalling the whole app.
+$downloadError = $null
+for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+        Invoke-WebRequest -Uri $manifest.url -OutFile $zip -UseBasicParsing -TimeoutSec 600
+        $downloadError = $null
+        break
+    }
+    catch {
+        $downloadError = $_.Exception.Message
+        Write-Log "download attempt $attempt failed: $downloadError"
+        Start-Sleep -Seconds (2 * $attempt)
+    }
 }
-catch {
-    Fail "The download didn't finish. $($_.Exception.Message)"
+if ($downloadError) {
+    Fail "The download didn't finish after three tries. $downloadError"
 }
 
 $hash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash

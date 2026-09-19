@@ -20,7 +20,14 @@ import {
   type StudioNote,
   type StudioScore,
 } from "@/lib/studio/model";
-import { accidentalFor, noteValue, signatureSteps, stepForPitch } from "@/lib/studio/staff";
+import {
+  accidentalFor,
+  beamGroups,
+  beamLevels,
+  noteValue,
+  signatureSteps,
+  stepForPitch,
+} from "@/lib/studio/staff";
 import {
   Accidental,
   ArticulationGlyph,
@@ -678,20 +685,67 @@ function StaffMeasure({
       byTick.set(n.start, list);
     }
 
+    // Which chords join under a beam. Engraved music beams eighths and
+    // shorter within a beat; drawing a flag on each one is how handwriting
+    // looks, and made a bar of eight eighths read as eight separate notes.
+    const beamed = beamGroups(
+      Array.from(byTick.entries()).map(([t, c]) => ({ start: t, duration: c[0].duration })),
+      meter,
+      from,
+      measure.ticks
+    );
+    const groupOf = new Map<number, number[]>();
+    for (const g of beamed) for (const t of g) groupOf.set(t, g);
+
+    const geometry = new Map<number, { x: number; steps: number[]; up: boolean }>();
     for (const [tick, chord] of Array.from(byTick.entries())) {
-      const x = tickX(measure, tick);
-      const value = noteValue(chord[0].duration);
       const steps = chord.map((n) =>
         stepForPitch(n.pitch, staffModel.clef, musicKey, mode, n.spell)
       );
       const avg = steps.reduce((a, b) => a + b, 0) / steps.length;
-      // Two voices on one staff always point away from each other; a single
-      // voice follows the old rule of stemming away from the middle line.
       const forced = chord[0].stem;
       const up =
         forced === "up" ? true : forced === "down" ? false
         : staffModel.voices.length > 1 ? vi === 0
         : avg < 4;
+      geometry.set(tick, { x: tickX(measure, tick), steps, up });
+    }
+
+    // A beamed group shares one stem direction, decided by the group as a
+    // whole rather than note by note — otherwise the beam would have to cross
+    // the staff to reach stems pointing opposite ways.
+    const groupUp = new Map<number[], boolean>();
+    for (const g of beamed) {
+      const forced = g
+        .map((t) => byTick.get(t)?.[0].stem)
+        .find((d) => d === "up" || d === "down");
+      if (forced) { groupUp.set(g, forced === "up"); continue; }
+      if (staffModel.voices.length > 1) { groupUp.set(g, vi === 0); continue; }
+      const avgOfGroup =
+        g.reduce((sum, t) => {
+          const st = geometry.get(t)!.steps;
+          return sum + st.reduce((a, b) => a + b, 0) / st.length;
+        }, 0) / g.length;
+      groupUp.set(g, avgOfGroup < 4);
+    }
+
+    // Where each group's beam sits: one line clear of every notehead in it.
+    const beamLine = new Map<number[], { y: number; up: boolean }>();
+    for (const g of beamed) {
+      const up = groupUp.get(g)!;
+      const reach = g.map((t) => {
+        const { steps } = geometry.get(t)!;
+        return up ? yForStep(Math.max(...steps)) - gap * 3.1 : yForStep(Math.min(...steps)) + gap * 3.1;
+      });
+      beamLine.set(g, { y: up ? Math.min(...reach) : Math.max(...reach), up });
+    }
+
+    for (const [tick, chord] of Array.from(byTick.entries())) {
+      const { x, steps } = geometry.get(tick)!;
+      const value = noteValue(chord[0].duration);
+      const g = groupOf.get(tick);
+      const line = g ? beamLine.get(g) : undefined;
+      const up = line ? line.up : geometry.get(tick)!.up;
 
       bodies.push(
         <ChordGroup
@@ -710,8 +764,59 @@ function StaffMeasure({
           selection={selection}
           onSelect={onSelect}
           onRemove={(id) => onRemoveNote(part.id, staffModel.id, id)}
+          beamY={line?.y}
         />
       );
+    }
+
+    // The beams themselves, drawn over the stems they join.
+    for (const g of beamed) {
+      const line = beamLine.get(g)!;
+      const stemX = (t: number) => geometry.get(t)!.x + (line.up ? gap * 0.58 : -gap * 0.58);
+      const thickness = gap * 0.5;
+      const step = (line.up ? 1 : -1) * thickness * 1.5;
+      const levels = Math.max(...g.map((t) => beamLevels(byTick.get(t)![0].duration)));
+
+      for (let level = 0; level < levels; level++) {
+        const y = line.y + step * level;
+        if (level === 0) {
+          bodies.push(
+            <rect
+              key={`beam-${voice.id}-${g[0]}-${level}`}
+              x={stemX(g[0])}
+              y={y - thickness / 2}
+              width={stemX(g[g.length - 1]) - stemX(g[0])}
+              height={thickness}
+              fill={INK}
+            />
+          );
+          continue;
+        }
+        // Secondary beams only span the notes short enough to need them.
+        let run: number[] = [];
+        const flushRun = () => {
+          if (run.length === 0) return;
+          const a = stemX(run[0]);
+          // A lone sixteenth gets a stub pointing into its own group.
+          const b = run.length > 1 ? stemX(run[run.length - 1]) : a + gap * 0.9;
+          bodies.push(
+            <rect
+              key={`beam-${voice.id}-${run[0]}-${level}`}
+              x={Math.min(a, b)}
+              y={y - thickness / 2}
+              width={Math.abs(b - a)}
+              height={thickness}
+              fill={INK}
+            />
+          );
+          run = [];
+        };
+        for (const t of g) {
+          if (beamLevels(byTick.get(t)![0].duration) > level) run.push(t);
+          else flushRun();
+        }
+        flushRun();
+      }
     }
 
     for (const r of voice.rests) {
@@ -723,7 +828,10 @@ function StaffMeasure({
           x={tickX(measure, r.start)}
           midY={midLine}
           sp={gap}
-          color={INK_SOFT}
+          // A rest the composer wrote is music, and prints: it is drawn in ink
+          // like every other glyph. Only the placeholder below, standing in for
+          // a bar nobody has written yet, is drawn faintly.
+          color={INK}
         />
       );
     }
@@ -816,6 +924,7 @@ function ChordGroup({
   selection,
   onSelect,
   onRemove,
+  beamY,
 }: {
   chord: StudioNote[];
   steps: number[];
@@ -831,12 +940,21 @@ function ChordGroup({
   selection: Selection;
   onSelect: (s: Selection) => void;
   onRemove: (id: string) => void;
+  /** When this note is under a beam, the y the stem must reach. */
+  beamY?: number;
 }) {
   const selectedIds = new Set(selection.noteIds ?? []);
   const highest = Math.max(...steps);
   const lowest = Math.min(...steps);
 
-  const stemTop = up ? yForStep(highest) - gap * 3.4 : yForStep(lowest) + gap * 3.4;
+  // A beamed stem runs to the beam rather than to its own default length, and
+  // carries no flag — the beam is the flag.
+  const stemTop =
+    beamY !== undefined
+      ? beamY
+      : up
+        ? yForStep(highest) - gap * 3.4
+        : yForStep(lowest) + gap * 3.4;
   const stemX = up ? x + gap * 0.58 : x - gap * 0.58;
 
   return (
@@ -866,8 +984,8 @@ function ChordGroup({
         />
       )}
 
-      {/* Flags, on the outermost note only */}
-      {value.stemmed && value.flags > 0 && (
+      {/* Flags, on the outermost note only — never when beamed */}
+      {value.stemmed && value.flags > 0 && beamY === undefined && (
         <Flag count={value.flags} x={stemX} y={stemTop} up={up} sp={gap} />
       )}
 

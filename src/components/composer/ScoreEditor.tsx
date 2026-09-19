@@ -522,7 +522,11 @@ export function ScoreEditor({
         </div>
 
         {!readOnly && (
-          <div className="flex items-center gap-1 rounded-lg border border-abyss-600 bg-abyss-900/60 p-1">
+          /* The toolbar around this wraps, but this group did not, and at
+             the higher tiers it holds enough note lengths (each
+             min-w-[2.6rem]) to be wider than a phone. One unwrappable row is
+             all it takes to push the whole page sideways, so it wraps too. */
+          <div className="flex flex-wrap items-center justify-center gap-1 rounded-lg border border-abyss-600 bg-abyss-900/60 p-1">
             <span className="px-1.5 text-[10px] uppercase tracking-widest text-parchment-500">
               beats
             </span>

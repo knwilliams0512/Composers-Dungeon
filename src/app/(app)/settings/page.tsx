@@ -104,7 +104,10 @@ export default async function SettingsPage() {
             <p className="mt-2 flex items-start gap-2 text-xs text-parchment-500">
               <Icon name="info" size={14} className="mt-0.5 shrink-0" />
               Your save file lives in{" "}
-              <code className="rounded bg-abyss-900 px-1 py-0.5 text-gold-400">
+              {/* A Windows path has nothing a line break can land on, so on a
+                  narrow window it pushed the whole page wider than the screen.
+                  break-all lets it wrap mid-path. */}
+              <code className="break-all rounded bg-abyss-900 px-1 py-0.5 text-gold-400">
                 %LOCALAPPDATA%\ComposersDungeon\data
               </code>
               . Updates never touch it; uninstalling backs it up to your Desktop first.

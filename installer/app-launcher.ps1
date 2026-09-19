@@ -129,9 +129,16 @@ if ($damage.Count -gt 0 -and -not $SkipUpdate) {
 if ($damage.Count -gt 0) {
     Show-Problem ("Composer's Dungeon is missing some of its own files:`n  - " +
         ($damage -join "`n  - ") +
-        "`n`nThe app tried to download them again and could not, so it is either offline" +
-        " or something on this PC is removing them as fast as they arrive." +
-        " The usual cause is antivirus: allow the Composer's Dungeon folder in its settings." +
+        $(
+            # The updater logs exactly why it could not fetch them. Quoting it
+            # turns "could not" into something a person can act on.
+            $whyRepairFailed = Get-LogTail (Join-Path $DataDir "update.log") 6
+            if ($whyRepairFailed) { "`n`nThe app tried to download them again. What happened:`n$whyRepairFailed" }
+            else { "`n`nThe app tried to download them again and could not." }
+        ) +
+        "`n`nSo it is either offline, or something on this PC is removing the files as fast" +
+        " as they arrive. The usual cause is antivirus: allow the Composer's Dungeon folder" +
+        " in its settings." +
         $(if ($Root -match "OneDrive" -or $Root -match "\\Desktop\\" -or $Root -match "\\Documents\\") {
             "`n`nThis copy is installed under a folder Windows may be syncing to OneDrive," +
             " which can leave large files in the cloud rather than on the disk." +

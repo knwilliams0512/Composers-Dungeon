@@ -76,7 +76,7 @@ export default function AppError({
             <p className="mt-5 text-left text-xs uppercase tracking-wider text-parchment-500">
               What actually went wrong
             </p>
-            <pre className="mt-2 max-h-72 overflow-auto rounded bg-abyss-900 p-3 text-left text-xs leading-relaxed text-parchment-300">
+            <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded bg-abyss-900 p-3 text-left text-xs leading-relaxed text-parchment-300">
               {report}
             </pre>
             <button
@@ -99,7 +99,7 @@ export default function AppError({
             <p className="mt-3 text-sm leading-relaxed text-parchment-400">
               The full detail is written to the server log. In the installed Windows app that is:
             </p>
-            <code className="mt-2 block rounded bg-abyss-900 px-3 py-2 text-xs text-gold-400">
+            <code className="mt-2 block break-all rounded bg-abyss-900 px-3 py-2 text-xs text-gold-400">
               %LOCALAPPDATA%\ComposersDungeon\data\server.log.err
             </code>
           </>
