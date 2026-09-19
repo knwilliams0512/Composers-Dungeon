@@ -108,8 +108,8 @@ function NoteInspector({
       <Row label="Octave">
         <div className="flex items-center gap-1">
           <span className="text-sm text-parchment-200">{Math.floor(note.pitch / 12) - 1}</span>
-          <button onClick={() => onUpdate({ pitch: note.pitch - 12 })} className={STEP_BTN}>−</button>
-          <button onClick={() => onUpdate({ pitch: note.pitch + 12 })} className={STEP_BTN}>+</button>
+          <button onClick={() => onUpdate({ pitch: note.pitch - 12 })} className={STEP_BTN} title="Down an octave">−</button>
+          <button onClick={() => onUpdate({ pitch: note.pitch + 12 })} className={STEP_BTN} title="Up an octave">+</button>
         </div>
       </Row>
       <Row label="Duration">

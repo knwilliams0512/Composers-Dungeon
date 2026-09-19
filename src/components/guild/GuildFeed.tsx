@@ -82,6 +82,7 @@ export function GuildFeed({
   }
 
   async function remove(postId: string) {
+    if (!window.confirm("Delete this post? This cannot be undone.")) return;
     await deleteOwnPost(postId);
     router.refresh();
   }
@@ -169,6 +170,7 @@ export function GuildFeed({
               <button
                 onClick={() => remove(post.id)}
                 className="text-xs text-parchment-500 hover:text-crimson-400"
+                aria-label="Delete this post"
                 title="Delete post"
               >
                 ✕
@@ -201,11 +203,17 @@ export function GuildFeed({
           <footer className="mt-3 border-t border-abyss-700/60 pt-3">
             <button
               onClick={() => like(post.id)}
+              aria-pressed={post.likedByMe}
+              aria-label={`${post.likedByMe ? "Unlike" : "Like"} this post — ${post.likeCount} ${
+                post.likeCount === 1 ? "like" : "likes"
+              }`}
               className={`text-sm transition-colors ${
                 post.likedByMe ? "text-crimson-400" : "text-parchment-500 hover:text-crimson-400"
               }`}
             >
-              {post.likedByMe ? "♥" : "♡"} {post.likeCount}
+              <span aria-hidden="true">
+                {post.likedByMe ? "♥" : "♡"} {post.likeCount}
+              </span>
             </button>
             <div className="mt-3 space-y-2">
               {post.comments.map((c) => (
