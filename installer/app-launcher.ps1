@@ -106,6 +106,52 @@ function Test-Install($root, $appDir) {
 # is the usual reason, and telling someone to reinstall is a poor answer when
 # the app is perfectly capable of doing it itself.
 $damage = @(Test-Install $Root $AppDir)
+
+# Before reaching for the network: an update that went wrong leaves the copy it
+# replaced right here as app.previous. Putting that back is instant, works
+# offline, and is the difference between "launch it again" and "download 15 MB
+# or reinstall" for someone whose app just stopped opening.
+if ($damage.Count -gt 0) {
+    $previous = Join-Path $Root "app.previous"
+    if ((Test-Path -LiteralPath $previous) -and
+        (Test-Path -LiteralPath (Join-Path $previous ".next")) -and
+        (Test-Path -LiteralPath (Join-Path $previous "server.js"))) {
+        Add-Content -Path (Join-Path $DataDir "update.log") `
+            -Value ("[{0}] install incomplete ({1}) - restoring app.previous" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), ($damage -join "; ")) `
+            -ErrorAction SilentlyContinue
+        try {
+            $aside = "$AppDir.broken-$(Get-Date -Format 'yyyyMMddHHmmss')"
+            if (Test-Path -LiteralPath $AppDir) { Move-Item -LiteralPath $AppDir -Destination $aside }
+            Move-Item -LiteralPath $previous -Destination $AppDir
+            Remove-Item -LiteralPath $aside -Recurse -Force -ErrorAction SilentlyContinue
+            $damage = @(Test-Install $Root $AppDir)
+            if ($damage.Count -eq 0) {
+                # These files are whatever the last working version was, and
+                # version.json may already have been rewritten to the newer
+                # number. Claiming a version we are not running would mean the
+                # updater sees nothing to do and the restored copy never moves
+                # forward again, so record that we no longer know: 0.0.0 makes
+                # the next launch fetch the current build.
+                try {
+                    [System.IO.File]::WriteAllText(
+                        (Join-Path $Root "version.json"),
+                        '{"version":"0.0.0"}',
+                        (New-Object System.Text.UTF8Encoding($false)))
+                }
+                catch {}
+                Add-Content -Path (Join-Path $DataDir "update.log") `
+                    -Value ("[{0}] restored the previous version - it will update again next launch" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss")) `
+                    -ErrorAction SilentlyContinue
+            }
+        }
+        catch {
+            Add-Content -Path (Join-Path $DataDir "update.log") `
+                -Value ("[{0}] could not restore app.previous: {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $_.Exception.Message) `
+                -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 if ($damage.Count -gt 0 -and -not $SkipUpdate) {
     $updater = Join-Path $PSScriptRoot "apply-update.ps1"
     if (Test-Path $updater) {

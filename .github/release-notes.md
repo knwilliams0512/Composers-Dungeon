@@ -643,3 +643,33 @@ checked.
 lights the card. Conquering a trial and felling a boss both get a burst of
 light, and the boss's health bar takes the hit. And the score maker no longer
 tries to draw a page with a negative width on a very narrow window.
+
+## What's new in v1.13.1
+
+**An update can no longer break the app.** Applying v1.13.0 could leave an
+install with its built pages gone — the app would not start, and the only way
+back was reinstalling. The cause was the rollback: it deleted the live app
+folder with any errors ignored, then moved the saved copy over the remains. If
+that delete only partly succeeded, because antivirus or a process still
+shutting down held a file open, what was left was an app directory with the
+locked files still in it and everything else missing. Sorry — that one was
+mine.
+
+Three things now stand between an update and your working copy:
+
+- The downloaded files are checked for completeness **before** anything is
+  replaced. If the download is short, the update refuses to install and your
+  existing copy is genuinely untouched, which is what the message always
+  claimed.
+- Rolling back is renames only. A rename cannot half-happen, so there is no
+  longer a moment where the app folder is partly deleted.
+- The app is checked again after the swap, and put back if it is not right.
+
+**And it can fix itself without the internet.** An update that goes wrong
+leaves the version it replaced sitting right there on disk. The launcher now
+puts that back automatically, so the app opens on the previous version and
+updates again next time — instead of asking you to download it all again or
+reinstall.
+
+The unpacking was also rewritten to count what it writes, so files disappearing
+as they arrive is reported rather than silently producing a broken install.

@@ -159,6 +159,49 @@ if (!/zip -qr "\$UPDATE_ZIP" app launch seed runtime/.test(build))
 if (!/Test-Path \(Join-Path \$Root \$_\)/.test(launcher))
   fail("installer/app-launcher.ps1", "no longer accepts the runtime shipped beside node.exe");
 
+// --- The update must never be able to break a working install ---------------
+//
+// A release once left a player with app\node_modules present and app\.next
+// gone: the app would not start, and reinstalling was the only way back. The
+// shape of that failure is a rollback that deletes the live directory with its
+// errors suppressed and then moves the backup over the remains. These are the
+// rules that stop it happening again.
+
+// 1. Nothing is swapped until the downloaded copy is known to be complete.
+if (!/Test-AppComplete \$newApp/.test(updater))
+  fail("installer/apply-update.ps1", "does not check the downloaded app is complete before swapping it in");
+
+// 2. The live app is checked after the swap too, not assumed.
+if (!/Test-AppComplete \$AppDir/.test(updater))
+  fail("installer/apply-update.ps1", "does not check the app is complete after the swap");
+
+// 3. Rolling back is renames, never a recursive delete of the live app.
+//    Comments are stripped first, or the explanation of the old bug in the
+//    script's own header would be read as the bug.
+const updaterCode = updater.replace(/<#[\s\S]*?#>/g, "").replace(/^\s*#.*$/gm, "");
+if (/Remove-Item\s+\$AppDir\s+-Recurse/.test(updaterCode))
+  fail(
+    "installer/apply-update.ps1",
+    "deletes the live app directory to roll back - a partial delete is what left an install with no .next"
+  );
+if (!/function Restore-Previous/.test(updater))
+  fail("installer/apply-update.ps1", "has no rename-only rollback");
+
+// 4. Built route folders are named things like [roomId], which PowerShell
+//    reads as a wildcard character class unless the path is literal.
+for (const [file, text] of [
+  ["installer/apply-update.ps1", updater],
+  ["installer/app-launcher.ps1", launcher],
+]) {
+  for (const m of text.matchAll(/Move-Item\s+(?!-LiteralPath)[^\n]*/g)) {
+    fail(file, `Move-Item without -LiteralPath: ${m[0].trim().slice(0, 70)}`);
+  }
+}
+
+// 5. The launcher can put the previous app back without a network.
+if (!/app\.previous/.test(launcher))
+  fail("installer/app-launcher.ps1", "cannot restore the previous app when an update leaves a broken one");
+
 console.log(`launcher: ${FILES.length} PowerShell files checked for structure and known traps`);
 if (problems.length === 0) console.log("OK - no launcher problems");
 else { console.log(`FAIL - ${problems.length} problems:`); problems.forEach((p) => console.log("  -", p)); }
