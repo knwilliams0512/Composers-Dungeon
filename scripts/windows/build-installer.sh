@@ -84,20 +84,31 @@ done
 
 # --- 2. Build with the Windows Prisma engine --------------------------------
 say "Generating the Prisma client (with the Windows query engine)"
-# Temporary schema patch: contributors on Linux/macOS shouldn't pay for a
-# 19 MB Windows engine on every generate.
-cp prisma/schema.prisma "$BUILD/schema.prisma.orig"
-trap 'cp "$BUILD/schema.prisma.orig" "$ROOT/prisma/schema.prisma" 2>/dev/null || true' EXIT
+# The build needs the 19 MB Windows engine; contributors on Linux and macOS
+# should not pay for it on every generate. So the Windows target goes in a
+# throwaway copy of the schema rather than in the tracked file.
+#
+# It used to be patched in place and restored by an EXIT trap, which left a
+# tracked file modified for the length of the build — and a `git add -A` in
+# another terminal during one committed the Windows target to the repository.
+# A copy cannot be committed by accident. The generated client lands in
+# node_modules either way; only the schema's location differs.
+WIN_SCHEMA="$ROOT/prisma/schema.windows.prisma"
+trap 'rm -f "$WIN_SCHEMA"' EXIT
 node -e '
   const fs = require("fs");
-  const p = "prisma/schema.prisma";
-  const s = fs.readFileSync(p, "utf8").replace(
+  const src = fs.readFileSync("prisma/schema.prisma", "utf8");
+  const out = src.replace(
     /generator client \{\s*provider\s*=\s*"prisma-client-js"\s*\}/,
     `generator client {\n  provider      = "prisma-client-js"\n  binaryTargets = ["native", "windows"]\n}`
   );
-  fs.writeFileSync(p, s);
-'
-npx prisma generate >/dev/null
+  if (out === src) {
+    console.error("The generator block in prisma/schema.prisma no longer matches the pattern this build patches, so the Windows query engine would not be generated.");
+    process.exit(1);
+  }
+  fs.writeFileSync(process.argv[1], out);
+' "$WIN_SCHEMA"
+npx prisma generate --schema "$WIN_SCHEMA" >/dev/null
 
 say "Building the production bundle"
 rm -rf "$ROOT/.next"
