@@ -328,7 +328,10 @@ $url = "http://localhost:$Port"
 # migration for, rolled the app back, and left them opening onto an error page
 # with no route to a fix. Doing the schema check here means the app repairs
 # itself on the way in whatever state it was left in, and it is cheap: on a
-# database that is already current it only reads.
+# database that is already current it only reads. It also finishes a content
+# seed that an update could not complete, so a player whose database was busy
+# at the wrong moment gets the new lessons on their next launch instead of
+# silently staying a version behind.
 if (Test-PortFree $Port) {
     $upgradeScript = Join-Path $AppDir "upgrade.js"
     if ((Test-Path $upgradeScript) -and (Test-Path $NodeExe)) {

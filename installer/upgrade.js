@@ -15,15 +15,19 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = process.argv[2] || path.join(__dirname, "..");
-// `node upgrade.js <root> --schema-only` does the schema work and stops. The
-// launcher runs that on every start: relying on the update step alone means a
-// player whose update never ran, or ran and rolled back, stays broken with no
-// way out but a reinstall — which is exactly the state the missing migrations
-// left people in, with the one component that could have repaired it being the
-// one that had failed.
+// `node upgrade.js <root> --schema-only` does the schema work and stops, and
+// the launcher runs that on every start: relying on the update step alone
+// means a player whose update never ran, or ran and rolled back, stays broken
+// with no way out but a reinstall — which is exactly the state the missing
+// migrations left people in, with the one component that could have repaired
+// it being the one that had failed. It also finishes a content seed that a
+// previous run left undone.
 const schemaOnly = process.argv.includes("--schema-only");
 const appDir = path.join(root, "app");
 const dbPath = path.join(root, "data", "dungeon.db");
+// Left behind when the content seed does not finish, so the next launch
+// retries it rather than the player quietly missing a version of content.
+const seedMarker = path.join(root, "data", "seed-pending");
 
 if (!fs.existsSync(dbPath)) {
   console.log("No database yet — nothing to upgrade.");
@@ -178,29 +182,52 @@ async function reconcileSchema() {
   return changes;
 }
 
+/**
+ * Re-runs the seed so new lessons, areas, bosses and achievements appear.
+ *
+ * This is not allowed to fail the upgrade, and that distinction matters more
+ * than it looks. The updater treats a non-zero exit here as "the new version
+ * does not work, put the old one back" — which is right when the schema could
+ * not be brought up to date, because then every page that reads a profile
+ * dies. It is badly wrong for the seed. The seed writes reference content;
+ * the app runs perfectly well without the newest of it, and something as
+ * ordinary as antivirus holding the database open for a second is enough to
+ * stop it. Rolling a whole install back over that is how one player ended up
+ * with no app at all.
+ *
+ * So a seed that fails leaves a marker instead. The launcher runs this script
+ * on every start, sees the marker, and tries the content again — on a machine
+ * that is no longer mid-update, with nothing else touching the database.
+ */
+async function refreshContent() {
+  const seedPath = path.join(appDir, "seed-runner.js");
+  if (!fs.existsSync(seedPath)) return;
+  try {
+    const { seed } = require(seedPath);
+    await seed();
+    console.log("content refreshed.");
+    fs.rmSync(seedMarker, { force: true });
+  } catch (err) {
+    const why = (err && err.message) || String(err);
+    console.log("content refresh failed, will retry at next launch: " + why);
+    try {
+      fs.writeFileSync(seedMarker, why);
+    } catch {}
+  }
+}
+
 async function main() {
   const applied = await migrate();
   if (!schemaOnly || applied > 0) console.log(`${applied} migration(s) applied.`);
 
   const reconciled = await reconcileSchema();
   console.log(`${reconciled} schema change(s) reconciled.`);
-
-  if (schemaOnly) {
-    await db.$disconnect();
-    return;
-  }
-
-  // The seed is idempotent: it upserts reference content and leaves player
-  // data alone, so running it after every update is how new content lands.
-  const seedPath = path.join(appDir, "seed-runner.js");
-  if (fs.existsSync(seedPath)) {
-    await db.$disconnect();
-    const { seed } = require(seedPath);
-    await seed();
-    console.log("content refreshed.");
-    return;
-  }
   await db.$disconnect();
+
+  // On a normal launch there is nothing to seed. Only an update, or a seed
+  // that did not finish last time, calls for it.
+  if (schemaOnly && !fs.existsSync(seedMarker)) return;
+  await refreshContent();
 }
 
 main().catch(async (err) => {

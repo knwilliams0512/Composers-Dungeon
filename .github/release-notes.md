@@ -673,3 +673,25 @@ reinstall.
 
 The unpacking was also rewritten to count what it writes, so files disappearing
 as they arrive is reported rather than silently producing a broken install.
+
+## What's new in v1.13.2
+
+**A hiccup while adding new content can't cost you the app any more.** An
+update does two things: it puts the new program in place, and it writes the
+new lessons, areas and bosses into your database. Until now, if the second one
+stumbled — and something as ordinary as antivirus holding the database open
+for a second is enough — the updater treated it as "this version does not
+work" and put the whole thing back. That was the trigger for the damage
+v1.13.1 fixed.
+
+Only the part that decides whether the app can run at all is allowed to fail
+an update now. If the new content doesn't finish writing, the update still
+stands, the game still opens, and it quietly finishes the content the next
+time you launch it.
+
+**And the release checks now run that half too.** The check that proves an
+older database can be brought up to date never actually ran the content step —
+the one place where a real player's database differs from a developer's. It
+does now, against a database built from the schema at every version the game
+has ever shipped, twice each, plus a deliberately failing content step to
+prove a failure there costs nothing but a short wait.
