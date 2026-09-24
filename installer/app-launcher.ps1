@@ -444,6 +444,25 @@ function Find-Browser {
             "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe")) {
         if ($c -and (Test-Path $c)) { return $c }
     }
+    # Installed somewhere else - a per-user Edge, a managed build, a PC where
+    # Program Files is not on C. Windows records where every browser put itself
+    # under App Paths, so ask rather than guess. This matters more than it
+    # looks: without a browser the app falls back to the default one, which
+    # opens the game as an ordinary TAB alongside whatever else is open, and a
+    # tab cannot be reused the way an app window can.
+    foreach ($hive in @("HKLM:", "HKCU:")) {
+        foreach ($exe in @("msedge.exe", "chrome.exe")) {
+            try {
+                $key = Join-Path $hive "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\$exe"
+                $path = (Get-ItemProperty -LiteralPath $key -ErrorAction Stop)."(default)"
+                if ($path) {
+                    $path = $path.Trim('"')
+                    if (Test-Path -LiteralPath $path) { return $path }
+                }
+            }
+            catch {}
+        }
+    }
     return $null
 }
 
@@ -482,6 +501,78 @@ function Reset-BrowserSession {
 }
 Reset-BrowserSession
 
+# --- One window, however many times you launch it ---------------------------
+#
+# Every launch used to hand the browser another --app= window, and the browser
+# obliges every time: a second process aimed at a profile that is already open
+# tells the browser already running it to make another window, then exits. So
+# opening the game from the Desktop while it was already open from the Start
+# menu gave you two. Close neither, do it again tomorrow, and they pile up.
+#
+# Everything else about a second launch is already shared - the mutex above
+# means one server, and the same profile means one signed-in session - so the
+# only thing left for it to do is bring the window that exists to the front.
+function Get-AppWindows {
+    # The browser process itself, never its renderers: only that one owns a
+    # window, and only its command line carries --app=. Reading the command
+    # line is also what tells this app's window apart from the person's own
+    # browsing in the same browser, which must not be touched.
+    try {
+        return @(Get-CimInstance Win32_Process -Filter "Name='msedge.exe' OR Name='chrome.exe'" -ErrorAction Stop |
+            Where-Object {
+                $_.CommandLine -and
+                $_.CommandLine.Contains($profileDir) -and
+                $_.CommandLine.Contains("--app=") -and
+                -not $_.CommandLine.Contains("--type=")
+            })
+    }
+    catch {
+        # No CIM, no way to tell - better to open a window than to open nothing.
+        return @()
+    }
+}
+
+# Raising a window needs two calls Windows only exposes to native code: a
+# minimised window has to be restored before it can be brought forward, and
+# activating without restoring leaves the person looking at an unchanged
+# taskbar, which reads exactly like the app failing to start.
+function Show-Window($handle) {
+    try {
+        if (-not ([System.Management.Automation.PSTypeName]"CdWindow").Type) {
+            Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class CdWindow {
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+}
+"@
+        }
+        if ([CdWindow]::IsIconic($handle)) { $null = [CdWindow]::ShowWindow($handle, 9) }
+        $null = [CdWindow]::SetForegroundWindow($handle)
+        return $true
+    }
+    catch {
+        # Raising it is the nicety; not opening a second one is the point.
+        return $false
+    }
+}
+
+# Only when this launch did not have to start the server. If it did, whatever
+# window is on screen is pointed at a server that is gone, and putting that in
+# front would show the person an error page instead of their game.
+if (-not $startedServer) {
+    foreach ($open in Get-AppWindows) {
+        $proc = Get-Process -Id $open.ProcessId -ErrorAction SilentlyContinue
+        if ($proc -and $proc.MainWindowHandle -ne [IntPtr]::Zero) {
+            $null = Show-Window $proc.MainWindowHandle
+            Write-Host "Composer's Dungeon is already open."
+            return
+        }
+    }
+}
+
 $browser = Find-Browser
 if ($browser) {
     # Its own profile keeps this a separately-closable window whose lifetime we
@@ -506,14 +597,7 @@ if ($browser) {
         # window is still open against the same server, closing the first one
         # must not pull the floor out from under it. That is what produced an
         # error page in a window the player had not touched.
-        $stillOpen = $false
-        try {
-            $stillOpen = @(Get-CimInstance Win32_Process -Filter "Name='msedge.exe' OR Name='chrome.exe'" -ErrorAction Stop |
-                Where-Object { $_.CommandLine -and $_.CommandLine.Contains($profileDir) -and $_.CommandLine.Contains("--app=") }).Count -gt 0
-        }
-        catch { $stillOpen = $false }
-
-        if (-not $stillOpen) {
+        if (@(Get-AppWindows).Count -eq 0) {
             try { if (-not $server.HasExited) { $server.Kill() } } catch {}
             Remove-Item (Join-Path $DataDir "server.pid") -ErrorAction SilentlyContinue
         }

@@ -695,3 +695,20 @@ the one place where a real player's database differs from a developer's. It
 does now, against a database built from the schema at every version the game
 has ever shipped, twice each, plus a deliberately failing content step to
 prove a failure there costs nothing but a short wait.
+
+## What's new in v1.13.3
+
+**It opens in the window that's already open.** Launching the game while it was
+already running gave you a second window, and a third, and they stayed. The
+cause was the browser doing exactly as it was told: a launch aimed at a profile
+that is already open asks the browser already running it for another window.
+Everything else about a second launch was shared — one server, one signed-in
+session — so the only thing left for it to do is raise the window you have. It
+now does that, restoring it first if you had minimised it.
+
+**And it finds a real app window more often.** If Edge and Chrome were not
+where the launcher expected them, it fell back to your default browser — which
+opens the game as an ordinary tab among all your others, and a tab cannot be
+reused the way an app window can. It now asks Windows where the browsers
+actually are, so a per-user Edge, a managed build, or a PC that does not keep
+Program Files on C no longer drops you into that fallback.

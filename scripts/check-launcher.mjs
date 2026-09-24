@@ -137,6 +137,24 @@ if (!/\[switch\]\$Repair/.test(updater))
 if (!/if \(\$Repair\)/.test(updater))
   fail("installer/apply-update.ps1", "-Repair does not bypass the version check, so it would do nothing");
 
+// --- One window, however many times it is launched --------------------------
+//
+// Launching again while the app is open used to add a second --app= window
+// rather than raising the first, because a Chromium aimed at a profile that is
+// already open makes another window and exits. Windows then accumulate for as
+// long as the person never closes one.
+if (!/function Get-AppWindows/.test(launcher))
+  fail("installer/app-launcher.ps1", "no longer knows how to find a window it has already opened");
+{
+  const opens = launcher.indexOf("--app=$url/hall");
+  const looks = launcher.search(/^\s*(foreach \([^)]*in |if \(@?\()?Get-AppWindows/m);
+  if (opens >= 0 && (looks < 0 || looks > opens))
+    fail(
+      "installer/app-launcher.ps1",
+      "opens an app window without first looking for one that is already open - launching twice would give two windows"
+    );
+}
+
 // The Visual C++ runtime the database engine links has to travel WITH the app.
 // A PC without vcruntime140_1.dll cannot load the engine, the server exits
 // instantly, and nothing on screen says why — which is what the first machine
