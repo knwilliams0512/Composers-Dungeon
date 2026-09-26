@@ -712,3 +712,44 @@ opens the game as an ordinary tab among all your others, and a tab cannot be
 reused the way an app window can. It now asks Windows where the browsers
 actually are, so a per-user Edge, a managed build, or a PC that does not keep
 Program Files on C no longer drops you into that fallback.
+
+## What's new in v1.14.0
+
+**The Academy has pictures now.** Every lesson in the game showed you prose and,
+at best, a line of monospace text standing in for music — "C D E F G" for a
+scale, "I – IV – V – I" for a progression. That is a description of notation,
+not notation, and it asked the one thing a beginner cannot yet do: hear the
+page. There are now **97 figures across all 46 lessons**, and most of them are
+real engraved music.
+
+**Six kinds of figure, each for what it is actually good at.**
+
+- **Notation** — the concept on a staff, with the note the paragraph is about
+  picked out in colour, brackets over the span being measured, and roman
+  numerals under the chords. Drawn by the same engraver the Studio uses, so a
+  lesson and the editor it teaches cannot disagree.
+- **The keyboard** — for everything easier to see than to say: why there is no
+  black key between E and F, what a half step is, why one key is both D sharp
+  and E flat.
+- **Rhythm** — durations drawn to scale over a ruled beat grid, so "off the
+  beat" is something you can see instead of something you are told.
+- **The circle of fifths** — with each key's signature outside it and its
+  relative minor ringed inside, because that is the relationship rather than a
+  separate fact to memorise.
+- **Form maps** — a whole piece drawn to width, returning material sharing a
+  colour. ABA stops being a label and becomes the picture it describes.
+- **Score order** — the page an orchestral player actually opens, top to
+  bottom.
+
+**And you can hear every one of them.** A picture of a minor third teaches half
+of what a minor third is. The same data that draws a figure plays it, so what
+you see and what you hear cannot drift apart.
+
+**They are checked, not just written.** A figure is a claim about music made in
+data — *these notes are a major triad, this span is a whole step, this bar is
+the dominant* — and a wrong one would teach the wrong thing to exactly the
+people least able to catch it. A new check derives the intervals, chord
+qualities and scale patterns from first principles and refuses any figure that
+does not agree with what its lesson says. It caught four errors while these
+were being written, including a roman numeral over the wrong chord and a note
+length that cannot be notated.

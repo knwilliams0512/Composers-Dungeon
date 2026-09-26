@@ -6,6 +6,7 @@ import { curriculumLessons } from "./seed-data/lessons-curriculum";
 import { orchestralLessons } from "./seed-data/lessons-orchestral";
 import { ALL_UNITS, CRAFT_SLUGS } from "../src/lib/curriculum";
 import { lessonDetail } from "./seed-data/lesson-detail";
+import { lessonFigures } from "./seed-data/lesson-figures";
 import { areaDetail, bossDetail } from "./seed-data/world-detail";
 import {
   orchestralArea,
@@ -89,7 +90,14 @@ async function seedLessons() {
     // Depth from lesson-detail.ts is merged in here so both create and update
     // paths carry it — an existing install picks it up on the next seed.
     const detail = lessonDetail[l.slug] ?? {};
-    const sections = [...l.content, ...(detail.extraSections ?? [])];
+    // Figures live apart from the prose for the same reason the rest of the
+    // detail does, and are matched to their section by heading so reordering a
+    // lesson never separates a paragraph from its picture.
+    const figures = lessonFigures[l.slug] ?? {};
+    const sections = [...l.content, ...(detail.extraSections ?? [])].map((section) => {
+      const figure = section.figure ?? figures[section.heading];
+      return figure ? { ...section, figure } : section;
+    });
     const detailFields = {
       content: JSON.stringify(sections),
       summary: detail.summary ?? null,

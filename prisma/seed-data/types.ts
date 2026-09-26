@@ -1,3 +1,5 @@
+import type { LessonFigure } from "@/lib/lesson-figure";
+
 export interface SeedQuizQuestion {
   subject: string;
   difficulty: number;
@@ -28,6 +30,11 @@ export interface SeedLesson {
     heading: string;
     body: string;
     example?: string;
+    /**
+     * What this looks like on a page. A figure is drawn and played from the
+     * same spec (src/lib/lesson-figure.ts), and checked by check:figures.
+     */
+    figure?: LessonFigure;
     /** Highlighted aside: a warning, an aside, or a "why this matters". */
     callout?: { kind: "note" | "warning" | "insight"; text: string };
   }[];
@@ -54,6 +61,7 @@ export interface SeedLessonDetail {
     heading: string;
     body: string;
     example?: string;
+    figure?: LessonFigure;
     callout?: { kind: "note" | "warning" | "insight"; text: string };
   }[];
 }

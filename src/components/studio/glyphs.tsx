@@ -11,14 +11,13 @@
  * Coordinates are the page's millimetres; the canvas applies zoom above this.
  */
 
+import { INK, INK_FAINT, INK_SOFT, PLAYING, SELECT } from "@/lib/studio/ink";
 import type { Clef } from "@/lib/studio/instruments";
 import type { Articulation, Dynamic, NoteheadStyle, Ornament } from "@/lib/studio/model";
 
-export const INK = "#161616";
-export const INK_SOFT = "rgba(22,22,22,0.62)";
-export const INK_FAINT = "rgba(22,22,22,0.26)";
-export const SELECT = "#1a73e8";
-export const PLAYING = "#e8710a";
+// Re-exported so everything drawing a page still reads its palette from one
+// place; the values themselves live in a module a server component can read.
+export { INK, INK_SOFT, INK_FAINT, SELECT, PLAYING, clefWidth } from "@/lib/studio/ink";
 
 interface G {
   x: number;
@@ -116,15 +115,6 @@ export function ClefGlyph({
       TAB
     </text>
   );
-}
-
-/** How much horizontal room a clef needs before the key signature. */
-export function clefWidth(clef: Clef, sp: number): number {
-  if (clef === "treble") return sp * 4.4;
-  if (clef === "bass") return sp * 4;
-  if (clef === "alto" || clef === "tenor") return sp * 4;
-  if (clef === "percussion") return sp * 3;
-  return sp * 5;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -2,18 +2,22 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { LessonFigure } from "@/components/academy/figures/LessonFigure";
 import { LessonFlow } from "@/components/academy/LessonFlow";
 import { Icon, SKILL_ICONS } from "@/components/ui/Icon";
 import { Callout, Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { categoryTheme, categoryVars } from "@/lib/category-theme";
 import { briefForLesson } from "@/lib/lesson-brief";
+import { readFigure } from "@/lib/lesson-figure";
 import { resolveFreedom } from "@/lib/composer-freedom";
 
 type Section = {
   heading: string;
   body: string;
   example?: string;
+  /** Read through readFigure, which refuses anything malformed. */
+  figure?: unknown;
   callout?: { kind: "note" | "warning" | "insight"; text: string };
 };
 
@@ -228,6 +232,11 @@ export default async function LessonPage({ params }: { params: { slug: string } 
               {section.heading}
             </h2>
             <p className="mt-2.5">{section.body}</p>
+
+            {(() => {
+              const figure = readFigure(section.figure);
+              return figure ? <LessonFigure spec={figure} accent={theme.light} /> : null;
+            })()}
 
             {section.example && (
               <figure

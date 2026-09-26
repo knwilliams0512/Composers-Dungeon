@@ -1,6 +1,6 @@
 {
   "name": "composers-dungeon",
-  "version": "1.13.3",
+  "version": "1.14.0",
   "private": true,
   "description": "An educational music theory & composition platform fused with an RPG dungeon crawler.",
   "scripts": {
@@ -22,7 +22,7 @@
     "check:content": "node scripts/check-content.mjs",
     "check:theory": "node scripts/check-theory.mjs",
     "check:notation": "tsx scripts/check-notation.ts",
-    "check:all": "npm run check:content && npm run check:progression && npm run check:drills && npm run check:beams && npm run check:briefs && npm run check:routes && npm run check:actions && npm run check:json && npm run check:flatten && npm run check:upgrade && npm run check:launcher && npm run check:theory && npm run check:notation",
+    "check:all": "npm run check:content && npm run check:figures && npm run check:progression && npm run check:drills && npm run check:beams && npm run check:briefs && npm run check:routes && npm run check:actions && npm run check:json && npm run check:flatten && npm run check:upgrade && npm run check:launcher && npm run check:theory && npm run check:notation",
     "check:progression": "node scripts/check-progression.mjs",
     "schema:sql": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/schema.sql",
     "check:upgrade": "node scripts/check-upgrade.mjs",
@@ -33,7 +33,8 @@
     "check:json": "node scripts/check-json.mjs",
     "check:routes": "node scripts/check-routes.mjs",
     "check:briefs": "tsx scripts/check-briefs.ts",
-    "check:beams": "tsx scripts/check-beams.ts"
+    "check:beams": "tsx scripts/check-beams.ts",
+    "check:figures": "tsx scripts/check-figures.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
