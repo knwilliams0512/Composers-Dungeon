@@ -28,6 +28,13 @@ model User {
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
 
+  /// A second, shorter-lived handle on the same reset, used only by the
+  /// one-click local reset. The reset page is reached by redeeming this, so
+  /// the token itself is never put on a page or in a URL the browser shows
+  /// before the redirect. Single use: redeeming it clears it.
+  resetHandoff       String?   @unique
+  resetHandoffExpiry DateTime?
+
   profile         UserProfile?
   skills          UserSkill[]
   lessonProgress  LessonProgress[]
@@ -662,4 +669,40 @@ model DrillResult {
   playedAt  DateTime @default(now())
 
   @@index([userId, drill])
+}
+
+/// How this install sends mail, which is one thing: a password reset link.
+///
+/// A desktop app cannot ship credentials — anyone who installs it could read
+/// them out of the bundle — so the only honest design is that each install
+/// uses an account its owner provides. One row, because one machine sends as
+/// one address.
+model MailSetting {
+  id String @id @default("mail")
+
+  /// How this install sends: "smtp" borrows a mailbox you already own,
+  /// "relay" posts to a sending service's HTTP API with one key. Nothing is
+  /// shipped with the app — see lib/mail.ts for why.
+  mode String @default("smtp")
+
+  // --- mode "smtp" ---
+  host     String  @default("")
+  port     Int     @default(587)
+  /// True for implicit TLS (port 465). Port 587 upgrades with STARTTLS.
+  secure   Boolean @default(false)
+  username String  @default("")
+  /// Stored as given, in this machine's own database, beside everything else
+  /// the app holds. Worth an app password rather than a real one.
+  password String  @default("")
+
+  // --- mode "relay" ---
+  /// One of the providers in lib/mail.ts: resend, brevo, sendgrid, mailgun.
+  provider String @default("")
+  apiKey   String @default("")
+  /// Mailgun addresses its API by sending domain; the others do not need it.
+  domain   String @default("")
+
+  fromName  String   @default("Composer's Dungeon")
+  fromEmail String   @default("")
+  updatedAt DateTime @updatedAt
 }

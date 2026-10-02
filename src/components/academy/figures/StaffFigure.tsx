@@ -56,14 +56,18 @@ export function StaffFigure({
   const brackets = spec.brackets ?? [];
   const levels = packLevels(brackets);
   const bracketRows = levels.length > 0 ? Math.max(...levels) + 1 : 0;
-  // A chord writes one label per note, so the room under the staff depends on
-  // how many the busiest column carries.
-  const labelRows = Math.max(
-    0,
-    ...notes.map((n, i) =>
-      n.label ? notes.filter((o) => o.start === n.start).indexOf(notes[i]) + 1 : 0
-    )
-  );
+  // Room under the staff is however many labels the busiest group carries.
+  // Groups are split exactly as they are drawn — by onset, staff and length —
+  // so the reservation and the drawing cannot disagree.
+  const labelRows = (() => {
+    const perGroup = new Map<string, number>();
+    for (const note of notes) {
+      if (!note.label) continue;
+      const groupKey = `${note.start}:${note.staff ?? 0}:${note.duration}`;
+      perGroup.set(groupKey, (perGroup.get(groupKey) ?? 0) + 1);
+    }
+    return Math.max(0, ...Array.from(perGroup.values()));
+  })();
 
   const top = PAD_TOP_BASE + bracketRows * BRACKET_STEP;
   const midY = top + STAFF_H / 2;
@@ -347,9 +351,12 @@ export function StaffFigure({
               );
             })}
 
-            {group.map(
-              (note, i) =>
-                note.label && (
+            {/* Labels stack on consecutive rows. Indexing by position in the
+                chord left a blank row wherever a note carried no label, which
+                read as a missing word rather than a note without one. */}
+            {group
+              .filter((note) => note.label)
+              .map((note, i) => (
                   <text
                     key={`l${i}`}
                     x={cx}
@@ -362,8 +369,7 @@ export function StaffFigure({
                   >
                     {note.label}
                   </text>
-                )
-            )}
+              ))}
           </g>
         );
         });

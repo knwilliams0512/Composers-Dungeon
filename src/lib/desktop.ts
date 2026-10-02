@@ -72,3 +72,19 @@ export function isValidManifest(value: unknown): value is UpdateManifest {
     /^[a-fA-F0-9]{64}$/.test(m.sha256)
   );
 }
+
+/**
+ * The address this install answers on, for a link that has to survive leaving
+ * the app — an emailed reset link is opened from a mail client, where a path
+ * beginning with a slash means nothing.
+ *
+ * The launcher sets NEXTAUTH_URL to the port it actually chose, which matters:
+ * when 3000 is busy the app moves up, and a link hard-coded to 3000 would open
+ * somebody else's server.
+ */
+export function appBaseUrl(): string {
+  const configured = process.env.NEXTAUTH_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  const port = process.env.PORT?.trim() || "3000";
+  return `http://localhost:${port}`;
+}

@@ -8,7 +8,54 @@ import { Icon } from "@/components/ui/Icon";
 import { UpdatePanel } from "@/components/settings/UpdatePanel";
 import { FreedomPanel } from "@/components/settings/FreedomPanel";
 import { AccessibilityPanel } from "@/components/settings/AccessibilityPanel";
+import { MailPanel } from "@/components/settings/MailPanel";
 import { appVersion, isDesktop } from "@/lib/desktop";
+import { readMailConfigView } from "@/lib/mail";
+import { DRILL_KEYS } from "@/lib/drills";
+import { INSTRUMENTS } from "@/lib/studio/instruments";
+
+/**
+ * What this install actually holds.
+ *
+ * Read rather than written down. The lessons' sections live inside a JSON
+ * column, so the only way to know how many of them carry a figure is to open
+ * them — cheap enough once per visit to a settings page, and the alternative
+ * is a number that is wrong by the next release.
+ */
+async function countContents() {
+  const [lessons, quiz, areas, rooms, bosses, achievements, artifacts] = await Promise.all([
+    db.lesson.findMany({ select: { content: true } }),
+    db.quizQuestion.count(),
+    db.dungeonArea.count(),
+    db.dungeonRoom.count(),
+    db.boss.count(),
+    db.achievement.count(),
+    db.artifact.count(),
+  ]);
+
+  let figures = 0;
+  for (const lesson of lessons) {
+    try {
+      const sections = JSON.parse(lesson.content) as { figure?: unknown }[];
+      if (!Array.isArray(sections)) continue;
+      figures += sections.filter((section) => section?.figure).length;
+    } catch {
+      // A lesson whose content will not parse is a seeding problem the Academy
+      // itself reports; it should not take the settings page down with it.
+    }
+  }
+
+  return {
+    lessons: lessons.length,
+    figures,
+    quiz,
+    areas,
+    rooms,
+    bosses,
+    achievements,
+    artifacts,
+  };
+}
 
 export const metadata = { title: "Settings" };
 
@@ -16,16 +63,32 @@ export default async function SettingsPage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
-  const [profile, counts] = await Promise.all([
+  const [profile, counts, mail, library] = await Promise.all([
     db.userProfile.findUnique({ where: { userId } }),
     Promise.all([
       db.composition.count({ where: { userId } }),
       db.lessonProgress.count({ where: { userId, status: "COMPLETED" } }),
       db.userChallenge.count({ where: { userId, status: "COMPLETED" } }),
     ]),
+    readMailConfigView(),
+    countContents(),
   ]);
   if (!profile) redirect("/login");
   const [compositions, lessons, challenges] = counts;
+
+  const figures = library.figures;
+  const contents: [string, number][] = [
+    ["Lessons", library.lessons],
+    ["Illustrated sections", library.figures],
+    ["Quiz questions", library.quiz],
+    ["Dungeon areas", library.areas],
+    ["Rooms", library.rooms],
+    ["Bosses", library.bosses],
+    ["Drills", DRILL_KEYS.length],
+    ["Studio instruments", INSTRUMENTS.length],
+    ["Achievements", library.achievements],
+    ["Artifacts", library.artifacts],
+  ];
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -73,6 +136,8 @@ export default async function SettingsPage() {
             readableFont={profile.readableFont}
           />
         </Panel>
+
+        <MailPanel saved={mail} />
 
         <Panel title="Your Data" icon="scroll" subtitle="All of it stays on this machine">
           <dl className="grid grid-cols-3 gap-3 text-center">
@@ -132,8 +197,28 @@ export default async function SettingsPage() {
         <Panel title="About" icon="info">
           <p className="text-sm leading-relaxed text-parchment-400">
             <span className="heading-display">Composer&apos;s Dungeon</span> — an RPG for
-            composers. The Academy teaches you; the Dungeon tests you. Twenty-five lessons,
-            nine dungeon areas, four bosses, and a challenge generator that never runs out.
+            composers. The Academy teaches you, the Dungeon tests you, the Workshop lets you
+            write with nobody grading it, and the Studio takes the lid off entirely.
+          </p>
+          {/* Counted from what this install actually holds, rather than typed
+              in. The sentence these replace claimed twenty-five lessons and
+              four bosses for several releases after both had stopped being
+              true, which is what a hand-written number does eventually. */}
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+            {contents.map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-baseline gap-2 rounded-lg border border-abyss-600/60 bg-abyss-900/40 px-3 py-2"
+              >
+                <dd className="font-display text-base text-parchment-100">{value}</dd>
+                <dt className="text-parchment-500">{label}</dt>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-4 text-sm leading-relaxed text-parchment-400">
+            Every one of those {figures} lesson sections carries a figure you can hear and
+            play with — a staff, a keyboard, a rhythm, a circle of fifths, a waveform —
+            rather than a paragraph asking you to imagine one.
           </p>
           <p className="mt-3 text-xs text-parchment-500">Version {appVersion()}</p>
         </Panel>

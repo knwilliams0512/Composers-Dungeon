@@ -7,7 +7,7 @@ import { ALL_TIERS } from "@/lib/composer-freedom";
 /**
  * The landing page is the one screen a visitor judges the whole app by, so it
  * shows the actual thing: a rendered score with the standards beside it, the
- * descent through the nine areas, and the ladder of earned freedom — all
+ * descent through all sixteen areas, and the ladder of earned freedom — all
  * static markup, no client JS beyond what the shell already ships.
  */
 
@@ -31,17 +31,17 @@ const JOURNEY: { icon: IconName; title: string; body: string }[] = [
   {
     icon: "book",
     title: "Learn",
-    body: "Twenty-five Academy lessons, from the musical alphabet to virtuoso repertoire — each with vocabulary, the mistakes everyone makes first, recordings worth hearing, and a five-minute drill.",
+    body: "Forty-six Academy lessons, from the musical alphabet to full orchestration — 133 sections, every one of them with a figure you can hear and play with, plus vocabulary, the mistakes everyone makes first, recordings worth hearing and a quiz at the end.",
   },
   {
     icon: "candle",
     title: "Descend",
-    body: "Nine dungeon areas of generated trials, theory puzzles, creative curses and hidden treasure. Every area trains a different craft, and every trial hands you a finished brief.",
+    body: "Sixteen dungeon areas, ninety-three rooms, and seven bosses — generated trials, theory puzzles, creative curses and hidden treasure. Every area trains a different craft, and every trial hands you a finished brief.",
   },
   {
     icon: "quill",
     title: "Compose",
-    body: "Write the music here, on a grid where every note fits the key, with a synth in the page and the trial's standards checking themselves as you go. Meet them all or the level does not pass.",
+    body: "Write on a grid where every note fits the key, with a synth in the page and the trial's standards checking themselves as you go — then graduate to the Studio, where seventy-three instruments and full notation are waiting with nothing held back.",
   },
 ];
 
@@ -52,9 +52,19 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
     body: "Every trial's standards are checked by the engine, twice — live while you write, and again on the server when you submit. XP is earned, never claimed.",
   },
   {
+    icon: "staff",
+    title: "A full notation studio",
+    body: "Seventy-three instruments across twelve ensemble templates, real engraving, articulations, ornaments, dynamics and a mixer. Write a solo line or a full orchestral score, and hear it played back.",
+  },
+  {
+    icon: "bolt",
+    title: "The Proving Grounds",
+    body: "Six ear-and-eye drills — intervals, chord quality, scales and modes, sight-reading, key signatures, rhythm echo — endlessly generated, for the days you want to sharpen rather than build.",
+  },
+  {
     icon: "skull",
     title: "Bosses with health bars",
-    body: "The Pale Soprano. The Iron Metronome. The Chromatic Serpent. Wound them with craft; the final blow must be a finished composition.",
+    body: "The Pale Soprano. The Iron Metronome. The Canon That Eats Itself. Wound them with craft; the final blow must be a finished composition.",
   },
   {
     icon: "flame",
@@ -68,8 +78,13 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
   },
   {
     icon: "chest",
-    title: "Artifacts and curses",
-    body: "The Ancient Motif rerolls a trial you hate. The Hourglass of Rest protects your streak. Curses hand you a restriction and dare you to write well inside it.",
+    title: "Twenty-one artifacts, and curses",
+    body: "The Ancient Motif rerolls a trial you hate. The Hourglass of Rest protects your streak. Curses hand you a restriction and dare you to write well inside it. Fifty-eight achievements track what you have actually done.",
+  },
+  {
+    icon: "users",
+    title: "A Guild on your own machine",
+    body: "Share a piece, read what everyone else on this install has written, and leave a note on it. No account anywhere, no feed, no strangers.",
   },
   {
     icon: "shield",
@@ -82,12 +97,34 @@ const AREAS = [
   "Hall of Melody",
   "Crypt of Harmony",
   "Tower of Rhythm",
+  "Hall of the Virtuoso",
   "Ancient Conservatory",
   "Impressionist Gardens",
-  "Hall of the Virtuoso",
-  "Frozen Conservatory",
-  "Inferno of Virtuosity",
+  "The Frozen Conservatory",
+  "The Inferno of Virtuosity",
   "Cathedral of Composition",
+  "The Instrument Menagerie",
+  "The Orchestral Abyss",
+  "The Loom of Variations",
+  "The Whispering Catacombs",
+  "The Clockwork Bazaar",
+  "The Garden of Forking Cadences",
+  "The Hall of a Hundred Staves",
+];
+
+/**
+ * The seven bosses, in the order the levels open them. They are gated by level
+ * rather than by area, so they are listed in their own right rather than hung
+ * off particular rows of the descent.
+ */
+const BOSSES: { level: number; name: string; title: string; final?: boolean }[] = [
+  { level: 3, name: "The Pale Soprano", title: "Voice of the Frozen Hall" },
+  { level: 4, name: "The Iron Metronome", title: "Tyrant of the Tower" },
+  { level: 5, name: "The Chromatic Serpent", title: "Coiled Guardian of the Crypt" },
+  { level: 11, name: "The Canon That Eats Itself", title: "The Thing in the Catacombs" },
+  { level: 14, name: "The Hundred-Handed Organist", title: "Warden of the Orchestral Abyss" },
+  { level: 20, name: "The Forgotten Composer", title: "Final Echo of the Cathedral", final: true },
+  { level: 25, name: "The Silent Orchestra", title: "Ninety-Nine Players and No Conductor" },
 ];
 
 export default async function LandingPage() {
@@ -221,35 +258,69 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-3xl px-6 py-16">
         <div className="rune-divider">
           <span className="font-display text-xs uppercase tracking-[0.35em] text-crimson-400">
-            Nine Halls, Ever Deeper
+            Sixteen Halls, Ever Deeper
           </span>
         </div>
         <ol className="relative mx-auto mt-10 max-w-md space-y-0 before:absolute before:bottom-3 before:left-[11px] before:top-3 before:w-px before:bg-gradient-to-b before:from-gold-700/60 before:via-abyss-600 before:to-crimson-500/70">
-          {AREAS.map((area, i) => (
+          {AREAS.map((area, i) => {
+            const last = AREAS.length - 1;
+            return (
             <li key={area} className="relative flex items-center gap-4 py-2.5 pl-9">
               <span
                 className="absolute left-0 flex h-[23px] w-[23px] items-center justify-center rounded-full border bg-abyss-900 text-[10px] font-semibold"
                 style={{
-                  borderColor: `rgba(${Math.round(125 + i * 6)}, ${Math.round(98 - i * 6)}, ${Math.round(41 + i * 1)}, 0.8)`,
-                  color: i < 5 ? "#e3c26d" : "#c2554f",
+                  // Gold at the top, crimson at the bottom, spread across
+                  // however many areas there actually are — the ramp used to
+                  // be hard-coded for nine and ran out partway down.
+                  borderColor: `rgba(${Math.round(125 + i * (54 / last))}, ${Math.round(98 - i * (54 / last))}, ${Math.round(41 + i * (9 / last))}, 0.8)`,
+                  color: i < last * 0.55 ? "#e3c26d" : "#c2554f",
                 }}
               >
                 {i + 1}
               </span>
               <span
                 className="font-display tracking-wide"
-                style={{ color: i < 5 ? "#d6c5a0" : i < 8 ? "#b3a07c" : "#f0d894", fontSize: i === 8 ? "1.1rem" : "1rem" }}
+                style={{
+                  color: i < last * 0.55 ? "#d6c5a0" : i < last ? "#b3a07c" : "#f0d894",
+                  fontSize: i === last ? "1.1rem" : "1rem",
+                }}
               >
                 {area}
               </span>
-              {i === 8 && (
-                <span className="pill-crimson ml-auto">
-                  <Icon name="skull" size={10} /> The Forgotten Composer
-                </span>
-              )}
+
+            </li>
+            );
+          })}
+        </ol>
+
+        <div className="mt-12 rune-divider">
+          <span className="font-display text-xs uppercase tracking-[0.35em] text-crimson-400">
+            And Seven Things That Fight Back
+          </span>
+        </div>
+        <ul className="mt-7 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {BOSSES.map((b) => (
+            <li
+              key={b.name}
+              className={`card flex items-center gap-3 px-4 py-3 ${
+                b.final ? "border-crimson-500/40" : ""
+              }`}
+            >
+              <Icon
+                name="skull"
+                size={16}
+                className={b.final ? "shrink-0 text-crimson-400" : "shrink-0 text-parchment-500"}
+              />
+              <div className="min-w-0">
+                <p className="truncate font-display tracking-wide text-parchment-100">{b.name}</p>
+                <p className="truncate text-[11px] text-parchment-500">{b.title}</p>
+              </div>
+              <span className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.2em] text-parchment-600">
+                Lv {b.level}
+              </span>
             </li>
           ))}
-        </ol>
+        </ul>
       </section>
 
       {/* ================= Features ================= */}

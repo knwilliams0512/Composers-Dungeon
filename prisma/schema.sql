@@ -5,7 +5,9 @@ CREATE TABLE "User" (
     "passwordHash" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "resetToken" TEXT,
-    "resetTokenExpiry" DATETIME
+    "resetTokenExpiry" DATETIME,
+    "resetHandoff" TEXT,
+    "resetHandoffExpiry" DATETIME
 );
 
 -- CreateTable
@@ -499,11 +501,31 @@ CREATE TABLE "DrillResult" (
     CONSTRAINT "DrillResult_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "MailSetting" (
+    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'mail',
+    "mode" TEXT NOT NULL DEFAULT 'smtp',
+    "host" TEXT NOT NULL DEFAULT '',
+    "port" INTEGER NOT NULL DEFAULT 587,
+    "secure" BOOLEAN NOT NULL DEFAULT false,
+    "username" TEXT NOT NULL DEFAULT '',
+    "password" TEXT NOT NULL DEFAULT '',
+    "provider" TEXT NOT NULL DEFAULT '',
+    "apiKey" TEXT NOT NULL DEFAULT '',
+    "domain" TEXT NOT NULL DEFAULT '',
+    "fromName" TEXT NOT NULL DEFAULT 'Composer''s Dungeon',
+    "fromEmail" TEXT NOT NULL DEFAULT '',
+    "updatedAt" DATETIME NOT NULL
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_resetToken_key" ON "User"("resetToken");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_resetHandoff_key" ON "User"("resetHandoff");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserProfile_userId_key" ON "UserProfile"("userId");

@@ -806,3 +806,39 @@ notes and refuses the figure if it is not true. It also catches a chord
 missing its root or third, a seventh chord whose seventh is wrong, a note
 needing more than three ledger lines, and a figure written for a section that
 does not exist.
+
+## What's new in v1.16.0
+
+**The reset screen no longer hands out the account.** Asking for a password
+reset printed the reset link straight onto the page, with a note explaining
+that it was doing so because the app has no mail service. That meant anyone who
+could reach the sign-in screen could take over any account on the machine by
+typing an email address and reading the answer. The token never leaves the
+server now, and nothing the page receives can be used as one.
+
+**Resetting works with no setup at all.** Because the app serves only this
+computer, the person asking is already the person sitting at it — so the page
+offers a button that takes you straight to a new password. What it holds is a
+single-use handle, not a link: it is redeemed on the server, it only works from
+this machine, it is spent the moment it is followed, and it expires in ten
+minutes whether or not it is used. No email, no file to go and find, one click.
+
+**Email, if you want it.** Settings now has a sender you can lend the app, for
+resetting from somewhere other than the machine itself. Two ways to set it up:
+a sending service, which is one API key — Resend, Brevo, SendGrid or Mailgun —
+or your own mailbox over SMTP, with Gmail, Outlook, iCloud and Fastmail
+preset. Mail goes out as no-reply, with the headers that stop an out-of-office
+answering a password reset. There is a button to send yourself a test, and it
+can only ever send to your own address. Nothing ships with a mailbox inside it,
+because a password inside a download is a password everyone who downloads it
+can read.
+
+**The app now says what it actually contains.** The About panel still claimed
+twenty-five lessons, nine dungeon areas and four bosses — it had been wrong for
+several releases. It now counts what the install holds and shows it: 46
+lessons, 133 illustrated sections, 179 quiz questions, 16 areas, 93 rooms, 7
+bosses, 6 drills, 73 Studio instruments, 58 achievements and 21 artifacts. The
+welcome page was equally out of date: the descent now lists all sixteen halls
+rather than the first nine, the bosses are named with the level that opens
+them, and the Studio, the Proving Grounds and the Guild are mentioned at all,
+which they were not.
