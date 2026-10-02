@@ -34,7 +34,7 @@ export const orchestralLessons: SeedLesson[] = [
         example: "Top to bottom: Picc · Fl 1.2 · Ob 1.2 · C.A. · Cl 1.2 · B.Cl · Bsn 1.2 · Cbsn ‖ Hn 1-4 · Tpt 1-3 · Tbn 1-3 · Tuba ‖ Timp · Perc ‖ Hp · Pno ‖ Vn I · Vn II · Va · Vc · Cb",
         callout: {
           kind: "note",
-          text: "Horns sit above trumpets even though they usually sound lower. It is a four-hundred-year-old convention and nobody is going to change it for your piece.",
+          text: "Horns sit above trumpets even though they usually sound lower. The convention is older than the valve horn itself and nobody is going to change it for your piece.",
         },
       },
       {
@@ -221,7 +221,7 @@ export const orchestralLessons: SeedLesson[] = [
         body: "div. splits a section: half the first violins take the upper note, half the lower, and each player uses one bow on one line. A double stop asks every player to sound both notes at once. They sound different — divisi is thinner and cleaner, double stops are rougher and louder — and they are not interchangeable. If a chord is not reachable by one hand, divisi is not a stylistic choice, it is the only option. Mark the return with unis.",
         callout: {
           kind: "note",
-          text: "div. a 3 splits a section three ways and costs you two thirds of the volume on each line. Deep divisi makes a section quiet, not rich.",
+          text: "div. a 3 leaves a third of the players on each line. Loudness does not divide neatly — cutting a section to a third costs roughly five decibels, not two thirds of the sound — but the body behind each line does thin out audibly. Deep divisi makes a section transparent, not rich.",
         },
       },
       {

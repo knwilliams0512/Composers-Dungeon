@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { FormFigure as Spec, ScoreOrderFigure as OrderSpec } from "@/lib/lesson-figure";
 
 /**
@@ -18,6 +21,9 @@ const TONES: Record<string, { fill: string; text: string }> = {
 };
 
 export function FormFigure({ spec, accent }: { spec: Spec; accent: string }) {
+  // On a phone the per-section notes are three words wide and unreadable, so
+  // pressing a section promotes its note to a full line underneath.
+  const [open, setOpen] = useState<number | null>(null);
   const total = spec.sections.reduce((t, s) => t + (s.bars ?? 1), 0);
   return (
     <div className="w-full">
@@ -25,15 +31,20 @@ export function FormFigure({ spec, accent }: { spec: Spec; accent: string }) {
         {spec.sections.map((section, i) => {
           const tone = TONES[section.tone ?? "a"] ?? { fill: accent, text: "#0c0a14" };
           return (
-            <div
+            <button
+              type="button"
               key={i}
-              className="flex min-w-0 flex-col items-center justify-center rounded-lg px-2 py-3.5 text-center"
+              onClick={() => setOpen((now) => (now === i ? null : i))}
+              className="flex min-w-0 flex-col items-center justify-center rounded-lg px-2 py-3.5 text-center transition"
               style={{
                 flexGrow: (section.bars ?? 1) / total,
                 flexBasis: 0,
                 background: tone.fill,
                 color: tone.text,
+                outline: open === i ? `2px solid ${accent}` : undefined,
+                outlineOffset: 2,
               }}
+              aria-pressed={open === i}
             >
               <span className="font-display text-base leading-none">{section.label}</span>
               {section.bars !== undefined && (
@@ -41,12 +52,18 @@ export function FormFigure({ spec, accent }: { spec: Spec; accent: string }) {
                   {section.bars} bars
                 </span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
+      {open !== null && spec.sections[open]?.note && (
+        <p className="mt-2 text-center text-xs leading-snug text-parchment-300 sm:hidden">
+          <strong className="text-parchment-100">{spec.sections[open].label}:</strong>{" "}
+          {spec.sections[open].note}
+        </p>
+      )}
       {spec.sections.some((s) => s.note) && (
-        <div className="mt-2 flex w-full gap-1.5">
+        <div className="mt-2 hidden w-full gap-1.5 sm:flex">
           {spec.sections.map((section, i) => (
             <p
               key={i}
@@ -81,8 +98,36 @@ export function ScoreOrderFigure({ spec, accent }: { spec: OrderSpec; accent: st
             style={{ color: accent, background: `color-mix(in srgb, ${accent} 10%, transparent)` }}
           >
             {group.name}
+            {group.join === "brace" && (
+              <span className="ml-2 font-normal normal-case tracking-normal text-parchment-500">
+                one player, braced
+              </span>
+            )}
           </div>
-          <ul>
+          <ul className="relative pl-3">
+            {/* The join is drawn, because which one a family takes is the
+                lesson: a bracket for a family, a brace for one player. */}
+            {group.join !== "none" && group.staves.length > 1 && (
+              <span
+                aria-hidden="true"
+                className="absolute bottom-1 left-0 top-1 w-2"
+                style={
+                  group.join === "brace"
+                    ? {
+                        borderLeft: `2px solid ${accent}`,
+                        borderTopLeftRadius: "9px",
+                        borderBottomLeftRadius: "9px",
+                        borderTop: `2px solid ${accent}`,
+                        borderBottom: `2px solid ${accent}`,
+                      }
+                    : {
+                        borderLeft: `3px solid ${accent}`,
+                        borderTop: `3px solid ${accent}`,
+                        borderBottom: `3px solid ${accent}`,
+                      }
+                }
+              />
+            )}
             {group.staves.map((stave) => {
               index += 1;
               const on = lit.has(index);

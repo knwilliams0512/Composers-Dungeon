@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Accidental,
   Barline,
@@ -9,7 +11,8 @@ import {
 } from "@/components/studio/glyphs";
 import { clefWidth, INK, INK_SOFT } from "@/lib/studio/ink";
 import { packLevels, placeNotes, type StaffFigure as Spec } from "@/lib/lesson-figure";
-import { keySignatureCount, ticksPerBar } from "@/lib/score";
+import type { FigureInteraction } from "./LessonFigure";
+import { keySignatureCount, pitchName, ticksPerBar } from "@/lib/score";
 import { accidentalFor, noteValue, signatureSteps, stepForPitch } from "@/lib/studio/staff";
 
 /**
@@ -38,7 +41,12 @@ function yForStep(step: number, top: number): number {
   return top + STAFF_H - (step * SP) / 2;
 }
 
-export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
+export function StaffFigure({
+  spec,
+  accent,
+  lit,
+  onPick,
+}: { spec: Spec; accent: string } & FigureInteraction) {
   const key = spec.key ?? "C";
   const mode = spec.mode ?? "major";
   const clef = spec.clef ?? "treble";
@@ -60,18 +68,31 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
   const top = PAD_TOP_BASE + bracketRows * BRACKET_STEP;
   const midY = top + STAFF_H / 2;
 
-  /* ---- Head matter: clef, signature, metre ------------------------------- */
-  let x = SP * 1.2;
-  const clefX = x;
-  x += clefWidth(clef, SP);
+  // A grand staff is two staves and a brace, treble over bass. It is the only
+  // way to draw middle C honestly: a ledger line below the upper staff and a
+  // ledger line above the lower one, which are the same key on the piano.
+  const staves: { clef: "treble" | "bass"; top: number }[] = spec.grandStaff
+    ? [
+        { clef: "treble", top },
+        { clef: "bass", top: top + STAFF_H + SP * 5 },
+      ]
+    : [{ clef, top }];
+  const lastStaff = staves[staves.length - 1];
+  const systemBottom = lastStaff.top + STAFF_H;
 
-  const sigSteps = signatureSteps(clef, key, mode);
+  /* ---- Head matter: clef, signature, metre ------------------------------- */
+  let x = SP * 1.2 + (spec.grandStaff ? SP * 1.4 : 0);
+  const clefX = x;
+  x += Math.max(...staves.map((st) => clefWidth(st.clef, SP)));
+
+  // Every staff of a system carries the same signature, drawn on its own lines.
+  const sigStepsFor = (c: "treble" | "bass") => signatureSteps(c, key, mode);
   // The count carries the sign: positive is sharps, negative flats. Asking the
   // key name which it is would get F major and every minor key wrong.
   const accidentalKind = keySignatureCount(key, mode) < 0 ? "flat" : "sharp";
   const sigX = x;
-  x += sigSteps.length * SP * 1.15;
-  if (sigSteps.length > 0) x += SP * 0.6;
+  x += sigStepsFor(staves[0].clef).length * SP * 1.15;
+  if (sigStepsFor(staves[0].clef).length > 0) x += SP * 0.6;
 
   const meterX = x;
   if (!spec.hideMeter) x += SP * 2.6;
@@ -91,8 +112,10 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
         ? onsets[i + 1] - onset
         : Math.max(...here.map((n) => n.duration));
     // An accidental needs room in front of its head; so does a wide label.
-    const extra = here.some((n) =>
-      !n.rest && accidentalFor(n.pitch, clef, key, mode, n.spell) !== null
+    const extra = here.some(
+      (n) =>
+        !n.rest &&
+        accidentalFor(n.pitch, staves[n.staff ?? 0]?.clef ?? clef, key, mode, n.spell) !== null
     )
       ? SP * 1.1
       : 0;
@@ -100,11 +123,11 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
     cursor += Math.max(MIN_COLUMN, span * perTick, label * SP * 0.52) + extra;
   });
   const width = cursor + SP * 1.6;
-  const labelY = top + STAFF_H + SP * 3.4;
+  const labelY = systemBottom + SP * 3.4;
   const harmonyY = labelY + labelRows * LABEL_STEP + SP * 0.6;
   const height =
     Math.max(
-      top + STAFF_H + PAD_BOTTOM_BASE,
+      systemBottom + PAD_BOTTOM_BASE,
       (spec.harmony?.length ? harmonyY : labelY + labelRows * LABEL_STEP) + SP * 1.4
     );
 
@@ -128,68 +151,147 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
       role="img"
       aria-label={spec.caption ?? "Music example"}
     >
-      {/* Staff */}
-      {[0, 1, 2, 3, 4].map((line) => (
-        <line
-          key={line}
-          x1={SP * 0.4}
-          x2={width - SP * 0.4}
-          y1={top + line * SP}
-          y2={top + line * SP}
-          stroke={INK_SOFT}
-          strokeWidth={0.9}
+      {/* Staves */}
+      {staves.map((st, si) => (
+        <g key={si}>
+          {[0, 1, 2, 3, 4].map((line) => (
+            <line
+              key={line}
+              x1={SP * 0.4}
+              x2={width - SP * 0.4}
+              y1={st.top + line * SP}
+              y2={st.top + line * SP}
+              stroke={INK_SOFT}
+              strokeWidth={0.9}
+            />
+          ))}
+          <ClefGlyph clef={st.clef} x={clefX} y={st.top} sp={SP} />
+          {sigStepsFor(st.clef).map((step, i) => (
+            <Accidental
+              key={i}
+              kind={accidentalKind}
+              x={sigX + i * SP * 1.15}
+              y={yForStep(step, st.top)}
+              sp={SP}
+            />
+          ))}
+          {!spec.hideMeter && (
+            <TimeSignature
+              beats={meter.beats}
+              unit={meter.unit}
+              x={meterX + SP}
+              y={st.top}
+              sp={SP}
+            />
+          )}
+        </g>
+      ))}
+
+      {/* The brace: one player, two staves. Drawn rather than described,
+          because it is the thing that says "these are read together". */}
+      {spec.grandStaff && (
+        <path
+          d={`M ${SP * 1.7} ${top}
+              C ${SP * 0.2} ${top + STAFF_H * 0.5}, ${SP * 1.9} ${(top + systemBottom) / 2 - SP}, ${SP * 0.9} ${(top + systemBottom) / 2}
+              C ${SP * 1.9} ${(top + systemBottom) / 2 + SP}, ${SP * 0.2} ${systemBottom - STAFF_H * 0.5}, ${SP * 1.7} ${systemBottom}`}
+          fill="none"
+          stroke={INK}
+          strokeWidth={SP * 0.26}
+          strokeLinecap="round"
         />
-      ))}
-      <Barline x={SP * 0.4} top={top} bottom={top + STAFF_H} sp={SP} />
-      <Barline
-        style="final"
-        x={width - SP * 0.9}
-        top={top}
-        bottom={top + STAFF_H}
-        sp={SP}
-      />
-      {barLines.map((bx, i) => (
-        <Barline key={i} x={bx} top={top} bottom={top + STAFF_H} sp={SP} />
-      ))}
-
-      <ClefGlyph clef={clef} x={clefX} y={top} sp={SP} />
-
-      {sigSteps.map((step, i) => (
-        <Accidental
-          key={i}
-          kind={accidentalKind}
-          x={sigX + i * SP * 1.15}
-          y={yForStep(step, top)}
-          sp={SP}
-        />
-      ))}
-
-      {!spec.hideMeter && (
-        <TimeSignature beats={meter.beats} unit={meter.unit} x={meterX + SP} y={top} sp={SP} />
       )}
 
-      {/* Notes, one group per onset so a chord shares a stem */}
-      {onsets.map((onset) => {
-        const group = notes.filter((n) => n.start === onset);
+      {/* Barlines run the whole system, which is what joins the staves */}
+      <Barline x={SP * 0.4} top={top} bottom={systemBottom} sp={SP} />
+      <Barline style="final" x={width - SP * 0.9} top={top} bottom={systemBottom} sp={SP} />
+      {barLines.map((bx, i) => (
+        <Barline key={i} x={bx} top={top} bottom={systemBottom} sp={SP} />
+      ))}
+
+      {/* Notes, one group per onset and staff: a chord shares a stem, but a
+          chord cannot share one across a brace. */}
+      {onsets.flatMap((onset) =>
+        staves.flatMap((st, si) => {
+        const onStaff = notes.filter((n) => n.start === onset && (n.staff ?? 0) === si);
+        if (onStaff.length === 0) return [];
+        // A melody note and a held accompaniment note can begin together, and
+        // they are not one chord: they are two voices with different lengths.
+        // Drawing them on one stem printed a whole note as a quarter, so each
+        // length in a column gets its own stem.
+        const lengths = Array.from(new Set(onStaff.map((n) => n.duration))).sort((a, b) => a - b);
+        return lengths.map((length, li) => {
+        const group = onStaff.filter((n) => n.duration === length);
         const cx = xByOnset.get(onset) ?? 0;
-        const sounding = group.filter((n) => !n.rest);
+        const heads = group.filter((n) => !n.rest);
         const rests = group.filter((n) => n.rest);
-        const value = noteValue(group[0].duration);
-        const steps = sounding.map((n) => stepForPitch(n.pitch, clef, key, mode, n.spell));
+        const value = noteValue(length);
+        const steps = heads.map((n) => stepForPitch(n.pitch, st.clef, key, mode, n.spell));
         const lowest = steps.length ? Math.min(...steps) : 4;
         const highest = steps.length ? Math.max(...steps) : 4;
-        const up = (lowest + highest) / 2 < 4;
+        // With two voices in a column the shorter one takes the upper stem and
+        // the longer one the lower, the way two parts on a stave are written.
+        const up = lengths.length > 1 ? li === 0 : (lowest + highest) / 2 < 4;
         const stemX = up ? cx + SP * 0.6 : cx - SP * 0.6;
-        const stemFrom = yForStep(up ? lowest : highest, top);
-        const stemTo = yForStep(up ? highest : lowest, top) + (up ? -SP * 3.4 : SP * 3.4);
+        const stemFrom = yForStep(up ? lowest : highest, st.top);
+        const stemTo = yForStep(up ? highest : lowest, st.top) + (up ? -SP * 3.4 : SP * 3.4);
 
+        // Two noteheads a step apart cannot both sit on the same side of the
+        // stem — they would be drawn on top of each other. The upper of the
+        // pair moves across, which is what an engraver does.
+        const sortedSteps = [...steps].sort((a, b) => a - b);
+        const shifted = new Set<number>();
+        for (let i = 1; i < sortedSteps.length; i++) {
+          if (sortedSteps[i] - sortedSteps[i - 1] === 1 && !shifted.has(sortedSteps[i - 1])) {
+            shifted.add(sortedSteps[i]);
+          }
+        }
+
+        const sounding = group.filter((n) => !n.rest).map((n) => n.pitch);
+        const isLit = lit === onset;
+        // The whole column is the target, not the notehead: a chord is one
+        // sound, and a 9px ellipse is not something a finger can hit.
         return (
-          <g key={onset}>
+          <g
+            key={`${onset}-${si}-${length}`}
+            onClick={onPick ? () => onPick(onset, sounding) : undefined}
+            style={onPick ? { cursor: "pointer" } : undefined}
+            role={onPick ? "button" : undefined}
+            tabIndex={onPick && si === 0 && li === 0 ? 0 : undefined}
+            onKeyDown={
+              onPick && si === 0 && li === 0
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onPick(onset, sounding);
+                    }
+                  }
+                : undefined
+            }
+          >
+            {onPick && (
+              <title>
+                {sounding.length === 0
+                  ? "Rest"
+                  : sounding.map((p) => pitchName(p, key, mode)).join(" + ")}
+              </title>
+            )}
+            {/* An invisible pad so the column can be pressed anywhere down it */}
+            {onPick && (
+              <rect
+                x={cx - SP * 1.6}
+                y={st.top - SP * 2}
+                width={SP * 3.2}
+                height={STAFF_H + SP * 4}
+                fill={isLit ? accent : "transparent"}
+                opacity={isLit ? 0.14 : 0}
+                rx={SP * 0.5}
+              />
+            )}
             {rests.map((r, i) => (
-              <Rest key={`r${i}`} value={r.duration} x={cx} midY={midY} sp={SP} />
+              <Rest key={`r${i}`} value={r.duration} x={cx} midY={st.top + STAFF_H / 2} sp={SP} />
             ))}
 
-            {sounding.length > 0 && value.stemmed && (
+            {heads.length > 0 && value.stemmed && (
               <line
                 x1={stemX}
                 x2={stemX}
@@ -200,15 +302,15 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
                 strokeLinecap="round"
               />
             )}
-            {sounding.length > 0 && value.flags > 0 && (
+            {heads.length > 0 && value.flags > 0 && (
               <Flag count={value.flags} x={stemX} y={stemTo} up={up} sp={SP} />
             )}
 
-            {sounding.map((note, i) => {
+            {heads.map((note, i) => {
               const step = steps[i];
-              const y = yForStep(step, top);
-              const colour = note.accent ? accent : INK;
-              const acc = accidentalFor(note.pitch, clef, key, mode, note.spell);
+              const y = yForStep(step, st.top);
+              const colour = note.accent || isLit ? accent : INK;
+              const acc = accidentalFor(note.pitch, st.clef, key, mode, note.spell);
               return (
                 <g key={i}>
                   {ledgerLines(step).map((ls) => (
@@ -216,8 +318,8 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
                       key={ls}
                       x1={cx - SP * 1.05}
                       x2={cx + SP * 1.05}
-                      y1={yForStep(ls, top)}
-                      y2={yForStep(ls, top)}
+                      y1={yForStep(ls, st.top)}
+                      y2={yForStep(ls, st.top)}
                       stroke={INK_SOFT}
                       strokeWidth={0.9}
                     />
@@ -225,7 +327,13 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
                   {acc && (
                     <Accidental kind={acc} x={cx - SP * 1.5} y={y} sp={SP} color={colour} />
                   )}
-                  <Notehead hollow={value.hollow} x={cx} y={y} sp={SP} color={colour} />
+                  <Notehead
+                    hollow={value.hollow}
+                    x={cx + (shifted.has(step) ? SP * (up ? 1.2 : -1.2) : 0)}
+                    y={y}
+                    sp={SP}
+                    color={colour}
+                  />
                   {Array.from({ length: value.dots }).map((_, d) => (
                     <circle
                       key={d}
@@ -258,7 +366,9 @@ export function StaffFigure({ spec, accent }: { spec: Spec; accent: string }) {
             )}
           </g>
         );
-      })}
+        });
+        })
+      )}
 
       {/* Harmony under the staff */}
       {(spec.harmony ?? []).map((h, i) => {

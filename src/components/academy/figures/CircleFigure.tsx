@@ -1,4 +1,8 @@
+"use client";
+
+import type { FigureInteraction } from "./LessonFigure";
 import type { CircleFigure as Spec } from "@/lib/lesson-figure";
+import { keyPitchClass } from "@/lib/score";
 
 /**
  * The circle of fifths.
@@ -31,8 +35,25 @@ function pointAt(i: number, r: number): { x: number; y: number } {
   return { x: C + Math.cos(angle) * r, y: C + Math.sin(angle) * r };
 }
 
-export function CircleFigure({ spec, accent }: { spec: Spec; accent: string }) {
-  const lit = new Set((spec.highlight ?? []).map((k) => k.trim()));
+/**
+ * The triad on a tonic, in a comfortable octave.
+ *
+ * Pressing a key should play that key, not a note named after it — hearing C
+ * major and then E major is how the distance around the circle stops being a
+ * diagram and becomes a sound.
+ */
+function triadOf(name: string, minor: boolean): number[] {
+  const root = 60 + keyPitchClass(name.replace(/^[a-g]/, (c) => c.toUpperCase()));
+  return [root, root + (minor ? 3 : 4), root + 7];
+}
+
+export function CircleFigure({
+  spec,
+  accent,
+  lit,
+  onPick,
+}: { spec: Spec; accent: string } & FigureInteraction) {
+  const highlighted = new Set((spec.highlight ?? []).map((k) => k.trim()));
   const arrowFrom = spec.arrow ? MAJOR.indexOf(spec.arrow.from) : -1;
   const arrowTo = spec.arrow ? MAJOR.indexOf(spec.arrow.to) : -1;
 
@@ -88,9 +109,14 @@ export function CircleFigure({ spec, accent }: { spec: Spec; accent: string }) {
         const outer = pointAt(i, R_OUTER);
         const inner = pointAt(i, R_MINOR);
         const sig = pointAt(i, R_SIG);
-        const on = lit.has(key);
+        const on = highlighted.has(key) || lit === key;
         return (
-          <g key={key}>
+          <g
+            key={key}
+            onClick={onPick ? () => onPick(key, triadOf(key, false)) : undefined}
+            style={onPick ? { cursor: "pointer" } : undefined}
+          >
+            {onPick && <title>{`${key} major — ${SIGNATURE[i] || "no sharps or flats"}`}</title>}
             <circle
               cx={outer.x}
               cy={outer.y}
@@ -127,7 +153,22 @@ export function CircleFigure({ spec, accent }: { spec: Spec; accent: string }) {
               fontSize={13}
               fontStyle="italic"
               fontFamily="Georgia, serif"
-              fill={lit.has(MINOR[i]) ? accent : "rgba(240,235,225,0.55)"}
+              fill={
+                highlighted.has(MINOR[i]) || lit === MINOR[i]
+                  ? accent
+                  : "rgba(240,235,225,0.55)"
+              }
+              style={onPick ? { cursor: "pointer" } : undefined}
+              onClick={
+                onPick
+                  ? (e) => {
+                      // The minor label sits inside its major's group, so the
+                      // click has to be claimed or the major sounds instead.
+                      e.stopPropagation();
+                      onPick(MINOR[i], triadOf(MINOR[i], true));
+                    }
+                  : undefined
+              }
             >
               {MINOR[i]}
             </text>

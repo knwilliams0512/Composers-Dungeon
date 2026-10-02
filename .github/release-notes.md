@@ -753,3 +753,56 @@ qualities and scale patterns from first principles and refuses any figure that
 does not agree with what its lesson says. It caught four errors while these
 were being written, including a roman numeral over the wrong chord and a note
 length that cannot be notated.
+
+## What's new in v1.15.0
+
+**Every section of every lesson now has a figure — and you can play with all of
+them.** v1.14.0 put 97 figures on the sections where a picture was obvious.
+That left 36 sections bare, on the reasoning that a paragraph making an
+argument has nothing to draw. That was wrong: an argument about music still
+has a shape. There are now **133 figures, one on every section of all 46
+lessons**.
+
+**Figures respond to being pressed.** Press play and the figure runs, lighting
+whatever is sounding as it goes. Press a single chord, key, beat or wave and
+you hear that one thing alone. Press a key on the circle of fifths and its
+triad sounds. And on the overtone figure you can switch individual harmonics
+off and hear the colour change — which is the only honest way to show what
+timbre actually is.
+
+**Three new kinds of figure**, each because a lesson needed it:
+
+- **Waveforms** — two tones an octave apart, drawn so you can see every second
+  cycle land together. That is why an octave sounds like the same note, and it
+  is not something a sentence can show.
+- **The overtone spectrum** — two instruments' recipes over the same 440 Hz,
+  side by side.
+- **The grand staff** — two staves and a real brace, which is the only way to
+  draw middle C honestly: a ledger line below one staff and above the other,
+  and the same key on the piano.
+
+**Engraving fixes.** A melody note and a held accompaniment note starting
+together were drawn on one stem, which printed a whole note as a quarter —
+each length now gets its own stem, as two voices on a stave are written. Two
+noteheads a step apart were drawn on top of each other; the upper one now
+moves across, as an engraver does it. Chords that sat five ledger lines below
+the treble staff have moved onto a grand staff where they can be read.
+
+**Corrections.** A full audit of the music the app teaches — all 159 quiz
+questions, the 20 placement questions and the lesson prose — found the quizzes
+sound, and three real errors in figures added last release: a first-species
+counterpoint example whose motion was mostly similar rather than contrary, a
+second-species example with a dissonance on a downbeat, and a two-voice
+countermelody holding a seventh and a ninth. All three are rewritten. Two
+prose claims were also wrong and are fixed: the horns-above-trumpets
+convention is older than the valve horn rather than a dated four hundred
+years, and splitting a string section three ways costs about five decibels,
+not two thirds of the sound.
+
+**The checker now verifies the captions.** A figure can state what its caption
+claims — every interval consonant, contrary motion throughout, no parallel
+fifths, dissonances only passing — and the check derives each one from the
+notes and refuses the figure if it is not true. It also catches a chord
+missing its root or third, a seventh chord whose seventh is wrong, a note
+needing more than three ledger lines, and a figure written for a section that
+does not exist.

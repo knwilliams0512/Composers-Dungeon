@@ -19,13 +19,14 @@ import type { LessonFigure } from "@/lib/lesson-figure";
 const C4 = 60, D4 = 62, E4 = 64, F4 = 65, G4 = 67, A4 = 69, B4 = 71;
 const C5 = 72, D5 = 74, E5 = 76, F5 = 77, G5 = 79, A5 = 81, B5 = 83, C6 = 84;
 const A3 = 57, B3 = 59, G3 = 55, F3 = 53, E3 = 52, D3 = 50, C3 = 48;
+const G2 = 43;
 
 const Q = 4; // quarter note
 const H = 8; // half
 const W = 16; // whole
 const E = 2; // eighth
 
-export const lessonFigures: Record<string, Record<string, LessonFigure>> = {
+export const coreFigures: Record<string, Record<string, LessonFigure>> = {
   /* ---- Level 1: absolute foundations ----------------------------------- */
 
   "what-are-musical-notes": {
@@ -604,10 +605,11 @@ export const lessonFigures: Record<string, Record<string, LessonFigure>> = {
       notes: [
         { pitch: G4 }, { pitch: A4 }, { pitch: B4 }, { pitch: C5 },
         { pitch: D5, duration: H }, { pitch: B4, duration: H },
-        { pitch: E4, at: 0 }, { pitch: D4, at: 4 }, { pitch: C4, at: 8 }, { pitch: B3, at: 12 },
-        { pitch: G3, duration: H, at: 16 }, { pitch: G3, duration: H, at: 24 },
+        { pitch: E4, at: 0 }, { pitch: D4, at: 4 }, { pitch: D4, at: 8 }, { pitch: C4, at: 12 },
+        { pitch: B3, duration: H, at: 16 }, { pitch: G3, duration: H, at: 24 },
       ],
       brackets: [{ from: 0, to: 5, text: "melody above, countermelody below" }],
+      assert: { consonant: true, noParallels: true },
     },
     "Know Your Instruments": {
       kind: "scoreOrder",
@@ -649,30 +651,31 @@ export const lessonFigures: Record<string, Record<string, LessonFigure>> = {
   "counterpoint-species": {
     "First Species: Note Against Note": {
       kind: "staff",
-      caption: "One note against one, and every interval consonant",
+      caption: "One note against one: every interval consonant, every move contrary",
       hideMeter: true,
       notes: [
-        { pitch: C5, duration: W }, { pitch: B4, duration: W }, { pitch: C5, duration: W },
-        { pitch: E5, duration: W }, { pitch: D5, duration: W }, { pitch: C5, duration: W },
-        { pitch: C4, duration: W, at: 0 }, { pitch: G3, duration: W, at: 16 },
-        { pitch: A3, duration: W, at: 32 }, { pitch: C4, duration: W, at: 48 },
-        { pitch: G3, duration: W, at: 64 }, { pitch: C4, duration: W, at: 80 },
+        { pitch: C5, duration: W }, { pitch: B4, duration: W }, { pitch: G4, duration: W },
+        { pitch: B4, duration: W }, { pitch: C5, duration: W },
+        { pitch: C4, duration: W, at: 0 }, { pitch: D4, duration: W, at: 16 },
+        { pitch: E4, duration: W, at: 32 }, { pitch: D4, duration: W, at: 48 },
+        { pitch: C4, duration: W, at: 64 },
       ],
-      brackets: [{ from: 0, to: 5, text: "contrary motion, consonance throughout" }],
+      brackets: [{ from: 0, to: 4, text: "octave, sixth, third, sixth, octave" }],
+      assert: { consonant: true, contraryMotion: true, noParallels: true },
     },
     "Second and Fourth Species": {
       kind: "staff",
-      caption: "Two against one: the second note of each pair may pass through",
+      caption: "Two against one — and only the weak half may be a dissonance",
       hideMeter: true,
       notes: [
-        { pitch: C5, duration: H }, { pitch: D5, duration: H, accent: true },
-        { pitch: E5, duration: H }, { pitch: D5, duration: H, accent: true },
-        { pitch: C5, duration: H }, { pitch: B4, duration: H, accent: true },
-        { pitch: C5, duration: H }, { pitch: C5, duration: H },
-        { pitch: C4, duration: W, at: 0 }, { pitch: A3, duration: W, at: 16 },
-        { pitch: G3, duration: W, at: 32 }, { pitch: C4, duration: W, at: 48 },
+        { pitch: C5, duration: H, label: "consonant" },
+        { pitch: B4, duration: H, accent: true, label: "passing" },
+        { pitch: A4, duration: H, label: "consonant" },
+        { pitch: C4, duration: W, at: 0 },
+        { pitch: F3, duration: W, at: 16 },
       ],
-      brackets: [{ from: 1, to: 1, text: "passing" }],
+      brackets: [{ from: 1, to: 1, text: "a seventh, reached and left by step" }],
+      assert: { dissonancesPassing: true, noParallels: true },
     },
   },
 
@@ -791,12 +794,11 @@ export const lessonFigures: Record<string, Record<string, LessonFigure>> = {
       kind: "keyboard",
       caption: "Every C doubles the one below it",
       from: C3,
-      to: C6,
+      to: C5,
       marks: [
         { pitch: C3, label: "131", tone: "root" },
         { pitch: C4, label: "262", tone: "target" },
         { pitch: C5, label: "523", tone: "target" },
-        { pitch: C6, label: "1047", tone: "target" },
       ],
     },
     "Dynamics are loudness, written down": {
@@ -937,6 +939,7 @@ export const lessonFigures: Record<string, Record<string, LessonFigure>> = {
         { pitch: E4, duration: H }, { pitch: B4, duration: H, stack: true, accent: true },
       ],
       brackets: [{ from: 0, to: 5, text: "parallel fifths — avoid" }],
+      assert: { hasParallels: true },
     },
   },
 
@@ -1353,3 +1356,577 @@ export const lessonFigures: Record<string, Record<string, LessonFigure>> = {
     },
   },
 };
+
+/**
+ * The sections that argue rather than demonstrate.
+ *
+ * These were left bare on the first pass, on the reasoning that a paragraph
+ * making a case has nothing to draw. That was wrong. An argument about music
+ * still has a shape — the grammar of a progression, the three ways a passage
+ * can be difficult, what a transition has to bridge — and a reader who cannot
+ * see the shape is being asked to take the argument on trust, which is the
+ * one thing a lesson should never ask.
+ */
+export const argumentFigures: Record<string, Record<string, LessonFigure>> = {
+  "what-are-musical-notes": {
+    "Why Octaves Feel Like the Same Note": {
+      kind: "wave",
+      caption: "Double the frequency and every second cycle lands together",
+      traces: [
+        { multiple: 1, label: "A 440" },
+        { multiple: 2, label: "A 880", accent: true },
+      ],
+      cycles: 2,
+    },
+  },
+
+  "sharps-and-flats": {
+    "Spelling Is a Message to the Performer": {
+      kind: "staff",
+      caption: "The same four keys, spelled going up and going down",
+      hideMeter: true,
+      notes: [
+        { pitch: C4, duration: E }, { pitch: 61, spell: 1, duration: E, label: "C♯" },
+        { pitch: D4, duration: E }, { pitch: 63, spell: 1, duration: E, label: "D♯" },
+        { pitch: E4, duration: Q },
+        { pitch: E4, duration: E }, { pitch: 63, spell: -1, duration: E, label: "E♭" },
+        { pitch: D4, duration: E }, { pitch: 61, spell: -1, duration: E, label: "D♭" },
+        { pitch: C4, duration: Q },
+      ],
+      brackets: [
+        { from: 0, to: 4, text: "sharps say: still rising" },
+        { from: 5, to: 9, text: "flats say: falling" },
+      ],
+    },
+  },
+
+  "time-signatures": {
+    "Meter Is a Promise": {
+      kind: "rhythm",
+      caption: "The grid says where the beats are; the notes refuse three of them",
+      meter: { beats: 4, unit: 4 },
+      row: [
+        { duration: E, label: "1" },
+        { duration: Q, accent: true, label: "off" },
+        { duration: Q, accent: true, label: "off" },
+        { duration: Q, accent: true, label: "off" },
+        { duration: E },
+      ],
+    },
+  },
+
+  "basic-progressions": {
+    "The Grammar Analogy Actually Works": {
+      kind: "form",
+      caption: "A progression is a sentence, and function is its word order",
+      sections: [
+        { label: "I", bars: 1, tone: "a", note: "statement — where we are" },
+        { label: "IV", bars: 1, tone: "b", note: "setup — moving away" },
+        { label: "V", bars: 1, tone: "c", note: "tension — needs an answer" },
+        { label: "I", bars: 1, tone: "a", note: "full stop" },
+      ],
+    },
+  },
+
+  "motifs-repetition-variation": {
+    "Recognition Is the Whole Point": {
+      kind: "form",
+      caption: "Enough repetition to be held; enough change to be noticed",
+      sections: [
+        { label: "Motif", bars: 2, tone: "a", note: "here it is" },
+        { label: "Motif", bars: 2, tone: "a", note: "now you know it" },
+        { label: "Varied", bars: 2, tone: "b", note: "that's the same idea…" },
+        { label: "Motif", bars: 2, tone: "a", note: "…and here it is again" },
+        { label: "Transformed", bars: 3, tone: "c", note: "barely recognisable, still recognised" },
+      ],
+    },
+  },
+
+  "counterpoint-species": {
+    "Why This Still Matters": {
+      kind: "staff",
+      caption: "The inner line is audible because it moves against the melody",
+      hideMeter: true,
+      notes: [
+        { pitch: C5 }, { pitch: D5 }, { pitch: E5 }, { pitch: D5 },
+        { pitch: E4, at: 0, accent: true }, { pitch: D4, at: 4, accent: true },
+        { pitch: C4, at: 8, accent: true }, { pitch: D4, at: 12, accent: true },
+      ],
+      brackets: [{ from: 0, to: 3, text: "melody up, inner line down" }],
+      assert: { consonant: true, contraryMotion: true },
+    },
+  },
+
+  "virtuoso-writing": {
+    "The Three Categories": {
+      kind: "form",
+      caption: "Two of these make careers; the third makes performers programme something else",
+      sections: [
+        { label: "Effective", bars: 3, tone: "a", note: "sounds hard, lies well under the hand" },
+        { label: "Genuine", bars: 3, tone: "b", note: "hard to hear and to play — worth it when difficulty is the expression" },
+        { label: "Unplayable", bars: 3, tone: "c", note: "hard for no musical return: a stretch nobody has" },
+      ],
+    },
+  },
+
+  "what-sound-is": {
+    "Timbre is why a piano is not a violin": {
+      kind: "spectrum",
+      caption: "Two recipes over the same 440 Hz — illustrative, not measured",
+      fundamental: "A 440",
+      name: "Piano-ish",
+      partials: [
+        { harmonic: 1, level: 1 },
+        { harmonic: 2, level: 0.42 },
+        { harmonic: 3, level: 0.22 },
+        { harmonic: 4, level: 0.12 },
+        { harmonic: 5, level: 0.07 },
+        { harmonic: 6, level: 0.04 },
+      ],
+      compare: {
+        name: "Violin-ish",
+        partials: [
+          { harmonic: 1, level: 0.7 },
+          { harmonic: 2, level: 0.85 },
+          { harmonic: 3, level: 0.6 },
+          { harmonic: 4, level: 0.5 },
+          { harmonic: 5, level: 0.36 },
+          { harmonic: 6, level: 0.3 },
+        ],
+      },
+    },
+  },
+
+  "the-staff": {
+    "The grand staff": {
+      kind: "staff",
+      caption: "Middle C is the hinge: a ledger line under one staff, over the other",
+      grandStaff: true,
+      hideMeter: true,
+      hideBarlines: true,
+      notes: [
+        { pitch: G4, duration: H, staff: 0, label: "G" },
+        { pitch: C4, duration: H, staff: 0, label: "middle C", accent: true },
+        { pitch: C4, duration: H, staff: 1, label: "middle C", accent: true },
+        { pitch: F3, duration: H, staff: 1, label: "F" },
+      ],
+      brackets: [{ from: 1, to: 2, text: "one key on the piano" }],
+    },
+  },
+
+  "diatonic-harmony": {
+    "Roman numerals name the function, not the letter": {
+      kind: "staff",
+      caption: "The letters only work here; the numerals work in every key",
+      notes: [
+        { pitch: C4, duration: W, label: "C" }, { pitch: E4, duration: W, stack: true }, { pitch: G4, duration: W, stack: true },
+        { pitch: F3, duration: W, label: "F" }, { pitch: A3, duration: W, stack: true }, { pitch: C4, duration: W, stack: true },
+        { pitch: G3, duration: W, label: "G" }, { pitch: B3, duration: W, stack: true }, { pitch: D4, duration: W, stack: true },
+        { pitch: C4, duration: W, label: "C" }, { pitch: E4, duration: W, stack: true }, { pitch: G4, duration: W, stack: true },
+      ],
+      harmony: [
+        { at: 0, text: "I" }, { at: 3, text: "IV" }, { at: 6, text: "V" }, { at: 9, text: "I" },
+      ],
+    },
+  },
+
+  "seventh-chords": {
+    "The fully diminished seventh is symmetrical": {
+      kind: "staff",
+      caption: "Three identical minor thirds, so no note is obviously the root",
+      hideMeter: true,
+      notes: [
+        { pitch: B3, duration: W, label: "m3" },
+        { pitch: D4, duration: W, label: "m3" },
+        { pitch: F4, duration: W, label: "m3" },
+        { pitch: 68, spell: -1, duration: W },
+      ],
+      brackets: [{ from: 0, to: 3, text: "every gap the same — it can turn four ways" }],
+    },
+  },
+
+  "voice-leading": {
+    "The rules worth knowing": {
+      kind: "staff",
+      caption: "The leading tone rises; the seventh falls. Both by a step.",
+      grandStaff: true,
+      notes: [
+        { pitch: B3, duration: W, staff: 0, accent: true, label: "leading tone" },
+        { pitch: D4, duration: W, stack: true, staff: 0 },
+        { pitch: F4, duration: W, stack: true, staff: 0, accent: true, label: "seventh" },
+        { pitch: G2, duration: W, stack: true, staff: 1 },
+        { pitch: C4, duration: W, staff: 0, accent: true, label: "↑ tonic" },
+        { pitch: E4, duration: W, stack: true, staff: 0, accent: true, label: "↓ third" },
+        { pitch: G4, duration: W, stack: true, staff: 0 },
+        { pitch: C3, duration: W, stack: true, staff: 1 },
+      ],
+      harmony: [{ at: 0, text: "V7" }, { at: 4, text: "I" }],  // checked against the key
+    },
+  },
+
+  "non-chord-tones": {
+    "Decoration is not filler": {
+      kind: "staff",
+      caption: "Chord tones alone, then the same shape with the notes in between",
+      notes: [
+        { pitch: C4 }, { pitch: E4 }, { pitch: G4 }, { pitch: C5 },
+        { pitch: C4, duration: E }, { pitch: D4, duration: E, accent: true },
+        { pitch: E4, duration: E }, { pitch: F4, duration: E, accent: true },
+        { pitch: G4, duration: E }, { pitch: A4, duration: E, accent: true },
+        { pitch: B4, duration: E, accent: true }, { pitch: C5, duration: E },
+      ],
+      brackets: [
+        { from: 0, to: 3, text: "an arpeggio" },
+        { from: 4, to: 11, text: "a melody" },
+      ],
+    },
+  },
+
+  modes: {
+    "Same notes, different home": {
+      kind: "staff",
+      caption: "Identical pitches, two tonics — and they do not sound alike",
+      hideMeter: true,
+      hideBarlines: true,
+      notes: [
+        { pitch: C4, duration: E, accent: true }, { pitch: D4, duration: E }, { pitch: E4, duration: E },
+        { pitch: F4, duration: E }, { pitch: G4, duration: E }, { pitch: A4, duration: E },
+        { pitch: B4, duration: E }, { pitch: C5, duration: E, accent: true },
+        { pitch: D4, duration: E, accent: true }, { pitch: E4, duration: E }, { pitch: F4, duration: E },
+        { pitch: G4, duration: E }, { pitch: A4, duration: E }, { pitch: B4, duration: E },
+        { pitch: C5, duration: E }, { pitch: D5, duration: E, accent: true },
+      ],
+      brackets: [
+        { from: 0, to: 7, text: "C to C — major" },
+        { from: 8, to: 15, text: "D to D — Dorian" },
+      ],
+    },
+  },
+
+  transposition: {
+    "Why singers ask for it": {
+      kind: "staff",
+      caption: "Too high, then a fourth lower — every interval identical",
+      hideMeter: true,
+      notes: [
+        { pitch: A4 }, { pitch: C5 }, { pitch: E5 }, { pitch: F5 },
+        { pitch: E4, accent: true }, { pitch: G4, accent: true },
+        { pitch: B4, accent: true }, { pitch: C5, accent: true },
+      ],
+      brackets: [
+        { from: 0, to: 3, text: "out of reach" },
+        { from: 4, to: 7, text: "singable, same tune" },
+      ],
+    },
+  },
+
+  "modulation-techniques": {
+    "Changing key is a matter of persuasion": {
+      kind: "staff",
+      caption: "Nothing is a modulation until the new tonic has been cadenced onto",
+      notes: [
+        { pitch: D4, duration: W }, { pitch: 66, spell: 1, duration: W, stack: true },
+        { pitch: A4, duration: W, stack: true },
+        { pitch: G3, duration: W }, { pitch: B3, duration: W, stack: true },
+        { pitch: D4, duration: W, stack: true },
+      ],
+      brackets: [
+        { from: 0, to: 2, text: "the new key's dominant" },
+        { from: 3, to: 5, text: "and its tonic — now we live here" },
+      ],
+    },
+    "Direct, sequential, chromatic mediant": {
+      kind: "staff",
+      caption: "A sequence: the same shape a step higher, until the key has moved",
+      notes: [
+        { pitch: C4, duration: H }, { pitch: E4, duration: H, stack: true }, { pitch: G4, duration: H, stack: true },
+        { pitch: D4, duration: H }, { pitch: 66, spell: 1, duration: H, stack: true }, { pitch: A4, duration: H, stack: true },
+        { pitch: E4, duration: H }, { pitch: 68, spell: 1, duration: H, stack: true }, { pitch: B4, duration: H, stack: true },
+      ],
+      brackets: [
+        { from: 0, to: 2, text: "pattern" },
+        { from: 3, to: 5, text: "up a step" },
+        { from: 6, to: 8, text: "and again — we are in E" },
+      ],
+    },
+  },
+
+  "borrowed-chords": {
+    "Same tonic, other mode": {
+      kind: "staff",
+      caption: "C major, then C minor: the same tonic, three degrees changed",
+      hideMeter: true,
+      hideBarlines: true,
+      notes: [
+        { pitch: C4, duration: E }, { pitch: D4, duration: E }, { pitch: E4, duration: E },
+        { pitch: F4, duration: E }, { pitch: G4, duration: E }, { pitch: A4, duration: E },
+        { pitch: B4, duration: E }, { pitch: C5, duration: E },
+        { pitch: C4, duration: E }, { pitch: D4, duration: E },
+        { pitch: 63, spell: -1, duration: E, accent: true, label: "♭3" },
+        { pitch: F4, duration: E }, { pitch: G4, duration: E },
+        { pitch: 68, spell: -1, duration: E, accent: true, label: "♭6" },
+        { pitch: 70, spell: -1, duration: E, accent: true, label: "♭7" },
+        { pitch: C5, duration: E },
+      ],
+    },
+    "Borrowing the other way": {
+      kind: "staff",
+      caption: "A minor-key piece ending on a major tonic — the Picardy third",
+      key: "C",
+      mode: "minor",
+      notes: [
+        { pitch: C4, duration: W }, { pitch: 63, duration: W, stack: true }, { pitch: G4, duration: W, stack: true },
+        { pitch: C4, duration: W }, { pitch: 64, spell: 0, duration: W, stack: true, accent: true },
+        { pitch: G4, duration: W, stack: true },
+      ],
+      harmony: [{ at: 0, text: "i" }],
+      brackets: [{ from: 3, to: 5, text: "major third, at the last moment" }],
+    },
+  },
+
+  "extended-altered-chords": {
+    "Altered tensions": {
+      kind: "staff",
+      caption: "G7♯9: a major third and, above it, something that sounds minor",
+      hideMeter: true,
+      notes: [
+        { pitch: G3, duration: W },
+        { pitch: B3, duration: W, stack: true, accent: true, label: "3rd" },
+        { pitch: D4, duration: W, stack: true },
+        { pitch: F4, duration: W, stack: true },
+        { pitch: 70, spell: 1, duration: W, stack: true, accent: true, label: "♯9" },
+      ],
+    },
+    "Sus and slash chords": {
+      kind: "staff",
+      caption: "Sus4 with no third at all, then a C chord sitting on its own E",
+      grandStaff: true,
+      notes: [
+        { pitch: F4, duration: W, staff: 0, accent: true, label: "4th, not 3rd" },
+        { pitch: G4, duration: W, stack: true, staff: 0 },
+        { pitch: C3, duration: W, stack: true, staff: 1, label: "sus4" },
+        { pitch: E4, duration: W, staff: 0 }, { pitch: G4, duration: W, stack: true, staff: 0 },
+        { pitch: C3, duration: W, stack: true, staff: 1, label: "C" },
+        { pitch: E4, duration: W, staff: 0 }, { pitch: G4, duration: W, stack: true, staff: 0 },
+        { pitch: C4, duration: W, stack: true, staff: 0 },
+        { pitch: E3, duration: W, stack: true, staff: 1, accent: true, label: "C/E" },
+      ],
+    },
+  },
+
+  "jazz-harmony": {
+    "Tritone substitution": {
+      kind: "staff",
+      caption: "G7 and D♭7 hold the same two notes, so either one gets you home",
+      notes: [
+        { pitch: G3, duration: W },
+        { pitch: B3, duration: W, stack: true, accent: true },
+        { pitch: D4, duration: W, stack: true },
+        { pitch: F4, duration: W, stack: true, accent: true },
+        { pitch: 61, spell: -1, duration: W },
+        { pitch: F4, duration: W, stack: true, accent: true },
+        { pitch: 68, spell: -1, duration: W, stack: true },
+        { pitch: 71, spell: -1, duration: W, stack: true, accent: true },
+        { pitch: C4, duration: W }, { pitch: E4, duration: W, stack: true },
+        { pitch: G4, duration: W, stack: true },
+      ],
+      brackets: [
+        { from: 1, to: 3, text: "B and F" },
+        { from: 5, to: 7, text: "F and C♭ — the same two keys" },
+      ],
+    },
+    "Modal jazz and reharmonisation": {
+      kind: "form",
+      caption: "So What: one mode for sixteen bars at a time",
+      sections: [
+        { label: "D Dorian", bars: 16, tone: "a" },
+        { label: "D Dorian", bars: 16, tone: "a" },
+        { label: "E♭ Dorian", bars: 8, tone: "b", note: "the only change in the tune" },
+        { label: "D Dorian", bars: 8, tone: "a" },
+      ],
+    },
+  },
+
+  "post-tonal-theory": {
+    "What happens when there is no tonic": {
+      kind: "keyboard",
+      caption: "Every pitch used, none allowed to become home",
+      from: C4,
+      to: C5,
+      marks: [
+        { pitch: 60, tone: "step" }, { pitch: 61, tone: "step" }, { pitch: 62, tone: "step" },
+        { pitch: 63, tone: "step" }, { pitch: 64, tone: "step" }, { pitch: 65, tone: "step" },
+        { pitch: 66, tone: "step" }, { pitch: 67, tone: "step" }, { pitch: 68, tone: "step" },
+        { pitch: 69, tone: "step" }, { pitch: 70, tone: "step" }, { pitch: 71, tone: "step" },
+      ],
+    },
+    "Pitch-class set theory": {
+      kind: "keyboard",
+      caption: "{0,1,4} and its inversion — different notes, one set class",
+      from: C4,
+      to: C6,
+      marks: [
+        { pitch: 60, label: "0", tone: "root" },
+        { pitch: 61, label: "1", tone: "root" },
+        { pitch: 64, label: "4", tone: "root" },
+        { pitch: 76, label: "E", tone: "target" },
+        { pitch: 79, label: "G", tone: "target" },
+        { pitch: 80, label: "A♭", tone: "target" },
+      ],
+    },
+    "Minimalism, spectralism, chance": {
+      kind: "rhythm",
+      caption: "A process, not a tune: one more note each time round",
+      meter: { beats: 4, unit: 4 },
+      row: [
+        { duration: E, label: "1" }, { duration: E, label: "2" },
+        { duration: E, rest: true }, { duration: E, label: "3" },
+        { duration: E, rest: true }, { duration: E, label: "4", accent: true },
+        { duration: E, rest: true }, { duration: E, rest: true },
+      ],
+    },
+  },
+
+  "advanced-analysis": {
+    "Neo-Riemannian transformations": {
+      kind: "staff",
+      caption: "Four triads, four keys implied, and not one dominant",
+      hideMeter: true,
+      notes: [
+        { pitch: C4, duration: W }, { pitch: E4, duration: W, stack: true }, { pitch: G4, duration: W, stack: true },
+        { pitch: E4, duration: W }, { pitch: G4, duration: W, stack: true }, { pitch: B4, duration: W, stack: true },
+        { pitch: E4, duration: W }, { pitch: 68, spell: 1, duration: W, stack: true }, { pitch: B4, duration: W, stack: true },
+        { pitch: 68, spell: 1, duration: W }, { pitch: B4, duration: W, stack: true }, { pitch: 75, spell: 1, duration: W, stack: true },
+      ],
+      harmony: [
+        { at: 1, text: "C" }, { at: 4, text: "Em" }, { at: 7, text: "E" }, { at: 10, text: "G♯m" },
+      ],
+      brackets: [
+        { from: 0, to: 5, text: "L" },
+        { from: 3, to: 8, text: "P" },
+        { from: 6, to: 11, text: "L" },
+      ],
+    },
+    "Modern theories of form": {
+      kind: "form",
+      caption: "What a passage does, rather than what it is called",
+      sections: [
+        { label: "Presentation", bars: 4, tone: "a", note: "states the idea, usually twice" },
+        { label: "Continuation", bars: 2, tone: "b", note: "fragments it and speeds up" },
+        { label: "Cadential", bars: 2, tone: "c", note: "closes" },
+      ],
+    },
+  },
+
+  "ear-training-fluency": {
+    "Theory you cannot hear is trivia": {
+      kind: "staff",
+      caption: "Press each one. A sixth, a tritone, a fourth — hear it before you read it.",
+      hideMeter: true,
+      notes: [
+        { pitch: C4, duration: H }, { pitch: A4, duration: H, stack: true, label: "?" },
+        { pitch: C4, duration: H }, { pitch: 66, spell: 1, duration: H, stack: true, label: "?" },
+        { pitch: C4, duration: H }, { pitch: F4, duration: H, stack: true, label: "?" },
+      ],
+    },
+    "Improvisation and score reading": {
+      kind: "scoreOrder",
+      caption: "Three clefs and two transpositions, heard without playing it",
+      groups: [
+        { name: "Woodwind", staves: ["Flute (sounds as written)", "Clarinet in B♭ (sounds a tone lower)"], join: "bracket" },
+        { name: "Brass", staves: ["Horn in F (sounds a fifth lower)"], join: "none" },
+        { name: "Strings", staves: ["Violin (treble)", "Viola (alto clef)", "Cello (bass clef)"], join: "bracket" },
+      ],
+      highlight: [1, 2],
+    },
+  },
+
+  "full-score-layout": {
+    "Braces, Brackets and Barlines": {
+      kind: "scoreOrder",
+      caption: "A bracket joins a family; a brace joins one player's two staves",
+      groups: [
+        { name: "Woodwind", staves: ["Flutes", "Oboes", "Clarinets"], join: "bracket" },
+        { name: "Brass", staves: ["Horns", "Trumpets"], join: "bracket" },
+        { name: "Harp — one player", staves: ["Harp (right hand)", "Harp (left hand)"], join: "brace" },
+        { name: "Strings", staves: ["Violin I", "Violin II", "Viola", "Cello"], join: "bracket" },
+      ],
+      highlight: [5, 6],
+    },
+  },
+
+  "string-section-writing": {
+    "The Bow Is the Dynamic": {
+      kind: "form",
+      caption: "Where the bow sits is the colour — and every one must be cancelled",
+      sections: [
+        { label: "sul ponticello", bars: 2, tone: "c", note: "at the bridge: glassy, metallic" },
+        { label: "ordinario", bars: 3, tone: "a", note: "the normal sound — mark it to cancel" },
+        { label: "sul tasto", bars: 2, tone: "b", note: "over the fingerboard: breathy, colourless" },
+      ],
+    },
+  },
+
+  "extended-techniques": {
+    "Winds and Brass": {
+      kind: "staff",
+      caption: "Each is an instruction on the page, not a description in a note",
+      hideMeter: true,
+      notes: [
+        { pitch: A4, duration: H, label: "flutter" },
+        { pitch: A4, duration: H, label: "key click" },
+        { pitch: G4, duration: H, label: "+ stopped", accent: true },
+        { pitch: G4, duration: H, label: "o open", accent: true },
+      ],
+    },
+    "Use, Not Decoration": {
+      kind: "form",
+      caption: "An effect needs a normal sound to be an effect against",
+      sections: [
+        { label: "ordinario", bars: 4, tone: "a", note: "establishes what normal is" },
+        { label: "sul ponticello", bars: 1, tone: "c", note: "exposed, so it carries" },
+        { label: "ordinario", bars: 4, tone: "a", note: "and the colour means something" },
+      ],
+    },
+  },
+
+  "orchestral-balance-colour": {
+    "Instruments Are Not Equal": {
+      kind: "form",
+      caption: "Drawn by how much room each takes at the same written dynamic",
+      sections: [
+        { label: "1 trombone", bars: 6, tone: "c", note: "covers a flute section on its own" },
+        { label: "1 oboe", bars: 4, tone: "b", note: "cuts through almost anything" },
+        { label: "4 horns", bars: 4, tone: "b", note: "warm, and easily buried" },
+        { label: "3 flutes", bars: 2, tone: "a", note: "need the register to themselves" },
+      ],
+    },
+  },
+
+  "large-form-architecture": {
+    "Transitions Are the Hard Part": {
+      kind: "form",
+      caption: "The join is the writing; two good passages bolted together is the usual failure",
+      sections: [
+        { label: "Section A", bars: 8, tone: "a" },
+        { label: "Transition", bars: 3, tone: "c", note: "pivot, dissolve, or stop — but decide" },
+        { label: "Section B", bars: 8, tone: "b" },
+      ],
+    },
+  },
+};
+
+/**
+ * Merged by slug, so one lesson can gather figures written in more than one
+ * block. A heading defined twice would be a silent overwrite, which
+ * check:figures reports rather than letting it pass.
+ */
+export const lessonFigures: Record<string, Record<string, LessonFigure>> = (() => {
+  const out: Record<string, Record<string, LessonFigure>> = {};
+  for (const source of [coreFigures, argumentFigures]) {
+    for (const [slug, byHeading] of Object.entries(source)) {
+      out[slug] = { ...(out[slug] ?? {}), ...byHeading };
+    }
+  }
+  return out;
+})();

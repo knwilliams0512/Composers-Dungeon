@@ -54,6 +54,8 @@ export interface FigureNote {
   rest?: boolean;
   /** Drawn in the lesson's accent colour: the note the paragraph is about. */
   accent?: boolean;
+  /** 1 puts the note on the lower staff of a grand staff. Ignored without one. */
+  staff?: 0 | 1;
 }
 
 export interface FigureBracket {
@@ -71,6 +73,12 @@ export interface StaffFigure {
   mode?: "major" | "minor";
   meter?: ScoreMeter;
   clef?: "treble" | "bass";
+  /**
+   * Two staves joined by a brace, treble over bass. Middle C is the one note
+   * that needs both to be explained — it is a ledger line below the top staff
+   * and a ledger line above the bottom one, and those are the same key.
+   */
+  grandStaff?: boolean;
   /** Hide the time signature when the figure is about pitch, not metre. */
   hideMeter?: boolean;
   /** Draw bar lines every bar's worth of ticks. On by default. */
@@ -82,6 +90,33 @@ export interface StaffFigure {
   harmony?: { at: number; text: string }[];
   /** Silences playback for a figure that is deliberately wrong. */
   silent?: boolean;
+  /**
+   * The claims the caption makes, stated so they can be checked.
+   *
+   * A caption is prose and prose is not verified by anything. "Every interval
+   * consonant" and "contrary motion throughout" read as decoration and are
+   * load-bearing: a counterpoint lesson whose example quietly contains a
+   * direct twelfth teaches the opposite of what it says. Writing the claim
+   * here makes check:figures derive it from the notes and refuse the figure
+   * if it is not true.
+   */
+  assert?: FigureAssertions;
+}
+
+export interface FigureAssertions {
+  /** Every simultaneity is a consonance: unison, 3rd, 5th, 6th, octave. */
+  consonant?: boolean;
+  /** The outer voices move in opposite directions at every change. */
+  contraryMotion?: boolean;
+  /** No parallel fifths or octaves between any pair of voices. */
+  noParallels?: boolean;
+  /** This figure exists to show them, so their absence is the error. */
+  hasParallels?: boolean;
+  /**
+   * Dissonances fall only on weak beats, and are both approached and left by
+   * step — which is what "passing" means and what second species requires.
+   */
+  dissonancesPassing?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -169,9 +204,50 @@ export interface FormFigure {
 export interface ScoreOrderFigure {
   kind: "scoreOrder";
   caption?: string;
-  groups: { name: string; staves: string[] }[];
+  /**
+   * `join` is how the staves are tied together on the page: a bracket joins a
+   * family, a brace joins two staves one player reads. Saying which is the
+   * point of the lesson that uses it, so it is drawn rather than described.
+   */
+  groups: { name: string; staves: string[]; join?: "bracket" | "brace" | "none" }[];
   /** Index into the flattened stave list, drawn as the one being discussed. */
   highlight?: number[];
+}
+
+/* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- */
+/* Sound itself                                                               */
+/* -------------------------------------------------------------------------- */
+
+export interface WaveFigure {
+  kind: "wave";
+  caption?: string;
+  /**
+   * Each trace is a pure tone at some multiple of the lowest frequency drawn.
+   * Two traces an octave apart line up every other cycle, which is the whole
+   * explanation of why an octave sounds like the same note, and it cannot be
+   * said in a sentence as well as it can be shown.
+   */
+  traces: { multiple: number; label?: string; accent?: boolean }[];
+  /** How many cycles of the slowest trace to draw. */
+  cycles?: number;
+}
+
+export interface SpectrumFigure {
+  kind: "spectrum";
+  caption?: string;
+  /** One bar per overtone: which harmonic, and how loud, 0 to 1. */
+  partials: { harmonic: number; level: number; label?: string }[];
+  /** Named so the axis means something, e.g. "A 440". */
+  fundamental?: string;
+  /** A second recipe drawn beside the first, for comparing two instruments. */
+  compare?: {
+    name: string;
+    partials: { harmonic: number; level: number }[];
+  };
+  /** The name of the first recipe, when there are two. */
+  name?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -182,7 +258,9 @@ export type LessonFigure =
   | RhythmFigure
   | CircleFigure
   | FormFigure
-  | ScoreOrderFigure;
+  | ScoreOrderFigure
+  | WaveFigure
+  | SpectrumFigure;
 
 export const FIGURE_KINDS = [
   "staff",
@@ -191,6 +269,8 @@ export const FIGURE_KINDS = [
   "circle",
   "form",
   "scoreOrder",
+  "wave",
+  "spectrum",
 ] as const;
 
 /* -------------------------------------------------------------------------- */
@@ -264,6 +344,10 @@ export function readFigure(raw: unknown): LessonFigure | null {
       return Array.isArray(figure.sections) && figure.sections.length > 0 ? figure : null;
     case "scoreOrder":
       return Array.isArray(figure.groups) && figure.groups.length > 0 ? figure : null;
+    case "wave":
+      return Array.isArray(figure.traces) && figure.traces.length > 0 ? figure : null;
+    case "spectrum":
+      return Array.isArray(figure.partials) && figure.partials.length > 0 ? figure : null;
   }
 }
 

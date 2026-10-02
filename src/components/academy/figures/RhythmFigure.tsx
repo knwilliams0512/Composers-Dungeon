@@ -1,5 +1,8 @@
+"use client";
+
 import { Flag, Notehead, Rest } from "@/components/studio/glyphs";
 import { INK, INK_SOFT } from "@/lib/studio/ink";
+import type { FigureInteraction } from "./LessonFigure";
 import type { RhythmFigure as Spec } from "@/lib/lesson-figure";
 import { ticksPerBar, ticksPerBeat } from "@/lib/score";
 import { noteValue } from "@/lib/studio/staff";
@@ -18,7 +21,12 @@ const TOP = 30; // room for the counts
 const BOTTOM = 26; // room for labels
 const PER_TICK = 15;
 
-export function RhythmFigure({ spec, accent }: { spec: Spec; accent: string }) {
+export function RhythmFigure({
+  spec,
+  accent,
+  lit,
+  onPick,
+}: { spec: Spec; accent: string } & FigureInteraction) {
   const beat = ticksPerBeat(spec.meter);
   const barTicks = ticksPerBar(spec.meter);
   const total = spec.row.reduce((t, c) => t + c.duration, 0);
@@ -85,8 +93,14 @@ export function RhythmFigure({ spec, accent }: { spec: Spec; accent: string }) {
         const value = noteValue(cell.duration);
         const midY = TOP + H / 2;
         const colour = cell.accent ? accent : INK;
+        const isLit = lit === i;
         return (
-          <g key={i}>
+          <g
+            key={i}
+            onClick={onPick ? () => onPick(i, cell.rest ? [] : [72]) : undefined}
+            style={onPick ? { cursor: "pointer" } : undefined}
+          >
+            {onPick && <title>{cell.rest ? "Rest" : cell.label ?? "Note"}</title>}
             <rect
               x={left + 1.5}
               y={TOP}
@@ -94,11 +108,13 @@ export function RhythmFigure({ spec, accent }: { spec: Spec; accent: string }) {
               height={H}
               rx={4}
               fill={
-                cell.rest
-                  ? "rgba(22,22,22,0.08)"
-                  : cell.accent
-                    ? `color-mix(in srgb, ${accent} 30%, #faf7f0)`
-                    : "#faf7f0"
+                isLit
+                  ? `color-mix(in srgb, ${accent} 55%, #faf7f0)`
+                  : cell.rest
+                    ? "rgba(22,22,22,0.08)"
+                    : cell.accent
+                      ? `color-mix(in srgb, ${accent} 30%, #faf7f0)`
+                      : "#faf7f0"
               }
               stroke={cell.rest ? INK_SOFT : colour}
               strokeWidth={cell.rest ? 0.8 : 1.2}

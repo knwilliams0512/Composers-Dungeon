@@ -1,3 +1,6 @@
+"use client";
+
+import type { FigureInteraction } from "./LessonFigure";
 import { packLevels, type KeyboardFigure as Spec } from "@/lib/lesson-figure";
 
 /**
@@ -42,7 +45,12 @@ const TONES: Record<string, string> = {
   muted: "rgba(22,22,22,0.22)",
 };
 
-export function KeyboardFigure({ spec, accent }: { spec: Spec; accent: string }) {
+export function KeyboardFigure({
+  spec,
+  accent,
+  lit,
+  onPick,
+}: { spec: Spec; accent: string } & FigureInteraction) {
   const from = spec.from ?? 60;
   const to = spec.to ?? 72;
   const marks = spec.marks ?? [];
@@ -88,14 +96,19 @@ export function KeyboardFigure({ spec, accent }: { spec: Spec; accent: string })
         const x = xFor(p, from);
         const mark = markFor.get(p);
         return (
-          <g key={p}>
+          <g
+            key={p}
+            onClick={onPick ? () => onPick(p, [p]) : undefined}
+            style={onPick ? { cursor: "pointer" } : undefined}
+          >
+            {onPick && <title>{LETTER[((p % 12) + 12) % 12]}</title>}
             <rect
               x={x}
               y={TOP}
               width={WHITE_W}
               height={WHITE_H}
               rx={3}
-              fill={fill(p, false)}
+              fill={lit === p ? accent : fill(p, false)}
               stroke="rgba(22,22,22,0.45)"
               strokeWidth={1}
             />
@@ -120,14 +133,19 @@ export function KeyboardFigure({ spec, accent }: { spec: Spec; accent: string })
         const x = xFor(p, from);
         const mark = markFor.get(p);
         return (
-          <g key={p}>
+          <g
+            key={p}
+            onClick={onPick ? () => onPick(p, [p]) : undefined}
+            style={onPick ? { cursor: "pointer" } : undefined}
+          >
+            {onPick && <title>{`${LETTER[((p % 12) + 12) % 12]}\u266f`}</title>}
             <rect
               x={x}
               y={TOP}
               width={BLACK_W}
               height={BLACK_H}
               rx={2}
-              fill={fill(p, true)}
+              fill={lit === p ? accent : fill(p, true)}
               stroke="rgba(22,22,22,0.6)"
               strokeWidth={1}
             />
