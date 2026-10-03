@@ -261,6 +261,102 @@ if (-not (Test-Path $secretPath)) {
 }
 $secret = (Get-Content $secretPath -Raw).Trim()
 
+<#
+    Show what the update is doing while it does it.
+
+    Returns $true if it managed to put a window up and run the update behind
+    it, $false if anything about the window failed - in which case the caller
+    runs the update the plain way. A missing progress window must never be the
+    reason an update does not happen.
+
+    This exists because the automatic update was completely silent. Double-
+    clicking the shortcut after a release downloaded fifteen megabytes,
+    unpacked it, replaced the app and rebuilt the database before a single
+    pixel appeared, which from the outside is indistinguishable from the app
+    failing to open. People closed it and tried again, which starts the whole
+    thing over.
+#>
+function Show-UpdateProgress($updater, $root, $statusFile) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+    }
+    catch {
+        return $false
+    }
+
+    try {
+        $form = New-Object System.Windows.Forms.Form
+        $form.Text = "Composer's Dungeon"
+        $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+        $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+        $form.ClientSize = New-Object System.Drawing.Size(460, 136)
+        $form.MaximizeBox = $false
+        $form.MinimizeBox = $false
+        $form.ControlBox = $false
+        $form.TopMost = $true
+        $form.BackColor = [System.Drawing.Color]::FromArgb(12, 10, 20)
+
+        $title = New-Object System.Windows.Forms.Label
+        $title.Text = "Updating Composer's Dungeon"
+        $title.ForeColor = [System.Drawing.Color]::FromArgb(227, 194, 109)
+        $title.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+        $title.SetBounds(22, 18, 420, 26)
+
+        $step = New-Object System.Windows.Forms.Label
+        $step.Text = "Starting..."
+        $step.ForeColor = [System.Drawing.Color]::FromArgb(214, 197, 160)
+        $step.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+        $step.SetBounds(22, 48, 420, 22)
+
+        $note = New-Object System.Windows.Forms.Label
+        $note.Text = "Your compositions, levels and streaks are kept. The app opens when this finishes."
+        $note.ForeColor = [System.Drawing.Color]::FromArgb(130, 124, 150)
+        $note.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+        $note.SetBounds(22, 70, 420, 34)
+
+        $bar = New-Object System.Windows.Forms.ProgressBar
+        $bar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+        $bar.MarqueeAnimationSpeed = 30
+        $bar.SetBounds(22, 106, 416, 10)
+
+        $form.Controls.AddRange(@($title, $step, $note, $bar))
+        $form.Show()
+        [System.Windows.Forms.Application]::DoEvents()
+
+        $proc = Start-Process powershell.exe -PassThru -WindowStyle Hidden -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $updater,
+            "-Root", $root, "-Silent"
+        )
+
+        $last = ""
+        while (-not $proc.HasExited) {
+            if (Test-Path -LiteralPath $statusFile) {
+                try {
+                    $status = Get-Content -LiteralPath $statusFile -Raw | ConvertFrom-Json
+                    if ($status.message -and $status.message -ne $last) {
+                        $last = "$($status.message)"
+                        $step.Text = $last
+                    }
+                }
+                catch {
+                    # Caught mid-write. The next pass reads it whole.
+                }
+            }
+            [System.Windows.Forms.Application]::DoEvents()
+            Start-Sleep -Milliseconds 250
+        }
+
+        $form.Close()
+        $form.Dispose()
+        return $true
+    }
+    catch {
+        try { if ($form) { $form.Close(); $form.Dispose() } } catch {}
+        return $false
+    }
+}
+
 # --- Automatic update --------------------------------------------------------
 # Runs before the server starts, so an update is applied to files nothing is
 # holding open. Offline, feed down, or no new version: it exits quietly and the
@@ -268,8 +364,28 @@ $secret = (Get-Content $secretPath -Raw).Trim()
 if (-not $SkipUpdate) {
     $updater = Join-Path $PSScriptRoot "apply-update.ps1"
     if (Test-Path $updater) {
+        # Ask first, cheaply, whether there is anything to do. Without this the
+        # progress window would flash on every single launch, which is worse
+        # than the silence it replaces - the overwhelmingly common case is
+        # that the app is already up to date.
+        $pending = $false
         try {
-            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $updater -Root $Root -Silent
+            $answer = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $updater `
+                -Root $Root -Silent -CheckOnly 2>$null
+            if ("$answer" -match "available") { $pending = $true }
+        }
+        catch {
+            # Offline or the feed is down: nothing to show, nothing to do.
+        }
+
+        try {
+            $shown = $false
+            if ($pending) {
+                $shown = Show-UpdateProgress $updater $Root (Join-Path $DataDir "update-status.json")
+            }
+            if (-not $shown) {
+                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $updater -Root $Root -Silent
+            }
         }
         catch {
             # An update must never be the reason the app won't open.
@@ -571,6 +687,36 @@ if (-not $startedServer) {
             return
         }
     }
+}
+else {
+    # This launch started the server, so any app window already on screen is
+    # pointed at a server that no longer exists - which, after an update, is
+    # exactly the window the person is staring at. It is showing whatever page
+    # was open when the updater stopped the old server, usually the Settings
+    # page mid-update, and nothing else will ever close it or move it on.
+    #
+    # The update panel used to say "Composer's Dungeon will close and reopen on
+    # its own". It never did: the updater stops the server, not the browser
+    # window, so the old window stayed open on a dead page while a second one
+    # opened beside it. Close the stale ones here, so the sentence is true.
+    #
+    # Only this app's own windows, found by its own profile directory and its
+    # own --app= switch, are ever touched - never the person's own browsing.
+    foreach ($stale in Get-AppWindows) {
+        $proc = Get-Process -Id $stale.ProcessId -ErrorAction SilentlyContinue
+        if (-not $proc) { continue }
+        try {
+            # CloseMainWindow asks politely, which is what closes one window of
+            # a browser rather than killing every window it is hosting.
+            $null = $proc.CloseMainWindow()
+            Write-Host "Closed a window left pointing at the previous server."
+        }
+        catch {
+            # A window that will not close is not worth failing a launch over:
+            # the new one opens regardless, which is the part that matters.
+        }
+    }
+    Start-Sleep -Milliseconds 400
 }
 
 $browser = Find-Browser

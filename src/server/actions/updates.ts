@@ -4,6 +4,11 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { requireUserId } from "@/lib/auth";
 import {
+  markUpdateStarting,
+  readUpdateProgress,
+  type UpdateProgress,
+} from "@/lib/update-status";
+import {
   appVersion,
   compareVersions,
   desktopRoot,
@@ -93,6 +98,10 @@ export async function applyUpdate(): Promise<{ ok: boolean; error?: string }> {
     return { ok: false, error: "The updater only runs on Windows." };
   }
 
+  // Written before the updater exists, so the panel can tell "PowerShell has
+  // not reported yet" from "PowerShell never started".
+  await markUpdateStarting();
+
   const script = path.join(root, "launch", "apply-update.ps1");
   try {
     const child = spawn(
@@ -119,4 +128,17 @@ export async function applyUpdate(): Promise<{ ok: boolean; error?: string }> {
       error: err instanceof Error ? err.message : "Couldn't start the updater.",
     };
   }
+}
+
+/**
+ * Where the running update has got to.
+ *
+ * Polled by the Settings panel every second or so while an update is in
+ * flight. Returns null outside the installed app, and before the updater has
+ * written anything.
+ */
+export async function updateProgress(): Promise<UpdateProgress | null> {
+  await requireUserId();
+  if (!isDesktop()) return null;
+  return readUpdateProgress();
 }

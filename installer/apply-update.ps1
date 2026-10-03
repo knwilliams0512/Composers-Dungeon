@@ -54,6 +54,52 @@ function Write-Log($message) {
 }
 
 <#
+    Say out loud which step this is on.
+
+    The updater used to report nothing at all until it was finished. In the app
+    that meant a spinner that spun forever - including when the update had
+    already failed and put a dialog up behind the window - and at launch it
+    meant the app appeared not to open while fifteen megabytes came down. Both
+    read as "it has hung", because from outside they are indistinguishable
+    from one.
+
+    So every step writes here, and both the Settings panel and the launcher
+    read it. Written whole each time and best-effort: a status file that
+    cannot be written must never be the thing that stops an update.
+#>
+$StatusPath = Join-Path $DataDir "update-status.json"
+
+function Set-Status {
+    param(
+        [string]$Phase,
+        [string]$Message,
+        [string]$Detail = "",
+        [int]$Percent = -1
+    )
+    $payload = [ordered]@{
+        phase   = $Phase
+        message = $Message
+        detail  = $Detail
+        percent = $Percent
+        version = $script:TargetVersion
+        at      = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        pid     = $PID
+    }
+    try {
+        [System.IO.File]::WriteAllText(
+            $StatusPath,
+            ($payload | ConvertTo-Json -Compress),
+            (New-Object System.Text.UTF8Encoding($false)))
+    }
+    catch {
+        # Best effort by design - see above.
+    }
+}
+
+# Filled in once the feed has been read; until then the status says so.
+$script:TargetVersion = ""
+
+<#
     Is an app directory actually usable?
 
     The updater used to check one file - server.js - before moving the live
@@ -161,6 +207,7 @@ function Restore-Previous($backup, $appDir) {
 
 function Fail($message) {
     Write-Log "FAILED: $message"
+    Set-Status -Phase "failed" -Message "The update could not be installed." -Detail $message
     if (-not $Silent) {
         $null = (New-Object -ComObject WScript.Shell).Popup(
             "The update could not be installed.`n`n$message`n`nYour existing copy is untouched - just launch it again.",
@@ -198,6 +245,7 @@ function Compare-Version($a, $b) {
 
 # --- Feed --------------------------------------------------------------------
 Write-Log "checking $feed (installed $current)"
+Set-Status -Phase "checking" -Message "Asking what the newest version is"
 try {
     $manifest = Invoke-RestMethod -Uri $feed -TimeoutSec 12 -Headers @{ Accept = "application/json" }
 }
@@ -219,11 +267,13 @@ if ($Repair) {
 }
 elseif ((Compare-Version $manifest.version $current) -le 0) {
     Write-Log "already up to date"
+    Set-Status -Phase "done" -Message "Already on the newest version"
     if ($CheckOnly) { Write-Output "uptodate $current" }
     exit 0
 }
 if ($CheckOnly) { Write-Output ("available " + $manifest.version); exit 0 }
 
+$script:TargetVersion = "$($manifest.version)"
 Write-Log ("update available: {0} -> {1}" -f $current, $manifest.version)
 
 # --- Download and verify -----------------------------------------------------
@@ -237,6 +287,10 @@ $zip = Join-Path $staging "update.zip"
 # reinstalling the whole app.
 $downloadError = $null
 for ($attempt = 1; $attempt -le 3; $attempt++) {
+    Set-Status -Phase "downloading" `
+        -Message $(if ($attempt -eq 1) { "Downloading version $($manifest.version)" }
+                   else { "Downloading version $($manifest.version) - retry $attempt of 3" }) `
+        -Detail "About 15 MB."
     try {
         Invoke-WebRequest -Uri $manifest.url -OutFile $zip -UseBasicParsing -TimeoutSec 600
         $downloadError = $null
@@ -245,6 +299,7 @@ for ($attempt = 1; $attempt -le 3; $attempt++) {
     catch {
         $downloadError = $_.Exception.Message
         Write-Log "download attempt $attempt failed: $downloadError"
+        Set-Status -Phase "downloading" -Message "That download did not finish - trying again" -Detail $downloadError
         Start-Sleep -Seconds (2 * $attempt)
     }
 }
@@ -252,6 +307,7 @@ if ($downloadError) {
     Fail "The download didn't finish after three tries. $downloadError"
 }
 
+Set-Status -Phase "verifying" -Message "Checking the download against its published checksum"
 $hash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash
 if ($hash -ne $manifest.sha256.ToUpper()) {
     Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
@@ -259,6 +315,7 @@ if ($hash -ne $manifest.sha256.ToUpper()) {
 }
 Write-Log "checksum verified"
 
+Set-Status -Phase "unpacking" -Message "Unpacking the new version"
 $unpacked = Join-Path $staging "unpacked"
 try {
     $counts = Expand-Package $zip $unpacked
@@ -282,6 +339,7 @@ if ($packageMissing.Count -gt 0) {
 }
 
 # --- Stop the running app ----------------------------------------------------
+Set-Status -Phase "stopping" -Message "Closing the app so its files can be replaced"
 $pidFile = Join-Path $DataDir "server.pid"
 if (Test-Path $pidFile) {
     $serverPid = (Get-Content $pidFile -Raw).Trim()
@@ -294,6 +352,7 @@ if (Test-Path $pidFile) {
 Start-Sleep -Milliseconds 900
 
 # --- Swap --------------------------------------------------------------------
+Set-Status -Phase "swapping" -Message "Putting the new version in place"
 $backup = Join-Path $Root "app.previous"
 if (Test-Path $backup) { Remove-Item $backup -Recurse -Force -ErrorAction SilentlyContinue }
 
@@ -338,6 +397,8 @@ if (Test-Path $newRuntime) {
 }
 
 # --- Migrate + re-seed -------------------------------------------------------
+Set-Status -Phase "database" -Message "Adding the new lessons and areas to your save" `
+    -Detail "Your compositions, levels and streaks are kept."
 Write-Log "running database upgrade"
 $upgrade = Join-Path $AppDir "upgrade.js"
 $dbFile = Join-Path $DataDir "dungeon.db"
@@ -385,6 +446,8 @@ Remove-Item $dbBackup -Force -ErrorAction SilentlyContinue
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $backup -Recurse -Force -ErrorAction SilentlyContinue
 Write-Log ("updated to " + $manifest.version)
+Set-Status -Phase "done" -Message "Updated to version $($manifest.version)" `
+    -Detail $(if ($Relaunch) { "Reopening now." } else { "" })
 
 if ($Relaunch) {
     Start-Process "wscript.exe" -ArgumentList "`"$(Join-Path $Root 'launch\launch.vbs')`""

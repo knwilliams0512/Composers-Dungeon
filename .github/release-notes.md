@@ -842,3 +842,35 @@ welcome page was equally out of date: the descent now lists all sixteen halls
 rather than the first nine, the bosses are named with the level that opens
 them, and the Studio, the Proving Grounds and the Guild are mentioned at all,
 which they were not.
+
+## What's new in v1.16.1
+
+**The update now tells you what it is doing — and actually closes the old
+window.** Pressing "Install and restart" put up a spinner that never changed
+again, whatever happened next. That was wrong in two directions. When the
+update worked, the updater stopped the server but nothing ever closed or
+reloaded the browser window, so the panel went on saying "Composer's Dungeon
+will close and reopen on its own" at a window that was never going to do
+either — while a second, working window opened beside it. And when the update
+failed, the same spinner kept spinning while the real answer sat in a dialog
+behind the window.
+
+The updater now reports every step it takes — checking, downloading,
+verifying, unpacking, closing the app, installing, rebuilding your save — and
+the panel shows them ticking off. A failure says what failed and points at the
+log. The window the update was started from is closed by the launcher when the
+new one opens, so the sentence is now true.
+
+**Launching no longer looks frozen while it updates.** The automatic update
+runs before the server starts, which meant that on the first launch after a
+release the app downloaded fifteen megabytes, unpacked it, replaced itself and
+rebuilt the database with nothing at all on screen. From outside that is
+indistinguishable from the app failing to open, and closing it and trying
+again starts the whole thing over. There is now a small progress window naming
+the current step. It appears only when there is genuinely an update to apply.
+
+**A check that the two halves agree.** The progress is written by PowerShell
+and read by TypeScript, with nothing connecting them, so a renamed step would
+silently leave the panel waiting for a phase that is never written — which
+looks exactly like the hang this replaces. `check:update-status` now fails the
+build if the updater and the update screen disagree about a single phase name.
