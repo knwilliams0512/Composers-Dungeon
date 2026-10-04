@@ -81,9 +81,35 @@ for (const a of areas) {
 for (const b of bosses) {
   if (b.phases.length === 0) fail(`boss "${b.key}" has no phases`);
   if (!b.objectives.some((o) => o.finalBlow)) fail(`boss "${b.key}" has no final blow - unkillable`);
+  if (b.rewardArtifactKey && !artifactKeys.has(b.rewardArtifactKey)) fail(`boss "${b.key}" rewards unknown artifact`);
+
+  // A collaboration boss breaks two rules here on purpose, so it is held to
+  // the opposite ones instead rather than simply skipped.
+  //
+  // One composer is MEANT to be unable to kill it — that is the entire point —
+  // so "damage available vs HP" is measured per guild, not per player, and
+  // check-raids.mjs proves the per-player figure falls short. And it sits in
+  // no dungeon room because it is not in the dungeon: it is reached from the
+  // guild page, which this checks for instead.
+  if (b.collab) {
+    if (b.minMembers < 2) {
+      fail(`raid "${b.key}": minMembers ${b.minMembers} - a raid one composer can open is not a raid`);
+    }
+    const perMember = b.objectives
+      .filter((o) => !o.bonus && !o.finalBlow)
+      .reduce((n, o) => n + o.damage, 0);
+    const final = b.objectives.find((o) => o.finalBlow)?.damage ?? 0;
+    const guildReach = perMember * b.minMembers + final;
+    if (guildReach < b.totalHp) {
+      fail(
+        `raid "${b.key}": ${b.minMembers} composers can deal ${guildReach} vs ${b.totalHp} HP - unkillable even together`
+      );
+    }
+    continue;
+  }
+
   const dmg = b.objectives.reduce((n, o) => n + o.damage, 0);
   if (dmg < b.totalHp) fail(`boss "${b.key}": ${dmg} damage available vs ${b.totalHp} HP - unkillable`);
-  if (b.rewardArtifactKey && !artifactKeys.has(b.rewardArtifactKey)) fail(`boss "${b.key}" rewards unknown artifact`);
   if ((await db.dungeonRoom.count({ where: { bossId: b.id } })) === 0) fail(`boss "${b.key}" is in no room - unreachable`);
 }
 

@@ -10,6 +10,7 @@ import {
   toggleFollow,
   deleteOwnPost,
 } from "@/server/actions/guild";
+import { postToGuild } from "@/server/actions/guild-life";
 import { avatarGlyph } from "@/lib/enums";
 
 interface FeedPost {
@@ -31,12 +32,25 @@ interface FeedPost {
   comments: { id: string; content: string; author: string; createdAt: string }[];
 }
 
+/**
+ * The same board, in two places.
+ *
+ * With no guildKey this is the open Guild Hall, readable by everyone on the
+ * install. With one, it is that guild's own noticeboard and the post is
+ * written into the guild. Everything else — likes, comments, following,
+ * attaching a composition — is identical, and sharing the component is what
+ * keeps it identical rather than nearly so.
+ */
 export function GuildFeed({
   posts,
   myPublicCompositions,
+  guildKey,
+  guildName,
 }: {
   posts: FeedPost[];
   myPublicCompositions: { id: string; title: string }[];
+  guildKey?: string;
+  guildName?: string;
 }) {
   const router = useRouter();
   const [content, setContent] = useState("");
@@ -49,10 +63,16 @@ export function GuildFeed({
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res = await createGuildPost({
-      content,
-      compositionId: compositionId || undefined,
-    });
+    const res = guildKey
+      ? await postToGuild({
+          guildKey,
+          content,
+          compositionId: compositionId || undefined,
+        })
+      : await createGuildPost({
+          content,
+          compositionId: compositionId || undefined,
+        });
     setBusy(false);
     if (!res.ok) {
       setError(res.error ?? "Posting failed");
@@ -95,7 +115,11 @@ export function GuildFeed({
           className="input min-h-20"
           maxLength={2000}
           required
-          placeholder="Announce a victory, share a discovery, post a piece…"
+          placeholder={
+            guildKey
+              ? "Post to your guild — a victory, a question, a piece you want heard…"
+              : "Announce a victory, share a discovery, post a piece…"
+          }
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
@@ -113,7 +137,7 @@ export function GuildFeed({
             ))}
           </select>
           <button type="submit" disabled={busy} className="btn-primary">
-            {busy ? "Posting…" : "Post to the Guild"}
+            {busy ? "Posting…" : guildKey ? `Post to ${guildName ?? "the guild"}` : "Post to the Guild"}
           </button>
         </div>
         {myPublicCompositions.length === 0 && (
@@ -127,7 +151,9 @@ export function GuildFeed({
       {/* Feed */}
       {posts.length === 0 && (
         <p className="text-center text-parchment-500">
-          The Guild hall is silent. Be the first voice.
+          {guildKey
+            ? "Nothing on the board yet. Put something up."
+            : "The Guild hall is silent. Be the first voice."}
         </p>
       )}
       {posts.map((post) => (

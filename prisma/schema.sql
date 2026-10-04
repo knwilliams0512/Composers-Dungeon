@@ -279,6 +279,8 @@ CREATE TABLE "Boss" (
     "levelRequirement" INTEGER NOT NULL DEFAULT 1,
     "xpReward" INTEGER NOT NULL DEFAULT 500,
     "final" BOOLEAN NOT NULL DEFAULT false,
+    "collab" BOOLEAN NOT NULL DEFAULT false,
+    "minMembers" INTEGER NOT NULL DEFAULT 1,
     "lore" TEXT,
     "tactics" TEXT,
     "rewardArtifactId" TEXT,
@@ -423,10 +425,12 @@ CREATE TABLE "Composition" (
 CREATE TABLE "GuildPost" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
+    "guildId" TEXT,
     "compositionId" TEXT,
     "content" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "GuildPost_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuildPost_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "GuildPost_compositionId_fkey" FOREIGN KEY ("compositionId") REFERENCES "Composition" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
@@ -475,6 +479,90 @@ CREATE TABLE "Guild" (
     "founderId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Guild_founderId_fkey" FOREIGN KEY ("founderId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "GuildMessage" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "guildId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "GuildMessage_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuildMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "GuildBoost" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "guildId" TEXT NOT NULL,
+    "fromUserId" TEXT NOT NULL,
+    "toUserId" TEXT NOT NULL,
+    "note" TEXT NOT NULL DEFAULT '',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "GuildBoost_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuildBoost_fromUserId_fkey" FOREIGN KEY ("fromUserId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuildBoost_toUserId_fkey" FOREIGN KEY ("toUserId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "GuildRaid" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "guildId" TEXT NOT NULL,
+    "bossId" TEXT NOT NULL,
+    "currentHp" INTEGER NOT NULL,
+    "defeated" BOOLEAN NOT NULL DEFAULT false,
+    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "defeatedAt" DATETIME,
+    CONSTRAINT "GuildRaid_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuildRaid_bossId_fkey" FOREIGN KEY ("bossId") REFERENCES "Boss" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "GuildRaidContribution" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "raidId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "objectiveId" TEXT NOT NULL,
+    "damage" INTEGER NOT NULL,
+    "compositionId" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "GuildRaidContribution_raidId_fkey" FOREIGN KEY ("raidId") REFERENCES "GuildRaid" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuildRaidContribution_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuildRaidContribution_compositionId_fkey" FOREIGN KEY ("compositionId") REFERENCES "Composition" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CollabProject" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "guildId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "brief" TEXT NOT NULL DEFAULT '',
+    "musicalKey" TEXT NOT NULL DEFAULT 'C',
+    "mode" TEXT NOT NULL DEFAULT 'major',
+    "meter" TEXT NOT NULL DEFAULT '4/4',
+    "bars" INTEGER NOT NULL DEFAULT 8,
+    "status" TEXT NOT NULL DEFAULT 'OPEN',
+    "createdById" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" DATETIME,
+    CONSTRAINT "CollabProject_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES "Guild" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "CollabProject_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CollabPart" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "projectId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "instrument" TEXT NOT NULL DEFAULT '',
+    "claimedById" TEXT,
+    "score" TEXT,
+    "notes" TEXT NOT NULL DEFAULT '',
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "submittedAt" DATETIME,
+    CONSTRAINT "CollabPart_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "CollabProject" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "CollabPart_claimedById_fkey" FOREIGN KEY ("claimedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -601,6 +689,30 @@ CREATE UNIQUE INDEX "Follow_followerId_followingId_key" ON "Follow"("followerId"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Guild_key_key" ON "Guild"("key");
+
+-- CreateIndex
+CREATE INDEX "GuildMessage_guildId_createdAt_idx" ON "GuildMessage"("guildId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "GuildBoost_guildId_createdAt_idx" ON "GuildBoost"("guildId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "GuildBoost_fromUserId_createdAt_idx" ON "GuildBoost"("fromUserId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "GuildBoost_toUserId_createdAt_idx" ON "GuildBoost"("toUserId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GuildRaid_guildId_bossId_key" ON "GuildRaid"("guildId", "bossId");
+
+-- CreateIndex
+CREATE INDEX "GuildRaidContribution_raidId_createdAt_idx" ON "GuildRaidContribution"("raidId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GuildRaidContribution_raidId_userId_objectiveId_key" ON "GuildRaidContribution"("raidId", "userId", "objectiveId");
+
+-- CreateIndex
+CREATE INDEX "CollabPart_projectId_order_idx" ON "CollabPart"("projectId", "order");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GuildMember_userId_key" ON "GuildMember"("userId");

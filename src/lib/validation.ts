@@ -101,6 +101,49 @@ export const guildFoundSchema = z.object({
   focus: z.string().trim().max(32).default(""),
 });
 
+/** A line of guild chat. Short on purpose: this is talk, not publication. */
+export const guildMessageSchema = z.object({
+  guildKey: z.string().trim().min(1),
+  content: z.string().trim().min(1, "Say something").max(600),
+});
+
+/**
+ * Lifting a guildmate.
+ *
+ * The note is required rather than optional, and that is the whole design. A
+ * boost with no words is a like, and the app already has likes; making someone
+ * name what they are praising is what keeps this worth receiving.
+ */
+export const guildBoostSchema = z.object({
+  guildKey: z.string().trim().min(1),
+  toUserId: z.string().trim().min(1),
+  note: z
+    .string()
+    .trim()
+    .min(4, "Say what you are lifting them for")
+    .max(240),
+});
+
+/** A piece the guild writes together, and the parts it is divided into. */
+export const collabProjectSchema = z.object({
+  guildKey: z.string().trim().min(1),
+  title: z.string().trim().min(3, "Give the piece a title").max(80),
+  brief: z.string().trim().max(600).default(""),
+  musicalKey: z.string().trim().min(1).max(3).default("C"),
+  mode: z.enum(["major", "minor"]).default("major"),
+  meter: z.string().trim().min(3).max(5).default("4/4"),
+  bars: z.number().int().min(4).max(32).default(8),
+  parts: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1, "Name the part").max(40),
+        instrument: z.string().trim().max(40).default(""),
+      })
+    )
+    .min(2, "A collaboration needs at least two parts")
+    .max(8, "Eight parts is as many as one piece can hold"),
+});
+
 export const commentSchema = z.object({
   postId: z.string(),
   content: z.string().trim().min(1).max(1000),

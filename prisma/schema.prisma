@@ -48,11 +48,17 @@ model User {
   posts           GuildPost[]
   comments        Comment[]
   likes           PostLike[]
-  following       Follow[]             @relation("follower")
-  followers       Follow[]             @relation("following")
+  following       Follow[]                @relation("follower")
+  followers       Follow[]                @relation("following")
   specializations UserSpecialization[]
   guildMembership GuildMember?
-  guildsFounded   Guild[]              @relation("guildFounder")
+  guildsFounded   Guild[]                 @relation("guildFounder")
+  guildMessages   GuildMessage[]
+  boostsGiven     GuildBoost[]            @relation("boostGiven")
+  boostsReceived  GuildBoost[]            @relation("boostReceived")
+  raidHits        GuildRaidContribution[]
+  collabProjects  CollabProject[]
+  collabParts     CollabPart[]
   drillResults    DrillResult[]
 }
 
@@ -397,6 +403,12 @@ model Boss {
   levelRequirement Int     @default(1)
   xpReward         Int     @default(500)
   final            Boolean @default(false)
+  /// A boss no one is meant to beat alone. It is fought by a guild rather than
+  /// a composer: one shared pool of HP, and every member's contribution counts
+  /// against it. See GuildRaid.
+  collab           Boolean @default(false)
+  /// How many composers the guild needs before it may open the encounter.
+  minMembers       Int     @default(1)
 
   lore    String? // the story behind the encounter
   tactics String? // JSON [string] - how to prepare for the fight
@@ -407,6 +419,7 @@ model Boss {
   phases     BossPhase[]
   objectives BossObjective[]
   progress   UserBossProgress[]
+  raids      GuildRaid[]
   room       DungeonRoom?
 }
 
@@ -567,13 +580,19 @@ model Composition {
   score     String?
   createdAt DateTime @default(now())
 
-  posts GuildPost[]
+  posts    GuildPost[]
+  raidHits GuildRaidContribution[]
 }
 
 model GuildPost {
   id            String       @id @default(cuid())
   userId        String
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Null for a post to the open Guild Hall, set when it was written inside a
+  /// guild. A guild post is visible to that guild's members only, which is the
+  /// whole reason a guild has a page of its own.
+  guildId       String?
+  guild         Guild?       @relation(fields: [guildId], references: [id], onDelete: Cascade)
   compositionId String?
   composition   Composition? @relation(fields: [compositionId], references: [id], onDelete: SetNull)
   content       String
@@ -638,7 +657,141 @@ model Guild {
 
   createdAt DateTime @default(now())
 
-  members GuildMember[]
+  members  GuildMember[]
+  posts    GuildPost[]
+  messages GuildMessage[]
+  boosts   GuildBoost[]
+  raids    GuildRaid[]
+  projects CollabProject[]
+}
+
+/// A line in the guild's hall.
+///
+/// Deliberately separate from GuildPost. A post is a published thing with
+/// likes and comments, kept and scrolled back through; a message is talk, and
+/// talk that has to be liked is not talk. Keeping them apart is what lets the
+/// guild page have both a noticeboard and a room.
+model GuildMessage {
+  id        String   @id @default(cuid())
+  guildId   String
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([guildId, createdAt])
+}
+
+/// One composer deliberately lifting another.
+///
+/// The currency is attention, not numbers: a boost is a named composer saying
+/// a named thing about your work, and the XP it carries is small enough that
+/// nobody levels by being popular. The daily cap and the ban on boosting
+/// yourself are in the action; the rows are kept so the guild page can show
+/// who has been lifting whom.
+model GuildBoost {
+  id         String   @id @default(cuid())
+  guildId    String
+  guild      Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  fromUserId String
+  from       User     @relation("boostGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  to         User     @relation("boostReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  note       String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@index([guildId, createdAt])
+  @@index([fromUserId, createdAt])
+  @@index([toUserId, createdAt])
+}
+
+/// A guild's shared run at a collaboration boss.
+///
+/// One row per guild per boss, holding one pool of HP that every member chips
+/// at. That is the whole difference from UserBossProgress, and it is the
+/// point: the encounter cannot be finished by the guild's strongest composer
+/// working alone, because the final blow asks for more parts than one person
+/// is allowed to claim.
+model GuildRaid {
+  id         String    @id @default(cuid())
+  guildId    String
+  guild      Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  bossId     String
+  boss       Boss      @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  currentHp  Int
+  defeated   Boolean   @default(false)
+  startedAt  DateTime  @default(now())
+  defeatedAt DateTime?
+
+  contributions GuildRaidContribution[]
+
+  @@unique([guildId, bossId])
+}
+
+/// What one composer landed on a raid boss.
+///
+/// Unique on (raid, user, objective): each member may land each objective
+/// once, so a raid is beaten by a guild turning up rather than by one person
+/// submitting the same piece eight times.
+model GuildRaidContribution {
+  id            String       @id @default(cuid())
+  raidId        String
+  raid          GuildRaid    @relation(fields: [raidId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  objectiveId   String
+  damage        Int
+  compositionId String?
+  composition   Composition? @relation(fields: [compositionId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+
+  @@unique([raidId, userId, objectiveId])
+  @@index([raidId, createdAt])
+}
+
+/// A piece the guild writes together, one part each.
+///
+/// The parts are the mechanism. A collaboration where everyone edits one file
+/// is a merge conflict with a tune in it; a collaboration where each person
+/// owns a named line — the melody, the bass, the inner voices — is how music
+/// has always been written by more than one person.
+model CollabProject {
+  id          String    @id @default(cuid())
+  guildId     String
+  guild       Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  title       String
+  brief       String    @default("")
+  /// The shared setup every part is written against, so the parts fit.
+  musicalKey  String    @default("C")
+  mode        String    @default("major")
+  meter       String    @default("4/4")
+  bars        Int       @default(8)
+  status      String    @default("OPEN") // OPEN | COMPLETE
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  parts CollabPart[]
+}
+
+model CollabPart {
+  id          String        @id @default(cuid())
+  projectId   String
+  project     CollabProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  /// Free text: "flute", "left hand", "the walking bass".
+  instrument  String        @default("")
+  claimedById String?
+  claimedBy   User?         @relation(fields: [claimedById], references: [id], onDelete: SetNull)
+  /// The part as written, a JSON Score (src/lib/score.ts).
+  score       String?
+  notes       String        @default("")
+  order       Int           @default(0)
+  submittedAt DateTime?
+
+  @@index([projectId, order])
 }
 
 model GuildMember {

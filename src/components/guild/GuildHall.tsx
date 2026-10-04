@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import {
@@ -129,15 +130,23 @@ export function GuildHall({
                 )}
               </p>
             </div>
-            <button
-              disabled={pending}
-              onClick={() =>
-                run(isFounder ? disbandGuild : leaveGuild)
-              }
-              className="btn-secondary shrink-0 text-xs"
-            >
-              {isFounder ? "Disband" : "Leave"}
-            </button>
+            <div className="flex shrink-0 flex-col gap-2">
+              {/* The way in. Everything a guild actually does — its board, its
+                  room, the pieces it is writing, the raids it is fighting —
+                  lives on its own page; this card is only the doorplate. */}
+              <Link href={`/guild/${mine.key}`} className="btn-primary text-xs">
+                <Icon name="arch" size={13} /> Enter the house
+              </Link>
+              <button
+                disabled={pending}
+                onClick={() =>
+                  run(isFounder ? disbandGuild : leaveGuild)
+                }
+                className="btn-ghost text-xs text-parchment-400"
+              >
+                {isFounder ? "Disband" : "Leave"}
+              </button>
+            </div>
           </div>
         </div>
       ) : (

@@ -7,6 +7,15 @@
  *
  * So: every server action must authenticate, and the only exceptions are the
  * ones that cannot — signing up and resetting a forgotten password.
+ *
+ * Authenticating through a gate counts. Several actions check more than who is
+ * calling — a guild action has to establish membership as well — and doing
+ * that inline in every one of them is how the membership check eventually gets
+ * left out of the tenth. Those files put the check in one local helper and
+ * call it first. This finds such helpers (a non-exported function in the same
+ * file that itself calls requireUserId) and treats calling one as
+ * authenticating, so the pattern is allowed without the guarantee being
+ * weakened: the helper still has to do the real check.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -25,6 +34,27 @@ for (const file of readdirSync(DIR).filter((f) => f.endsWith(".ts"))) {
   const src = readFileSync(`${DIR}/${file}`, "utf8");
   if (!/^\s*["']use server["']/m.test(src)) continue;
 
+  // Local helpers that authenticate. A call to one of these is as good as an
+  // inline check, because the helper cannot return without having made it.
+  // Every function in the file, exported or not, so a helper's body can be
+  // bounded by whatever comes next. Bounding it by the next *helper* instead
+  // lets the last one swallow every action below it, and then the file's own
+  // actions make it look as though the helper authenticates.
+  const allFns = [];
+  const fnRe = /\n(?:export )?(?:async )?function (\w+)\s*\(/g;
+  let f;
+  while ((f = fnRe.exec(src))) {
+    allFns.push({ name: f[1], at: f.index, exported: f[0].includes("export ") });
+  }
+
+  const gates = new Set();
+  for (let i = 0; i < allFns.length; i++) {
+    const fn = allFns[i];
+    if (fn.exported) continue;
+    const end = i + 1 < allFns.length ? allFns[i + 1].at : src.length;
+    if (/requireUserId|getSessionUserId/.test(src.slice(fn.at, end))) gates.add(fn.name);
+  }
+
   const starts = [];
   const re = /export async function (\w+)/g;
   let m;
@@ -35,7 +65,10 @@ for (const file of readdirSync(DIR).filter((f) => f.endsWith(".ts"))) {
     const end = i + 1 < starts.length ? starts[i + 1][1] : src.length;
     const body = src.slice(at, end);
     checked++;
-    const authenticates = /requireUserId|getSessionUserId/.test(body);
+    const callsGate = [...gates].some((g) =>
+      new RegExp(`\\b(?:await\\s+)?${g}\\s*\\(`).test(body)
+    );
+    const authenticates = /requireUserId|getSessionUserId/.test(body) || callsGate;
     if (!authenticates && !PUBLIC.has(name)) {
       fail(`${file}: ${name}() is callable from the browser and never checks who is calling`);
     }

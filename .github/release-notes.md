@@ -874,3 +874,59 @@ and read by TypeScript, with nothing connecting them, so a renamed step would
 silently leave the panel waiting for a phase that is never written — which
 looks exactly like the hang this replaces. `check:update-status` now fails the
 build if the updater and the update screen disagree about a single phase name.
+
+## What's new in v1.17.0
+
+**Guilds are now places rather than labels.** Joining a house used to add a
+line to your profile and nothing else — every post went to the same open hall,
+and there was nowhere to go. Each guild now has its own page, with five rooms
+in it, and everything in them is private to its members: a non-member gets the
+same answer as someone asking for a house that does not exist.
+
+**A board.** Post to your guild rather than to everyone — a victory, a
+question, a piece you want heard — with the same likes, comments and
+composition attachments the open hall has. Posts written inside a guild stay
+inside it.
+
+**A room.** Live conversation with the rest of the house, which is a different
+thing from a noticeboard and is treated as one: no likes, no comments, just
+talk. It updates every few seconds and stops entirely while the window is
+hidden, because a local app has no business waking the disk for a room nobody
+is reading.
+
+**Boosts.** Lift a guildmate by name, with a note saying what you are lifting
+them for. Three a day, never yourself, never the same person twice in a day,
+and the note is required — a boost without words is a like, and the app
+already has those. It carries a little XP, deliberately little: being liked
+should not move anyone up a level.
+
+**Pieces written together.** Start a collaboration — one piece, split into
+named parts, with one composer on each. Everybody writes against the same key,
+meter and length, so the parts fit when they arrive; a part in the wrong key is
+refused rather than stored. One part per composer, so a "collaboration" cannot
+be quietly finished by one person taking all four lines, and putting a part
+back leaves the music on it for whoever picks it up next.
+
+**Three raids: bosses a guild fights, not a composer.** The Two Galleries
+wants antiphony — music written across a cathedral, where one half has to leave
+a shape the other fills. The Grand Dispute wants four composers' own subjects
+argued into a single development with none of them thrown away. The Work of
+Many Lifetimes is a manuscript four generations started and none finished, one
+movement each.
+
+They hold one pool of health for the whole house. Every member may land each
+objective once, and the last blow stays sealed until the guild together has
+brought the boss below 15% — one composer landing everything they are allowed
+to land reaches 44%, 37% and 28% of the three, so none of them can be soloed.
+Ordinary objectives stop the boss at one point of health, so a raid can only
+ever be ended by the final blow, which is a finished piece judged by the same
+engine that judges a solo boss. Everyone who landed anything shares the bounty
+equally — in a raid, turning up is the contribution.
+
+**Two new checks, because three of those numbers live in three files.**
+`check:raids` works out from the seed data what one composer can actually do
+and fails the build if it is enough, if the minimum guild could never finish,
+or if the final blow would not be lethal. And `check:actions` now understands
+an action that authenticates through a shared gate rather than inline — which
+it previously reported as unauthenticated, and which had hidden the fact that
+it could not see membership checks at all.

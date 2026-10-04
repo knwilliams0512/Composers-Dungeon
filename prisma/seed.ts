@@ -8,6 +8,7 @@ import { ALL_UNITS, CRAFT_SLUGS } from "../src/lib/curriculum";
 import { lessonDetail } from "./seed-data/lesson-detail";
 import { lessonFigures } from "./seed-data/lesson-figures";
 import { areaDetail, bossDetail } from "./seed-data/world-detail";
+import { collabBosses } from "./seed-data/world-collab";
 import {
   orchestralArea,
   orchestralAreaDetail,
@@ -240,7 +241,7 @@ async function seedArtifacts() {
 }
 
 async function seedBosses() {
-  for (const b of [...bosses, ...expansionBosses, ...orchestralBosses]) {
+  for (const b of [...bosses, ...expansionBosses, ...orchestralBosses, ...collabBosses]) {
     const rewardArtifact = b.rewardArtifactKey
       ? await db.artifact.findUnique({ where: { key: b.rewardArtifactKey } })
       : null;
@@ -254,6 +255,8 @@ async function seedBosses() {
       levelRequirement: b.levelRequirement,
       xpReward: b.xpReward,
       final: (b as { final?: boolean }).final ?? false,
+      collab: (b as { collab?: boolean }).collab ?? false,
+      minMembers: (b as { minMembers?: number }).minMembers ?? 1,
       rewardArtifactId: rewardArtifact?.id ?? null,
       lore: bossDetail[b.key]?.lore ?? null,
       tactics: bossDetail[b.key]?.tactics ? JSON.stringify(bossDetail[b.key].tactics) : null,
@@ -276,7 +279,10 @@ async function seedBosses() {
       }
     }
   }
-  console.log(`✔ ${bosses.length + expansionBosses.length + orchestralBosses.length} bosses with phases & objectives`);
+  console.log(
+    `✔ ${bosses.length + expansionBosses.length + orchestralBosses.length + collabBosses.length} bosses with phases & objectives ` +
+      `(${collabBosses.length} fought by guilds)`
+  );
 }
 
 async function seedDungeon() {

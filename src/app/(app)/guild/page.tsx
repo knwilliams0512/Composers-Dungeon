@@ -15,6 +15,10 @@ export default async function GuildPage() {
 
   const [posts, myPublicCompositions, myFollowing, allGuilds, myMembership] = await Promise.all([
     db.guildPost.findMany({
+      // The open hall only. A post written inside a guild carries that
+      // guild's id and belongs to its members — leaving this out would
+      // publish every private guild board to everyone on the install.
+      where: { guildId: null },
       orderBy: { createdAt: "desc" },
       take: 50,
       include: {

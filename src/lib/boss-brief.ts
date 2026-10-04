@@ -102,6 +102,64 @@ const BOSS_BRIEFS: Record<string, BossSetup> = {
       { id: "uses-rests" },
     ],
   },
+  // --- The guild raids ------------------------------------------------------
+  // Their final blows are judged exactly as a solo boss's is. A raid that
+  // accepted a weaker piece because several people fought it would make the
+  // hardest encounters in the game the easiest ones to pass.
+  //
+  // "Both galleries, one piece… the arrival everything before it was asking
+  // for." Antiphonal writing across a reverberant space: wide, slow, and built
+  // of silences the other choir can live in.
+  "two-galleries": {
+    key: "G",
+    mode: "major",
+    bars: 16,
+    tempo: 72,
+    checks: [
+      { id: "uses-rests" },
+      { id: "motif-repetition" },
+      { id: "single-climax" },
+      { id: "chords-every-bar" },
+      { id: "authentic-cadence" },
+      { id: "range-limit", value: 19 },
+    ],
+  },
+  // "Every subject still audible and still itself." Several ideas argued into
+  // one page: the piece has to bring things back, and has to hold more than
+  // one rhythmic character at once.
+  "grand-dispute": {
+    key: "D",
+    mode: "minor",
+    bars: 16,
+    tempo: 100,
+    checks: [
+      { id: "motif-repetition" },
+      { id: "rhythmic-variety", value: 4 },
+      { id: "single-climax" },
+      { id: "leap-recovery" },
+      { id: "melody-fits-chords", value: 0.6 },
+      { id: "chords-every-bar" },
+    ],
+  },
+  // "Sixteen bars that answer the opening." The longest and strictest brief in
+  // the game, which is the point of a boss that took four generations.
+  "many-lifetimes": {
+    key: "Bb",
+    mode: "major",
+    bars: 16,
+    tempo: 84,
+    checks: [
+      { id: "motif-repetition" },
+      { id: "single-climax" },
+      { id: "chords-every-bar" },
+      { id: "authentic-cadence" },
+      { id: "melody-fits-chords", value: 0.7 },
+      { id: "leap-recovery" },
+      { id: "rhythmic-variety", value: 4 },
+      { id: "uses-rests" },
+      { id: "mostly-stepwise", value: 0.55 },
+    ],
+  },
   // "A line that works against its own shadow… every rise becomes a fall."
   "canon-that-eats-itself": {
     key: "A",
