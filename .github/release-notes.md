@@ -930,3 +930,29 @@ or if the final blow would not be lethal. And `check:actions` now understands
 an action that authenticates through a shared gate rather than inline — which
 it previously reported as unauthenticated, and which had hidden the fact that
 it could not see membership checks at all.
+
+## What's new in v1.17.1
+
+**About that "isn't commonly downloaded" warning.** It comes from Microsoft
+SmartScreen, and it does not mean anything was found wrong with the file — it
+means Microsoft has not seen this exact installer downloaded by enough people
+to have formed an opinion. A project publishing a new build every few days
+never accumulates that reputation, because an unsigned file earns it per file
+and each release starts again from zero.
+
+The only thing that removes it is a code-signing certificate. The build is now
+ready for one: supply `WINDOWS_CERT_PFX_BASE64` and `WINDOWS_CERT_PASSWORD` as
+repository secrets and every installer comes out signed and timestamped, with
+no other change. Without them the build is exactly what it has always been,
+and now says so in its own log rather than leaving it to be discovered.
+
+**And something to check in the meantime.** Every release now publishes
+`SHA256SUMS.txt`. Run `Get-FileHash .\ComposersDungeonSetup.exe -Algorithm
+SHA256` in PowerShell and compare: if it matches, the installer you have is
+byte-for-byte the one this project built. Anybody who tells you to click past a
+security warning owes you a way to verify instead, so the download page now
+explains the warning plainly and shows how.
+
+**The download page had gone stale too** — it still advertised 25 lessons, 9
+areas and 4 bosses. It now says 46, 16 and 10, and mentions the Studio and the
+guilds, which it had never mentioned at all.

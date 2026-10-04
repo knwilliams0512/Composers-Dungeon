@@ -204,6 +204,23 @@ makensis -NOCD \
   "-DAPP_VERSION=$VERSION" \
   "$ROOT/installer/composers-dungeon.nsi" | tail -3
 
+# --- 7. Sign it, when this build has a certificate ---------------------------
+# No certificate configured is the ordinary case and not an error: the
+# installer is simply unsigned, exactly as it has always been. See sign.sh for
+# why signing is the only thing that answers SmartScreen.
+say "Signing"
+bash "$ROOT/scripts/windows/sign.sh" "$OUT"
+
+# The setup program's own checksum, so somebody who would rather check than
+# trust a warning dialog has something to check against. The update payload
+# already publishes one in latest.json; this is the file people actually
+# download by hand.
+SETUP_SHA="$(sha256sum "$OUT" | cut -d" " -f1 | tr "a-f" "A-F")"
+{
+  echo "$SETUP_SHA  $(basename "$OUT")"
+  echo "$UPDATE_SHA  $(basename "$UPDATE_ZIP")"
+} > "$ROOT/dist/SHA256SUMS.txt"
+
 printf '\n\033[1;32m  Built %s (%s)\033[0m\n' "$OUT" "$(du -h "$OUT" | cut -f1)"
 printf '\033[1;32m  Built %s (%s)\033[0m\n' "$UPDATE_ZIP" "$(du -h "$UPDATE_ZIP" | cut -f1)"
 printf '\033[0;90m  Attach both, plus dist/latest.json, to the v%s release.\033[0m\n\n' "$VERSION"

@@ -32,14 +32,34 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install NSIS
-        run: sudo apt-get update && sudo apt-get install -y nsis
+      # osslsigncode signs Windows executables from Linux, so the installer can
+      # still be built without a Windows runner. It is installed whether or not
+      # a certificate is configured: a build that cannot sign should fail
+      # loudly on a missing tool rather than silently ship unsigned.
+      - name: Install NSIS and the signing tool
+        run: sudo apt-get update && sudo apt-get install -y nsis osslsigncode
 
       - name: Install dependencies
         run: npm ci
 
+      # The certificate is passed through the environment and never written to
+      # the workspace. When the secrets are absent — a fork, or before one has
+      # been bought — the build is identical to what it has always been and the
+      # installer comes out unsigned.
       - name: Build the installer
+        env:
+          WINDOWS_CERT_PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+          WINDOWS_CERT_TIMESTAMP: ${{ secrets.WINDOWS_CERT_TIMESTAMP }}
         run: bash scripts/windows/build-installer.sh
+
+      - name: Say whether it was signed
+        run: |
+          if osslsigncode verify -in dist/ComposersDungeonSetup.exe 2>&1 | grep -qi "signature.*ok\|Succeeded"; then
+            echo "::notice::The installer is signed."
+          else
+            echo "::warning::The installer is UNSIGNED - Windows SmartScreen will warn about it. See scripts/windows/sign.sh."
+          fi
 
       - name: Show what was built
         run: ls -lh dist/
@@ -51,6 +71,7 @@ jobs:
             dist/ComposersDungeonSetup.exe
             dist/ComposersDungeon-*-update.zip
             dist/latest.json
+            dist/SHA256SUMS.txt
           if-no-files-found: error
 
       # A tag push and a manual run with a tag both end up here. `gh release
@@ -72,7 +93,8 @@ jobs:
             gh release upload "$TAG" \
               dist/ComposersDungeonSetup.exe \
               dist/ComposersDungeon-*-update.zip \
-              dist/latest.json --clobber
+              dist/latest.json \
+              dist/SHA256SUMS.txt --clobber
           else
             gh release create "$TAG" \
               --target "${GITHUB_SHA}" \
@@ -80,6 +102,7 @@ jobs:
               --notes-file .github/release-notes.md \
               dist/ComposersDungeonSetup.exe \
               dist/ComposersDungeon-*-update.zip \
-              dist/latest.json
+              dist/latest.json \
+              dist/SHA256SUMS.txt
           fi
           echo "Released: $(gh release view "$TAG" --json url -q .url)"

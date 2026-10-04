@@ -117,10 +117,36 @@
   <div class="panel">
     <h2>Install in one minute</h2>
     <ol class="steps">
-      <li>Download the file above. If your browser hesitates: <b>⋯ → Keep → Keep anyway</b>.</li>
-      <li>Double-click it. At <i>"Windows protected your PC"</i>: <b>More info → Run anyway</b>. (It appears because the installer isn't code-signed — not because anything is wrong.)</li>
+      <li>Download the file above. Your browser may say <i>"isn't commonly downloaded"</i> — that is expected, and the panel below explains why. Choose <b>⋯ → Keep → Keep anyway</b>.</li>
+      <li>Double-click it. At <i>"Windows protected your PC"</i>: <b>More info → Run anyway</b>.</li>
       <li>Launch <b>Composer's Dungeon</b> from your Desktop or Start menu and sign up. The Placement Trial shapes the whole dungeon to you.</li>
     </ol>
+  </div>
+
+  <div class="panel">
+    <h2>Why Windows warns about it</h2>
+    <p style="font-size:.95rem; color:var(--parchment-300)">
+      Both warnings — <i>"isn't commonly downloaded"</i> in the browser and
+      <i>"Windows protected your PC"</i> when you open it — come from Microsoft SmartScreen,
+      and neither one says anything was found wrong with the file. They mean Microsoft has
+      not yet seen this exact installer downloaded by enough people to have an opinion
+      about it. A small project releasing a new build every few days never accumulates
+      that reputation, because each new file starts again from nothing.
+    </p>
+    <p style="font-size:.95rem; color:var(--parchment-300)">
+      The thing that removes it is a code-signing certificate, which costs a few hundred
+      a year and has to be bought under a verified identity. Until this project has one,
+      the warning stays — and anybody telling you to ignore a security warning owes you a
+      way to check for yourself, so here is one. Every release publishes
+      <a href="https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a>.
+      In PowerShell:
+    </p>
+    <pre style="overflow-x:auto; font-size:.85rem; color:var(--gold-300); background:rgba(0,0,0,.35); padding:.8rem 1rem; border-radius:.5rem"><code>Get-FileHash .\ComposersDungeonSetup.exe -Algorithm SHA256</code></pre>
+    <p style="font-size:.95rem; color:var(--parchment-300)">
+      If the hash matches the one in that file, the installer you have is byte-for-byte
+      the one this project built. The whole source is on GitHub, and so is the build that
+      produced it.
+    </p>
   </div>
 
   <div class="panel">
@@ -137,9 +163,11 @@
     <h2>What's inside</h2>
     <div class="grid">
       <div class="cell"><b>Compose in-app</b><span>A grid where every note fits the key, a built-in synth, and live standards your piece must meet to pass.</span></div>
-      <div class="cell"><b>25 lessons</b><span>From "What are notes?" to virtuoso writing — with vocabulary, common mistakes and listening lists.</span></div>
-      <div class="cell"><b>9 dungeon areas</b><span>Endless generated trials, puzzles, curses and treasure, each area training a different craft.</span></div>
-      <div class="cell"><b>4 bosses</b><span>Health bars, phases, tactics — and a final blow that must be a finished composition.</span></div>
+      <div class="cell"><b>46 lessons</b><span>From "What are notes?" to full orchestration — 133 sections, every one with a figure you can hear and play with.</span></div>
+      <div class="cell"><b>16 dungeon areas</b><span>93 rooms of generated trials, puzzles, curses and treasure, each area training a different craft.</span></div>
+      <div class="cell"><b>10 bosses</b><span>Health bars, phases, tactics — and a final blow that must be a finished composition. Three are fought by a whole guild.</span></div>
+      <div class="cell"><b>A notation studio</b><span>73 instruments, twelve ensemble templates, real engraving, and export to MusicXML, MIDI and print.</span></div>
+      <div class="cell"><b>Guilds</b><span>Share work with the other composers on your PC, write pieces together a part each, and take on the collaboration bosses.</span></div>
       <div class="cell"><b>Earned freedom</b><span>Beginners start with a small, safe toolset; levels and lessons unlock the full palette.</span></div>
       <div class="cell"><b>Entirely yours</b><span>Runs only on your PC. No accounts on a server, no uploads, works offline forever.</span></div>
     </div>
