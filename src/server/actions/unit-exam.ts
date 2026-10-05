@@ -171,8 +171,37 @@ export async function submitUnitExam(input: {
   });
   if (!exam) return { ok: false, error: "No exam for that unit" };
 
+  // The gate is checked here as well as when the paper is handed out, and
+  // that is not belt-and-braces. Refusing to *serve* a locked exam only hides
+  // the questions; the pass is recorded here, so a submission posted straight
+  // at this action would otherwise clear any unit in the roadmap from a
+  // standing start. Found by doing exactly that.
+  const passedRows = await db.unitExamAttempt.findMany({
+    where: { userId, passed: true },
+    select: { unit: true },
+  });
+  const passedUnits = new Set(passedRows.map((r) => r.unit));
+  if (!unitOpen(input.unit, passedUnits)) {
+    const before = previousUnit(input.unit);
+    return {
+      ok: false,
+      error: before
+        ? `Unit ${before} has to be passed before this one opens.`
+        : "That unit is not open yet.",
+    };
+  }
+
   const byId = new Map(exam.questions.map((q) => [q.id, q]));
-  const answered = input.answers.filter((a) => byId.has(a.questionId));
+
+  // One answer per question, and the first one given stands. Without this a
+  // submission could repeat a single correct answer twenty times and score
+  // twenty out of twenty — which passed a unit from one known question.
+  const seen = new Set<string>();
+  const answered = input.answers.filter((a) => {
+    if (!byId.has(a.questionId) || seen.has(a.questionId)) return false;
+    seen.add(a.questionId);
+    return true;
+  });
   if (answered.length === 0) return { ok: false, error: "Nothing was answered" };
 
   const missed: ExamResult["missed"] = [];
@@ -195,17 +224,20 @@ export async function submitUnitExam(input: {
     }
   }
 
-  const total = correct + missed.length;
-  if (total === 0) return { ok: false, error: "None of those questions could be read" };
+  // Marked out of the length of the paper, not the length of the answer
+  // sheet. Scoring only what was attempted would let a candidate answer the
+  // one question they were sure of and score full marks on it.
+  const readable = exam.questions.filter((q) => readChoices(q.choices) !== null).length;
+  const paperLength = Math.min(exam.askCount || readable, readable);
+  const attempted = correct + missed.length;
+  if (attempted === 0) return { ok: false, error: "None of those questions could be read" };
+  const total = Math.max(paperLength, attempted);
   const score = Math.round((correct / total) * 100);
   const passed = score >= exam.passMark;
 
   // Only count a pass once. Sitting an exam you have already passed — to see
   // the questions again, or to beat your score — should not pay out twice.
-  const alreadyPassed = await db.unitExamAttempt.findFirst({
-    where: { userId, unit: input.unit, passed: true },
-    select: { id: true },
-  });
+  const alreadyPassed = passedUnits.has(input.unit);
 
   await db.unitExamAttempt.create({
     data: {

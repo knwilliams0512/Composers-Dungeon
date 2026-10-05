@@ -13,6 +13,53 @@ import {
   type AwardResult,
 } from "@/lib/progression";
 import type { SkillKey } from "@/lib/enums";
+import { lessonOpen } from "@/lib/unit-gate";
+import { unitForSlug } from "@/lib/curriculum";
+
+/**
+ * Is this lesson actually open to this composer?
+ *
+ * The lesson page checks before it renders, but the page is not the only way
+ * in: these actions are endpoints, and one posted directly would otherwise
+ * complete a lesson from a unit the roadmap has not reached and pay XP for
+ * it. The same omission in the exam action let a standing-start account pass
+ * unit 6.6, which is how this one came to be looked for.
+ */
+async function lessonIsOpen(userId: string, slug: string): Promise<string | null> {
+  const passed = await db.unitExamAttempt.findMany({
+    where: { userId, passed: true },
+    select: { unit: true },
+  });
+  if (!lessonOpen(slug, new Set(passed.map((p) => p.unit)))) {
+    return "That lesson's unit has not been opened yet.";
+  }
+
+  // The page applies a second rule the unit gate does not: inside a unit,
+  // lessons still run in order. Checking only the unit here would let a
+  // posted request finish the third lesson of a unit without the first,
+  // which is the page's rule enforced in one place and not the other.
+  const lesson = await db.lesson.findUnique({
+    where: { slug },
+    include: { prerequisite: { select: { slug: true } } },
+  });
+  if (!lesson?.prerequisiteId || !lesson.prerequisite) return null;
+
+  const mine = unitForSlug(slug);
+  const theirs = unitForSlug(lesson.prerequisite.slug);
+  // Across a unit boundary the prerequisite is deliberately ignored: passing
+  // a unit's exam excuses its lessons, and a chain reaching back into a
+  // skipped unit would undo that.
+  if (!mine || !theirs || mine.unit !== theirs.unit) return null;
+
+  const done = await db.lessonProgress.findFirst({
+    where: { userId, lessonId: lesson.prerequisiteId, status: "COMPLETED" },
+    select: { id: true },
+  });
+  // Two different refusals, said differently. Telling somebody their unit is
+  // shut when the unit is open and they have simply jumped ahead inside it
+  // sends them to the wrong place.
+  return done ? null : "Finish the earlier lessons of this unit first.";
+}
 
 export interface QuizGradeResult {
   ok: boolean;
@@ -29,6 +76,9 @@ export async function submitLessonQuiz(input: {
   const userId = await requireUserId();
   const parsed = quizSubmissionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid submission" };
+
+  const shut = await lessonIsOpen(userId, parsed.data.lessonSlug);
+  if (shut) return { ok: false, error: shut };
 
   const lesson = await db.lesson.findUnique({
     where: { slug: parsed.data.lessonSlug },
@@ -111,6 +161,8 @@ export async function completePracticeExercise(
   lessonSlug: string
 ): Promise<{ ok: boolean; error?: string }> {
   const userId = await requireUserId();
+  const shut = await lessonIsOpen(userId, lessonSlug);
+  if (shut) return { ok: false, error: shut };
   const lesson = await db.lesson.findUnique({ where: { slug: lessonSlug } });
   if (!lesson) return { ok: false, error: "Lesson not found" };
 
@@ -166,6 +218,9 @@ export async function submitLessonComposition(input: {
   if (!parsedComp.success) {
     return { ok: false, error: parsedComp.error.errors[0]?.message ?? "Invalid input" };
   }
+
+  const shut = await lessonIsOpen(userId, input.lessonSlug);
+  if (shut) return { ok: false, error: shut };
 
   const lesson = await db.lesson.findUnique({
     where: { slug: input.lessonSlug },

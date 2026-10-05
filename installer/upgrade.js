@@ -28,6 +28,9 @@ const dbPath = path.join(root, "data", "dungeon.db");
 // Left behind when the content seed does not finish, so the next launch
 // retries it rather than the player quietly missing a version of content.
 const seedMarker = path.join(root, "data", "seed-pending");
+// Set when the exam tables first appear; cleared once the one-off credit of
+// already-learned units has actually been written.
+const creditMarker = path.join(root, "data", "credit-units-pending");
 
 if (!fs.existsSync(dbPath)) {
   console.log("No database yet — nothing to upgrade.");
@@ -112,6 +115,15 @@ async function migrate() {
  * missing. Additive only: it creates absent tables and indexes and appends
  * absent columns, and never drops or rewrites anything a player's rows live in.
  */
+/**
+ * Tables this run created.
+ *
+ * A table appearing for the first time is the one unambiguous signal that an
+ * install is crossing the version that introduced it — which is exactly when
+ * a one-off backfill should run, and never again.
+ */
+const createdTables = new Set();
+
 async function reconcileSchema() {
   const file = path.join(appDir, "schema.sql");
   if (!fs.existsSync(file)) return 0;
@@ -126,11 +138,39 @@ async function reconcileSchema() {
   let changes = 0;
 
   // 1. Tables. A missing one is created outright, with its columns.
+  // Which ones were created is remembered: a table appearing for the first
+  // time is the one unambiguous signal that this install is crossing the
+  // version that introduced it, which is exactly when a one-off backfill
+  // should run and never again.
   const tables = [...ddl.matchAll(/CREATE TABLE "([^"]+)" \(([\s\S]*?)\n\);/g)];
   for (const [statement, table, body] of tables) {
     if (!have.has(table)) {
       await db.$executeRawUnsafe(statement.replace(/;$/, ""));
       console.log("created table " + table);
+      createdTables.add(table);
+      // A table that did not exist a moment ago has no rows, and content
+      // tables are filled by the seed. The launcher runs this script with
+      // --schema-only on an ordinary start, which skips the seed — so without
+      // this a release installed over an existing copy would create the exam
+      // tables, never populate them, and leave every unit past 1.1 locked
+      // forever behind exams that do not exist.
+      try {
+        fs.writeFileSync(seedMarker, "table " + table + " was created empty");
+      } catch {
+        // The launcher reports an unwritable data folder; this must not fail
+        // the schema reconciliation.
+      }
+      // The credit below needs the exam rows the seed writes, so it cannot
+      // run here. Its own marker records *when* the exams arrived, which is
+      // what makes "completed before exams existed" a decidable question
+      // however long the credit ends up deferred for.
+      if (table === "UnitExamAttempt") {
+        try {
+          fs.writeFileSync(creditMarker, new Date().toISOString());
+        } catch {
+          // Same reasoning as above.
+        }
+      }
       changes++;
       continue;
     }
@@ -183,6 +223,148 @@ async function reconcileSchema() {
 }
 
 /**
+ * Credits units a player had already finished, once, when exams arrive.
+ *
+ * Unit exams gate the roadmap: pass one and the next unit opens, and
+ * finishing a unit's lessons no longer does. Applied to an install that
+ * predates them, that rule takes work away — somebody who had read all
+ * forty-six lessons would find everything past unit 1.1 locked, which is a
+ * punishment for having updated.
+ *
+ * So the first time this install gains the UnitExamAttempt table, every unit
+ * whose lessons the player had already completed is recorded as passed. It
+ * runs exactly once, because a table is created exactly once: on every later
+ * launch the table already exists and this does nothing. That matters as much
+ * as the credit itself — if it ran every time, a player could finish a unit's
+ * lessons and have the exam waived, which is the thing the exams exist to
+ * prevent.
+ *
+ * The unit-to-lesson map is read from the app's own curriculum rather than
+ * duplicated here, so a unit that gains a lesson cannot silently start being
+ * credited on incomplete work.
+ */
+async function creditUnitsAlreadyLearned() {
+  if (!fs.existsSync(creditMarker)) return;
+
+  // When the exams arrived. Everything credited must have been finished
+  // before this instant, because the marker can legitimately outlive several
+  // launches — a failed seed defers it — and in that window a player can
+  // finish a unit the ordinary way. Crediting that would hand out the exact
+  // waiver the exams exist to prevent.
+  let arrivedAt = null;
+  try {
+    const stamp = fs.readFileSync(creditMarker, "utf8").trim();
+    const parsed = new Date(stamp);
+    if (!Number.isNaN(parsed.getTime())) arrivedAt = parsed;
+  } catch {
+    // Unreadable marker: fall back to the file's own mtime below.
+  }
+  if (!arrivedAt) {
+    try {
+      arrivedAt = fs.statSync(creditMarker).mtime;
+    } catch {
+      arrivedAt = new Date();
+    }
+  }
+
+  // The attempts point at exam rows, so there must be exams to point at. If
+  // the seed has not run yet the marker stays and this runs next launch —
+  // and the cutoff above means the extra wait cannot change what qualifies.
+  const exams = await db.unitExam.count().catch(() => 0);
+  if (exams === 0) {
+    console.log("exams not seeded yet - crediting already-learned units next launch");
+    return;
+  }
+
+  let units;
+  try {
+    // Shipped beside the seed, compiled to plain JS for the bundled Node.
+    ({ ALL_UNITS: units } = require(path.join(appDir, "seed-runner.js")));
+  } catch {
+    units = null;
+  }
+  if (!Array.isArray(units) || units.length === 0) {
+    console.log("could not read the curriculum - no units credited");
+    clearCreditMarker();
+    return;
+  }
+
+  const users = await db.user.findMany({ select: { id: true } });
+  if (users.length === 0) {
+    // Nothing to credit and nothing to wait for. Leaving the marker would let
+    // this fire after somebody signs up and finishes units properly, waiving
+    // exams they were supposed to sit.
+    clearCreditMarker();
+    return;
+  }
+
+  const lessons = await db.lesson.findMany({ select: { id: true, slug: true } });
+  const idBySlug = new Map(lessons.map((l) => [l.slug, l.id]));
+
+  let credited = 0;
+  let failures = 0;
+  let lastError = "";
+  for (const user of users) {
+    const done = await db.lessonProgress.findMany({
+      where: {
+        userId: user.id,
+        status: "COMPLETED",
+        // Finished before the exams existed. A row with no completedAt is an
+        // older record from before that column was filled in, which by
+        // definition predates this, so it counts.
+        OR: [{ completedAt: { lte: arrivedAt } }, { completedAt: null }],
+      },
+      select: { lessonId: true },
+    });
+    const doneIds = new Set(done.map((d) => d.lessonId));
+    if (doneIds.size === 0) continue;
+
+    for (const unit of units) {
+      const ids = unit.slugs.map((s) => idBySlug.get(s)).filter(Boolean);
+      // A unit whose lessons are not all present in this build cannot be
+      // judged complete, so it is left for the player to sit.
+      if (ids.length !== unit.slugs.length || ids.length === 0) continue;
+      if (!ids.every((id) => doneIds.has(id))) continue;
+      try {
+        await db.unitExamAttempt.create({
+          data: {
+            userId: user.id,
+            unit: unit.unit,
+            score: 100,
+            correct: 0,
+            total: 0,
+            passed: true,
+            missed: JSON.stringify(["credited-for-lessons-completed-before-exams-existed"]),
+          },
+        });
+        credited++;
+      } catch (err) {
+        // Worth saying out loud. A silent catch here is what hid the fact
+        // that this ran before the exams existed and every insert was being
+        // rejected by its own foreign key.
+        failures++;
+        lastError = (err && err.message) || String(err);
+      }
+    }
+  }
+  if (failures > 0) {
+    console.log(`could not credit ${failures} unit(s): ${lastError}`);
+  }
+  console.log(`credited ${credited} unit(s) already learned before exams existed`);
+  // Done, whatever the count: a player with no completed lessons legitimately
+  // gets nothing, and the marker must not make this run again forever.
+  clearCreditMarker();
+}
+
+function clearCreditMarker() {
+  try {
+    fs.rmSync(creditMarker, { force: true });
+  } catch {
+    // Leaving it costs one more harmless pass next launch.
+  }
+}
+
+/**
  * Re-runs the seed so new lessons, areas, bosses and achievements appear.
  *
  * This is not allowed to fail the upgrade, and that distinction matters more
@@ -222,12 +404,39 @@ async function main() {
 
   const reconciled = await reconcileSchema();
   console.log(`${reconciled} schema change(s) reconciled.`);
+
+  // Released before the seed so the updater is not holding a second handle on
+  // the database while the seed writes to it. Prisma reconnects by itself on
+  // the next query, which is what the credit below relies on.
   await db.$disconnect();
 
   // On a normal launch there is nothing to seed. Only an update, or a seed
   // that did not finish last time, calls for it.
-  if (schemaOnly && !fs.existsSync(seedMarker)) return;
-  await refreshContent();
+  const seeding = !schemaOnly || fs.existsSync(seedMarker);
+  if (seeding) await refreshContent();
+
+  // After the seed, because the rows this writes point at the exams the seed
+  // creates. Running it first meant every insert was refused by its own
+  // foreign key, silently.
+  //
+  // Wrapped for the same reason refreshContent is: the updater's exit code
+  // decides whether apply-update.ps1 rolls the whole install back. A player
+  // losing a working update over a bookkeeping credit would be a far worse
+  // outcome than the credit not happening.
+  try {
+    await creditUnitsAlreadyLearned();
+  } catch (err) {
+    console.log(
+      "could not credit already-learned units: " +
+        ((err && err.message) || String(err))
+    );
+  }
+  try {
+    await db.$disconnect();
+  } catch {
+    // Already disconnected, or never reconnected because there was nothing
+    // to credit. Either way there is nothing to do about it here.
+  }
 }
 
 main().catch(async (err) => {

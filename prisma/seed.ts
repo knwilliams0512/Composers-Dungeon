@@ -562,6 +562,17 @@ async function seedDemoUser() {
  * rows. Exported so the Windows updater can re-run it after an update to pull
  * in new lessons, areas and bosses without a reinstall.
  */
+/**
+ * The roadmap's units, re-exported so the Windows updater can read them.
+ *
+ * installer/upgrade.js needs the unit-to-lesson map for its one-off credit of
+ * units a player had already finished before exams existed. Re-exporting it
+ * from the seed bundle means there is one copy of that map, in
+ * src/lib/curriculum.ts, rather than a second one in the updater that could
+ * drift the day a unit gains a lesson.
+ */
+export { ALL_UNITS };
+
 export async function seed() {
   console.log("Seeding Composer's Dungeon…");
   await seedSkills();

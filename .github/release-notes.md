@@ -994,3 +994,37 @@ against the candidate. The boundary was tested at 8, 9 and 10 correct out of
 shuffled and no answer index anywhere in it; marking happens on the server
 against the stored answer. Reading the page source gives you the questions,
 which you could have got by sitting the exam, and not the answers.
+
+## What's new in v1.18.1
+
+Bug fixes, most of them in last release's unit exams. Several were found by
+attacking the feature rather than by reading it.
+
+**Your finished lessons are no longer taken away by the update.** v1.18.0 made
+the exam the gate between units — applied to an install that predated exams,
+that locked everything past unit 1.1 for a player who had already read all 46
+lessons. The updater now credits, once, every unit whose lessons were finished
+before exams arrived. It is bounded by the moment the exams landed, so it can
+never waive a unit completed afterwards, which is the thing the exams exist to
+prevent.
+
+**A release installed over an existing copy could have locked the roadmap
+permanently.** Tables created by an ordinary launch were never populated,
+because that path skips the seed — so the exam tables would have existed,
+empty, with every unit gated behind exams that did not exist. Any table
+created now asks for the seed that fills it.
+
+**Three ways to pass a unit exam without passing it.** The gate was checked
+when the paper was handed out but not when it was marked, so a submission sent
+directly cleared any unit in the roadmap from a standing start. Answering one
+question correctly twenty times scored twenty out of twenty, because the paper
+was marked out of the answers given rather than its own length. And the lesson
+actions checked nothing at all, so a locked lesson could be completed — and
+paid for — by the same route. All three are closed, and a legitimate paper
+marks exactly as before.
+
+**Smaller things.** Jumping ahead inside a unit now says so, instead of
+claiming the unit is shut. The credit step cannot fail an update and trigger a
+rollback. The updater no longer holds a second handle on the database while
+the seed writes to it. And a swallowed error that had been hiding a real
+failure now says what went wrong.
