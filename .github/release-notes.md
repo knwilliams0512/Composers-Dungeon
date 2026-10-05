@@ -956,3 +956,41 @@ explains the warning plainly and shows how.
 **The download page had gone stale too** — it still advertised 25 lessons, 9
 areas and 4 bosses. It now says 46, 16 and 10, and mentions the Studio and the
 guilds, which it had never mentioned at all.
+
+## What's new in v1.18.0
+
+**Unit exams.** Every one of the roadmap's 37 units now has an exam, and the
+exam is the gate: passing it opens the next unit, and finishing all of a
+unit's lessons no longer does. That cuts both ways on purpose. Somebody who
+already knows Level 1 can sit seven exams and start at 2.1 without reading a
+word — which is mainly what they are for — and somebody who clicked through
+every lesson without taking any of it in does not arrive in Level 4 on the
+strength of having scrolled.
+
+Each exam can be sat at any time, as often as you like, without reading the
+lessons first. Pass one and that unit's lessons become optional; they stay
+there if you ever want them.
+
+**They cover the whole unit, and that is checked rather than claimed.** 304
+questions across the 37 exams, and every single one of the roadmap's 122
+lesson sections is the subject of at least one of them. A new check,
+`check:exams`, fails the build if any section of any lesson in a unit goes
+untested, if a question cites a section that does not exist, if two choices in
+a question are identical, or if an answer index falls outside its own choices.
+
+**Failing tells you what to read.** Not "62%, try again" — the result lists
+the sections you missed, by lesson, with the explanation and a link straight
+to each one. Getting something right shows the explanation too, since knowing
+*why* is the point.
+
+**The pass mark says what it means.** Early on it was 80%, which sounds round
+and is harsher than it reads: on an eight-question paper 80% means seven
+right, so a single slip failed you. It is 75% now, and the screen states the
+actual requirement — "6/8 to pass" — rather than a percentage that rounds
+against the candidate. The boundary was tested at 8, 9 and 10 correct out of
+12 to confirm the screen and the server agree.
+
+**No answer key reaches the browser.** The paper is served with the choices
+shuffled and no answer index anywhere in it; marking happens on the server
+against the stored answer. Reading the page source gives you the questions,
+which you could have got by sitting the exam, and not the answers.

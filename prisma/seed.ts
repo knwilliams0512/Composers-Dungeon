@@ -9,6 +9,7 @@ import { lessonDetail } from "./seed-data/lesson-detail";
 import { lessonFigures } from "./seed-data/lesson-figures";
 import { areaDetail, bossDetail } from "./seed-data/world-detail";
 import { collabBosses } from "./seed-data/world-collab";
+import { unitExams } from "./seed-data/unit-exams";
 import {
   orchestralArea,
   orchestralAreaDetail,
@@ -285,6 +286,55 @@ async function seedBosses() {
   );
 }
 
+/**
+ * The exams that gate one unit of the roadmap from the next.
+ *
+ * Questions are replaced wholesale rather than merged. They are keyed by
+ * nothing stable — an edited prompt is a different question — and a half-
+ * updated pool is worse than either version, so the pool for a unit is deleted
+ * and rewritten. Attempts are untouched: they reference the unit, not the
+ * questions, so a learner's record of having passed 2.3 survives 2.3 being
+ * rewritten.
+ */
+async function seedUnitExams() {
+  for (const exam of unitExams) {
+    await db.unitExam.upsert({
+      where: { unit: exam.unit },
+      create: {
+        unit: exam.unit,
+        title: exam.title,
+        blurb: exam.blurb,
+        passMark: exam.passMark ?? 75,
+        askCount: exam.questions.length,
+      },
+      update: {
+        title: exam.title,
+        blurb: exam.blurb,
+        passMark: exam.passMark ?? 75,
+        askCount: exam.questions.length,
+      },
+    });
+    await db.unitExamQuestion.deleteMany({ where: { unit: exam.unit } });
+    for (let i = 0; i < exam.questions.length; i++) {
+      const q = exam.questions[i];
+      await db.unitExamQuestion.create({
+        data: {
+          unit: exam.unit,
+          slug: q.slug,
+          heading: q.heading,
+          prompt: q.prompt,
+          choices: JSON.stringify(q.choices),
+          answerIndex: q.answer,
+          explanation: q.why,
+          order: i,
+        },
+      });
+    }
+  }
+  const total = unitExams.reduce((n, e) => n + e.questions.length, 0);
+  console.log(`✔ ${unitExams.length} unit exams, ${total} questions`);
+}
+
 async function seedDungeon() {
   const allAreas = [...dungeonAreas, ...expansionAreas, orchestralArea];
   const detail: typeof areaDetail = { ...areaDetail, ...orchestralAreaDetail };
@@ -517,6 +567,7 @@ export async function seed() {
   await seedSkills();
   await seedLessons();
   await seedPlacementQuestions();
+  await seedUnitExams();
   await seedArtifacts();
   await seedBosses();
   await seedDungeon();

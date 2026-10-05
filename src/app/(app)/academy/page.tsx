@@ -10,6 +10,7 @@ import { categoryTheme, categoryVars } from "@/lib/category-theme";
 import { tierOrdinal } from "@/lib/enums";
 import { effectiveTier } from "@/lib/tier";
 import { CURRICULUM, CRAFT_SLUGS, unitForSlug } from "@/lib/curriculum";
+import { lessonOpen, roadmapProgress, unitOpen } from "@/lib/unit-gate";
 
 export const metadata = { title: "The Academy of Musical Arts" };
 
@@ -17,14 +18,26 @@ export default async function AcademyPage() {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
-  const [profile, lessons, progress] = await Promise.all([
+  const [profile, lessons, progress, examAttempts] = await Promise.all([
     db.userProfile.findUnique({ where: { userId } }),
     db.lesson.findMany({ orderBy: { order: "asc" } }),
     db.lessonProgress.findMany({ where: { userId } }),
+    db.unitExamAttempt.findMany({
+      where: { userId },
+      select: { unit: true, passed: true, score: true },
+    }),
   ]);
   if (!profile) redirect("/login");
 
   const progressByLesson = new Map(progress.map((p) => [p.lessonId, p]));
+  // Which units have been passed — the thing that actually opens the roadmap.
+  const unitsPassed = new Set(examAttempts.filter((a) => a.passed).map((a) => a.unit));
+  const bestByUnit = new Map<string, number>();
+  for (const attempt of examAttempts) {
+    const best = bestByUnit.get(attempt.unit) ?? 0;
+    if (attempt.score > best) bestByUnit.set(attempt.unit, attempt.score);
+  }
+  const roadmap = roadmapProgress(unitsPassed);
   const completedIds = new Set(
     progress.filter((p) => p.status === "COMPLETED").map((p) => p.lessonId)
   );
@@ -35,9 +48,6 @@ export default async function AcademyPage() {
     effectiveTier(profile.experienceTier, completedIds.size)
   );
   const overallPercent = lessons.length ? (completedIds.size / lessons.length) * 100 : 0;
-  // Lessons begun but not finished. Labelled "Started", not "Open": a learner
-  // reading "0 Open" on their first visit would think nothing was available.
-  const inProgress = progress.filter((p) => p.status !== "COMPLETED").length;
 
   // The Academy is presented as the roadmap, not as a flat list sorted by
   // difficulty. "Difficulty 6" is not a place anyone recognises; "Level 3,
@@ -61,8 +71,16 @@ export default async function AcademyPage() {
         aside={
           <div className="grid grid-cols-3 gap-2.5 text-center lg:w-72">
             {[
-              { n: completedIds.size, label: "Done", cls: "text-emerald2-300", ring: "ring-emerald2-500/30" },
-              { n: inProgress, label: "Started", cls: "text-arcane-300", ring: "ring-arcane-500/30" },
+              // Units passed first: the exams are what actually move you
+              // through the roadmap, so that is the number that answers
+              // "how far along am I".
+              {
+                n: `${roadmap.cleared}/${roadmap.total}`,
+                label: "Units passed",
+                cls: "text-gold-300",
+                ring: "ring-gold-500/30",
+              },
+              { n: completedIds.size, label: "Lessons done", cls: "text-emerald2-300", ring: "ring-emerald2-500/30" },
               {
                 n: lessons.length - completedIds.size,
                 label: "Left",
@@ -172,6 +190,9 @@ export default async function AcademyPage() {
                     .filter(Boolean) as typeof lessons;
                   if (unitLessons.length === 0) return null;
                   const unitDone = unitLessons.every((l) => completedIds.has(l.id));
+                  const examPassed = unitsPassed.has(unit.unit);
+                  const open = unitOpen(unit.unit, unitsPassed);
+                  const bestScore = bestByUnit.get(unit.unit);
                   return (
                     <div key={unit.unit}>
                       <div className="mb-3 flex items-baseline gap-2.5">
@@ -184,13 +205,68 @@ export default async function AcademyPage() {
                         <h3 className="font-display text-base text-parchment-100">
                           {unit.title}
                         </h3>
-                        {unitDone && (
+                        {examPassed ? (
+                          <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-emerald2-300">
+                            <Icon name="check" size={13} /> Passed
+                          </span>
+                        ) : unitDone ? (
                           <Icon name="check" size={14} className="text-emerald2-400" />
-                        )}
+                        ) : null}
                       </div>
                       <p className="mb-3 text-[13px] leading-relaxed text-parchment-400">
                         {unit.blurb}
                       </p>
+
+                      {/* The exam is the gate, so it is shown as one — above
+                          the lessons rather than buried under them, because
+                          somebody who already knows this unit should see the
+                          way past it before they see the way through it. */}
+                      <Link
+                        href={`/academy/exam/${unit.unit}`}
+                        className={`mb-4 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                          examPassed
+                            ? "border-emerald2-500/40 bg-emerald2-500/5 hover:border-emerald2-400/60"
+                            : open
+                              ? "border-gold-600/50 bg-gold-500/5 hover:border-gold-500/70"
+                              : "border-abyss-600/60 bg-abyss-900/40 opacity-70"
+                        }`}
+                      >
+                        <Icon
+                          name={examPassed ? "check" : open ? "target" : "lock"}
+                          size={16}
+                          className={
+                            examPassed
+                              ? "shrink-0 text-emerald2-300"
+                              : open
+                                ? "shrink-0 text-gold-400"
+                                : "shrink-0 text-parchment-600"
+                          }
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-parchment-100">
+                            {examPassed
+                              ? `Unit ${unit.unit} exam passed`
+                              : open
+                                ? `Unit ${unit.unit} exam`
+                                : `Unit ${unit.unit} exam — locked`}
+                          </p>
+                          <p className="text-xs text-parchment-500">
+                            {examPassed
+                              ? `The lessons below are optional${
+                                  bestScore ? ` · best ${bestScore}%` : ""
+                                }`
+                              : open
+                                ? "Pass it to skip this unit and open the next — you do not have to read the lessons first"
+                                : "Pass the unit before this one to open it"}
+                          </p>
+                        </div>
+                        {open && (
+                          <span className="shrink-0 text-xs text-gold-300">
+                            {examPassed ? "Sit again" : "Take it"} →
+                          </span>
+                        )}
+                      </Link>
+
                       <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
                         {renderLessons(unitLessons)}
                       </div>
@@ -240,13 +316,25 @@ export default async function AcademyPage() {
         {list.map((lesson) => {
           const p = progressByLesson.get(lesson.id);
           const done = completedIds.has(lesson.id);
-          const prereqMet =
-            !lesson.prerequisiteId || completedIds.has(lesson.prerequisiteId);
+          // The unit exam is the gate between units now, so a prerequisite is
+          // only honoured inside a unit. Across a boundary it would undo the
+          // skip: pass the 1.4 exam without reading 1.4, and 1.5's first
+          // lesson would still be waiting on a lesson you were excused from.
+          const myUnit = unitForSlug(lesson.slug);
+          const prereqLesson = lesson.prerequisiteId
+            ? lessons.find((l) => l.id === lesson.prerequisiteId)
+            : null;
+          const prereqSameUnit =
+            prereqLesson && myUnit
+              ? unitForSlug(prereqLesson.slug)?.unit === myUnit.unit
+              : false;
+          const prereqMet = !prereqSameUnit || completedIds.has(lesson.prerequisiteId!);
           // Lessons are grouped by roadmap level now rather than by experience
           // tier, so each one carries its own tier gate instead of inheriting
           // one from the section it happened to sit in.
           const tierLocked = tierOrdinal(lesson.tierRequirement) > userOrdinal + 1;
-          const locked = tierLocked || !prereqMet;
+          const unitLocked = !lessonOpen(lesson.slug, unitsPassed);
+          const locked = tierLocked || !prereqMet || unitLocked;
           const theme = categoryTheme(lesson.category);
 
                   const card = (

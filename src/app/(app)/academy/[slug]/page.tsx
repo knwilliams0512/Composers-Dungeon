@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { unitForSlug } from "@/lib/curriculum";
+import { previousUnit, unitOpen } from "@/lib/unit-gate";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { LessonFigure } from "@/components/academy/figures/LessonFigure";
@@ -47,8 +49,43 @@ export default async function LessonPage({ params }: { params: { slug: string } 
   });
   if (!lesson) notFound();
 
-  // Enforce prerequisite server-side.
-  if (lesson.prerequisiteId) {
+  // Enforce the unit gate server-side. A locked card the URL still opens is
+  // not a gate, and the exam is the only thing that opens a unit now.
+  const examAttempts = await db.unitExamAttempt.findMany({
+    where: { userId, passed: true },
+    select: { unit: true },
+  });
+  const unitsPassed = new Set(examAttempts.map((a) => a.unit));
+  const myUnit = unitForSlug(lesson.slug);
+  if (myUnit && !unitOpen(myUnit.unit, unitsPassed)) {
+    const before = previousUnit(myUnit.unit);
+    return (
+      <div className="card-gold mx-auto max-w-lg p-8 text-center">
+        <Icon name="lock" size={36} className="mx-auto text-gold-600" />
+        <h1 className="heading-display mt-3 text-xl">Unit {myUnit.unit} Is Not Open Yet</h1>
+        <p className="mt-2 leading-relaxed text-parchment-400">
+          The roadmap is taken in order, and unit {before} has not been passed. You do not
+          have to read its lessons — sitting its exam is enough, and you can do that now.
+        </p>
+        {before && (
+          <Link href={`/academy/exam/${before}`} className="btn-primary mt-5">
+            <Icon name="target" size={15} /> Sit the unit {before} exam
+          </Link>
+        )}
+      </div>
+    );
+  }
+
+  // Within a unit, a prerequisite still applies. Across units it does not —
+  // passing a unit's exam excuses its lessons, so a chain reaching back into
+  // a skipped unit would quietly undo the skip.
+  const prereqUnit = lesson.prerequisite
+    ? unitForSlug(lesson.prerequisite.slug)
+    : null;
+  const prereqInSameUnit = Boolean(
+    myUnit && prereqUnit && prereqUnit.unit === myUnit.unit
+  );
+  if (lesson.prerequisiteId && prereqInSameUnit) {
     const prereqDone = await db.lessonProgress.findFirst({
       where: { userId, lessonId: lesson.prerequisiteId, status: "COMPLETED" },
     });

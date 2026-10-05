@@ -39,6 +39,7 @@ model User {
   skills          UserSkill[]
   lessonProgress  LessonProgress[]
   quizAttempts    QuizAttempt[]
+  unitExams       UnitExamAttempt[]
   challenges      UserChallenge[]
   bossProgress    UserBossProgress[]
   artifacts       UserArtifact[]
@@ -222,6 +223,72 @@ model QuizQuestion {
   answerIndex Int
   explanation String  @default("")
   placement   Boolean @default(false) // available to the adaptive Placement Trial
+}
+
+/// The exam that stands between one unit of the roadmap and the next.
+///
+/// Separate from Quiz, which belongs to a single lesson and is part of
+/// finishing it. A unit exam belongs to the roadmap rather than to any lesson:
+/// it covers everything in the unit, it can be sat at any time without having
+/// read a word, and until it is passed the next unit stays shut — finishing
+/// every lesson in the unit is not a substitute for it.
+///
+/// That is deliberate in both directions. Somebody who already knows the
+/// material should not have to click through seven lessons to prove it, and
+/// somebody who clicked through seven lessons without taking any of it in
+/// should not arrive in Level 4 on the strength of having scrolled.
+model UnitExam {
+  /// The roadmap unit this belongs to, e.g. "2.3". See lib/curriculum.ts.
+  unit      String   @id
+  title     String
+  /// What the exam is for, shown before it starts.
+  blurb     String   @default("")
+  /// Percent needed to pass. Held here rather than in code so a unit that
+  /// turns out to be unfairly hard can be adjusted by content, not a release.
+  passMark  Int      @default(75)
+  /// How many questions one sitting asks, drawn from the pool below.
+  askCount  Int      @default(10)
+  updatedAt DateTime @updatedAt
+
+  questions UnitExamQuestion[]
+  attempts  UnitExamAttempt[]
+}
+
+model UnitExamQuestion {
+  id          String   @id @default(cuid())
+  unit        String
+  exam        UnitExam @relation(fields: [unit], references: [unit], onDelete: Cascade)
+  /// The lesson this question comes from, and the section inside it. Both are
+  /// here so coverage can be checked rather than claimed: scripts/check-exams
+  /// refuses a unit whose exam misses any section of any of its lessons.
+  slug        String
+  heading     String
+  prompt      String
+  /// JSON string[] — stored unshuffled; the server shuffles per sitting.
+  choices     String
+  answerIndex Int
+  explanation String   @default("")
+  order       Int      @default(0)
+
+  @@index([unit, order])
+}
+
+model UnitExamAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  unit      String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam      UnitExam @relation(fields: [unit], references: [unit], onDelete: Cascade)
+  score     Int
+  correct   Int
+  total     Int
+  passed    Boolean
+  /// JSON of the sections missed, so the result can name what to go and read
+  /// rather than only saying no.
+  missed    String   @default("[]")
+  createdAt DateTime @default(now())
+
+  @@index([userId, unit])
 }
 
 model QuizAttempt {

@@ -133,6 +133,45 @@ CREATE TABLE "QuizQuestion" (
 );
 
 -- CreateTable
+CREATE TABLE "UnitExam" (
+    "unit" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "blurb" TEXT NOT NULL DEFAULT '',
+    "passMark" INTEGER NOT NULL DEFAULT 75,
+    "askCount" INTEGER NOT NULL DEFAULT 10,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "UnitExamQuestion" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "unit" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "heading" TEXT NOT NULL,
+    "prompt" TEXT NOT NULL,
+    "choices" TEXT NOT NULL,
+    "answerIndex" INTEGER NOT NULL,
+    "explanation" TEXT NOT NULL DEFAULT '',
+    "order" INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT "UnitExamQuestion_unit_fkey" FOREIGN KEY ("unit") REFERENCES "UnitExam" ("unit") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "UnitExamAttempt" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "unit" TEXT NOT NULL,
+    "score" INTEGER NOT NULL,
+    "correct" INTEGER NOT NULL,
+    "total" INTEGER NOT NULL,
+    "passed" BOOLEAN NOT NULL,
+    "missed" TEXT NOT NULL DEFAULT '[]',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "UnitExamAttempt_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "UnitExamAttempt_unit_fkey" FOREIGN KEY ("unit") REFERENCES "UnitExam" ("unit") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE "QuizAttempt" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
@@ -635,6 +674,12 @@ CREATE UNIQUE INDEX "LessonProgress_userId_lessonId_key" ON "LessonProgress"("us
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Quiz_lessonId_key" ON "Quiz"("lessonId");
+
+-- CreateIndex
+CREATE INDEX "UnitExamQuestion_unit_order_idx" ON "UnitExamQuestion"("unit", "order");
+
+-- CreateIndex
+CREATE INDEX "UnitExamAttempt_userId_unit_idx" ON "UnitExamAttempt"("userId", "unit");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DungeonArea_key_key" ON "DungeonArea"("key");
