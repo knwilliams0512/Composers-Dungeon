@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
+import { containsAnyCase } from "@/lib/db-provider";
 import { db } from "@/lib/db";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RARITY_COLORS, type ArtifactRarity } from "@/lib/enums";
@@ -107,7 +108,7 @@ async function CompositionsTab({
   // row carries a whole score, so a long-lived library would have shipped
   // megabytes of notation to the browser to draw a page of thumbnails.
   const PAGE = 100;
-  const where = { userId, ...(q ? { title: { contains: q } } : {}) };
+  const where = { userId, ...(q ? { title: containsAnyCase(q) } : {}) };
   const [compositions, totalCount] = await Promise.all([
     db.composition.findMany({ where, orderBy: { createdAt: sort }, take: PAGE }),
     db.composition.count({ where }),
@@ -162,7 +163,7 @@ async function ChallengesTab({
   const challenges = await db.userChallenge.findMany({
     where: {
       userId,
-      ...(q ? { challenge: { title: { contains: q } } } : {}),
+      ...(q ? { challenge: { title: containsAnyCase(q) } } : {}),
     },
     include: { challenge: { include: { room: { include: { area: true } } } } },
     orderBy: { startedAt: sort },

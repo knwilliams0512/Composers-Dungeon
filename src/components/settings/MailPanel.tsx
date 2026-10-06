@@ -29,7 +29,14 @@ const SMTP_PRESETS = [
   { name: "Fastmail", host: "smtp.fastmail.com", port: 465, secure: true },
 ];
 
-export function MailPanel({ saved }: { saved: MailConfigView | null }) {
+export function MailPanel({
+  saved,
+  hosted = false,
+}: {
+  saved: MailConfigView | null;
+  /** Passed in rather than read here: this is a client component. */
+  hosted?: boolean;
+}) {
   const [mode, setMode] = useState<"smtp" | "relay">(saved?.mode ?? "relay");
   const [host, setHost] = useState(saved?.host ?? "");
   const [port, setPort] = useState(String(saved?.port ?? 587));
@@ -99,8 +106,18 @@ export function MailPanel({ saved }: { saved: MailConfigView | null }) {
 
   async function forget() {
     setBusy("clear");
-    await clearMailSettings();
+    const result = await clearMailSettings();
     setBusy(null);
+
+    // The server can refuse — on a hosted instance only the operator may touch
+    // the sender. Blanking the fields and saying "Forgotten" regardless would
+    // show an empty form over settings that are still live, and tell the
+    // person the opposite of what happened.
+    if (!result.ok) {
+      setMessage({ kind: "warning", text: result.error ?? "Could not forget these settings" });
+      return;
+    }
+
     setConfigured(false);
     setHost("");
     setUsername("");
@@ -110,7 +127,9 @@ export function MailPanel({ saved }: { saved: MailConfigView | null }) {
     setFromEmail("");
     setMessage({
       kind: "note",
-      text: "Forgotten. Reset links are handed over on this machine instead, which needs nothing.",
+      text: hosted
+        ? "Forgotten. Nobody on this server can reset a password until a sender is set up again."
+        : "Forgotten. Reset links are handed over on this machine instead, which needs nothing.",
     });
   }
 
@@ -118,14 +137,31 @@ export function MailPanel({ saved }: { saved: MailConfigView | null }) {
     <Panel
       title="Email"
       icon="scroll"
-      subtitle="Optional. Only used to send a password reset link."
+      subtitle={
+        hosted
+          ? "Required. The only way anyone can reset a password here."
+          : "Optional. Only used to send a password reset link."
+      }
       className="mt-6"
     >
       <p className="text-sm leading-relaxed text-parchment-400">
-        You probably do not need this. Composer&rsquo;s Dungeon runs entirely on this machine,
-        so when you ask for a password reset while sitting at it, the app hands you the link
-        directly — no email, no setup, one click. Email is worth setting up only if you want
-        to be able to reset from somewhere else, or from another machine on your network.
+        {hosted ? (
+          <>
+            This one is not optional. On a desktop copy the app can hand a reset link
+            straight to whoever is sitting at the machine; on a server there is nobody
+            sitting at it, so mail is the only way a password can be reset at all. Until a
+            sender is set up here, anyone who forgets their password is locked out, and the
+            app will tell them so rather than pretend a link is on its way.
+          </>
+        ) : (
+          <>
+            You probably do not need this. Composer&rsquo;s Dungeon runs entirely on this
+            machine, so when you ask for a password reset while sitting at it, the app hands
+            you the link directly — no email, no setup, one click. Email is worth setting up
+            only if you want to be able to reset from somewhere else, or from another
+            machine on your network.
+          </>
+        )}
       </p>
 
       <p className="mt-3 text-sm leading-relaxed text-parchment-400">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth";
+import { isHosted } from "@/lib/desktop";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { ALL_TIERS } from "@/lib/composer-freedom";
 
@@ -45,7 +46,7 @@ const JOURNEY: { icon: IconName; title: string; body: string }[] = [
   },
 ];
 
-const FEATURES: { icon: IconName; title: string; body: string }[] = [
+const FEATURES: { key?: "guild" | "ownership"; icon: IconName; title: string; body: string }[] = [
   {
     icon: "target",
     title: "A judge that cannot be charmed",
@@ -82,16 +83,42 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
     body: "The Ancient Motif rerolls a trial you hate. The Hourglass of Rest protects your streak. Curses hand you a restriction and dare you to write well inside it. Fifty-eight achievements track what you have actually done.",
   },
   {
+    key: "guild",
     icon: "users",
     title: "A Guild on your own machine",
     body: "Share a piece, read what everyone else on this install has written, and leave a note on it. No account anywhere, no feed, no strangers.",
   },
   {
+    key: "ownership",
     icon: "shield",
     title: "Yours, entirely",
     body: "Runs on your own machine. No server, no uploads, no subscription. Your music lives in one file you can copy anywhere.",
   },
 ];
+
+/**
+ * The two cards above, told truthfully by a hosted instance.
+ *
+ * "No server, no uploads" is the whole point of the Windows download and stays
+ * true of it. On a server it is simply false, and a privacy promise is the one
+ * kind of copy that must never be allowed to drift — which is why the pairing
+ * is by `key` and not by matching the title text. Someone editing this copy
+ * cannot accidentally put "No server, no uploads" back on a server.
+ */
+const HOSTED_FEATURES: Record<"guild" | "ownership", (typeof FEATURES)[number]> = {
+  guild: {
+    key: "guild",
+    icon: "users",
+    title: "A Guild you can actually join",
+    body: "Join a house, write in its chat, take a part each on a shared piece, and bring three of you to a raid boss no one can beat alone.",
+  },
+  ownership: {
+    key: "ownership",
+    icon: "shield",
+    title: "Yours, and shared when you want",
+    body: "Free, no subscription. Your work is yours — kept on this server so your guild can reach it, and exportable to MusicXML, MIDI or print whenever you like.",
+  },
+};
 
 const AREAS = [
   "Hall of Melody",
@@ -128,6 +155,13 @@ const BOSSES: { level: number; name: string; title: string; final?: boolean }[] 
 ];
 
 export default async function LandingPage() {
+  // Two of the feature cards promise the opposite of what a hosted instance
+  // does. A privacy claim is the one kind of copy that must never be allowed to
+  // drift, so the server tells the truth about itself and the Windows download
+  // keeps the offline promise that is true of it.
+  const hostedFeatures = isHosted()
+    ? FEATURES.map((f) => (f.key ? HOSTED_FEATURES[f.key] : f))
+    : FEATURES;
   const userId = await getSessionUserId();
   if (userId) redirect("/hall");
 
@@ -158,7 +192,8 @@ export default async function LandingPage() {
           </Link>
         </div>
         <p className="mt-4 text-xs text-parchment-500">
-          Free · runs entirely on your machine · no experience needed
+          Free · {isHosted() ? "play in your browser" : "runs entirely on your machine"} · no
+          experience needed
         </p>
 
         {/* The composer, rendered as it actually looks */}
@@ -331,7 +366,7 @@ export default async function LandingPage() {
           </span>
         </div>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
+          {hostedFeatures.map((f) => (
             <div key={f.title} className="card p-5">
               <Icon name={f.icon} size={22} className="text-gold-500" />
               <h3 className="mt-2.5 font-display text-lg text-gold-300">{f.title}</h3>

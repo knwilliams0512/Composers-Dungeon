@@ -7,7 +7,7 @@ import path from "path";
 import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
-import { appBaseUrl, desktopRoot } from "@/lib/desktop";
+import { appBaseUrl, desktopRoot, isHosted } from "@/lib/desktop";
 import { mailIsConfigured, relayProvider, resetEmailBody, sendMail } from "@/lib/mail";
 import { HANDOFF_MINUTES, isLoopbackHost } from "@/lib/reset-handoff";
 import { signupSchema } from "@/lib/validation";
@@ -75,8 +75,25 @@ export async function requestPasswordReset(email: string): Promise<ActionResult>
   // The answer must not differ between a real address and an invented one, so
   // which of the three it will be is decided before the account is looked at.
   const configured = await mailIsConfigured();
-  const local = isLocalRequest();
-  const route = configured ? "email" : local ? "local" : "file";
+  // On a hosted instance the request is never treated as local, whatever the
+  // headers say. isLocalRequest() asks whether the request came from the
+  // machine the app runs on, and behind a reverse proxy on that same machine —
+  // nginx proxy_pass, or a platform that fronts the container — the answer is
+  // yes for every visitor on the internet: the Host is 127.0.0.1 and the only
+  // forwarded hop is the proxy itself. The local route hands back a handle
+  // that resets an account, so believing those headers on a public server
+  // would let anyone take over any account. The deployment knows what it is;
+  // the headers only know what they were told.
+  const local = !isHosted() && isLocalRequest();
+  const route = isHosted()
+    ? configured
+      ? "email"
+      : "unavailable"
+    : configured
+      ? "email"
+      : local
+        ? "local"
+        : "file";
 
   if (!user) {
     // A plausible handle that redeems to nothing, so the invented address and
@@ -108,9 +125,17 @@ export async function requestPasswordReset(email: string): Promise<ActionResult>
     const sent = await sendMail(normalized, subject, text);
     if (sent.ok) return { ok: true, data: { delivery: "email" } };
     // A failure to send is worth saying out loud — silently claiming a mail
-    // was sent leaves someone waiting for one that will never come. The
-    // fallback is the same for an address with no account, so saying it
-    // reveals something about the sender, not about the recipient.
+    // was sent leaves someone waiting for one that will never come — but only
+    // to someone who is owed it. An address with no account never reaches this
+    // branch at all: it was answered above with the route's own reply. So on a
+    // public server, changing the reply when the send fails would say "this
+    // account exists" to anyone who asked, which is the exact thing deciding
+    // the route up front was written to prevent. The operator is told through
+    // the logs they can read; the stranger is told nothing.
+    if (isHosted()) {
+      console.error("[reset] mail is configured but sending failed:", sent.error ?? "unknown error");
+      return { ok: true, data: { delivery: "email" } };
+    }
     if (local) {
       const rescue = newSecret();
       await db.user.update({
@@ -130,6 +155,11 @@ export async function requestPasswordReset(email: string): Promise<ActionResult>
     return { ok: true, data: { delivery: "local", handoff } };
   }
 
+  // Hosted with no mail configured: there is no way to get a link to anyone,
+  // and writing one to the server's disk would be a live token in a file
+  // nobody can read. Say so — and say it for invented addresses too, which the
+  // route decided above.
+  if (route === "unavailable") return { ok: true, data: { delivery: "unavailable" } };
   await writeResetLink(url);
   return { ok: true, data: { delivery: "file" } };
 }
@@ -224,6 +254,35 @@ export async function resetPassword(input: {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Why a signed-in composer may not be allowed to change the sender.
+ * Returns null when they may, or the reason they may not.
+ *
+ * On a desktop copy everyone signed in is the person who owns the machine, so
+ * "signed in" is the whole of the question. On a hosted instance it is every
+ * player who ever registered — and the sender is the single setting that
+ * decides where password-reset mail goes. A player who could change it could
+ * point every reset in the game at a mailbox of their own, or wipe it and lock
+ * the rest out of their accounts. So a hosted instance asks for the operator,
+ * named by CD_ADMIN_EMAIL, and refuses everybody when that is unset rather
+ * than falling back to letting anyone through.
+ */
+async function mailAdminError(): Promise<string | null> {
+  const userId = await getSessionUserId();
+  if (!userId) return "Sign in first";
+  if (!isHosted()) return null;
+
+  const admin = process.env.CD_ADMIN_EMAIL?.trim().toLowerCase();
+  if (!admin) {
+    return "Only the operator of this server can change the sender, and no operator address is set on it.";
+  }
+  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (!user || user.email.trim().toLowerCase() !== admin) {
+    return "Only the operator of this server can change the sender.";
+  }
+  return null;
+}
+
+/**
  * Saves the sender this install borrows.
  *
  * Signed-in only, and deliberately so: the mail settings are the one thing in
@@ -243,8 +302,8 @@ export async function saveMailSettings(input: {
   fromName: string;
   fromEmail: string;
 }): Promise<ActionResult> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in first" };
+  const denied = await mailAdminError();
+  if (denied) return { ok: false, error: denied };
 
   const mode = input.mode === "relay" ? "relay" : "smtp";
   const fromEmail = input.fromEmail.trim();
@@ -302,8 +361,8 @@ export async function saveMailSettings(input: {
 
 /** Forgets the sender, returning the app to the local hand-over. */
 export async function clearMailSettings(): Promise<ActionResult> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in first" };
+  const denied = await mailAdminError();
+  if (denied) return { ok: false, error: denied };
   await db.mailSetting.deleteMany({ where: { id: "mail" } });
   return { ok: true };
 }

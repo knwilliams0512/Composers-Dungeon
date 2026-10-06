@@ -14,6 +14,20 @@ export function isDesktop(): boolean {
   return process.env.CD_DESKTOP === "1";
 }
 
+/**
+ * True only on a server this app is hosted on for other people to reach.
+ *
+ * Deliberately its own variable rather than the inverse of isDesktop(): a
+ * developer running `npm run dev` is neither, and should keep the conveniences
+ * that only make sense when the person at the keyboard owns the machine — the
+ * password-reset hand-over through a local file above all. Those conveniences
+ * become either useless or dangerous once strangers can reach the server, so
+ * the hosted deployment opts in explicitly and nothing else is affected.
+ */
+export function isHosted(): boolean {
+  return process.env.CD_HOSTED === "1";
+}
+
 /** The installed version, e.g. "1.1.0". "dev" when not running installed. */
 export function appVersion(): string {
   return process.env.CD_VERSION?.trim() || "dev";

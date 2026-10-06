@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isHosted } from "@/lib/desktop";
 import { Icon } from "@/components/ui/Icon";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +19,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="card-gold lit-edge w-full max-w-md animate-rise p-6 sm:p-8">{children}</div>
       <p className="mt-6 flex items-center gap-1.5 text-[11px] text-parchment-500">
         <Icon name="shield" size={12} />
-        Everything stays on this machine — no account leaves it.
+        {isHosted()
+          ? "Your account lives on this server, so your guild can reach you."
+          : "Everything stays on this machine — no account leaves it."}
       </p>
     </div>
   );

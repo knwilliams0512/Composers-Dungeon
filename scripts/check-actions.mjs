@@ -62,7 +62,15 @@ for (const file of readdirSync(DIR).filter((f) => f.endsWith(".ts"))) {
 
   for (let i = 0; i < starts.length; i++) {
     const [name, at] = starts[i];
-    const end = i + 1 < starts.length ? starts[i + 1][1] : src.length;
+    // Bounded by the next function of ANY kind, not the next exported action.
+    // A non-exported helper sitting between two actions otherwise counts as
+    // part of the one above it: add a helper that authenticates and the action
+    // before it starts looking as though it authenticates too. That is the
+    // same trap the gate scan above already avoids, and it reads as a public
+    // action having grown a check it does not have.
+    const nextFn = allFns.find((fn) => fn.at > at);
+    const nextAction = i + 1 < starts.length ? starts[i + 1][1] : src.length;
+    const end = Math.min(nextFn ? nextFn.at : src.length, nextAction);
     const body = src.slice(at, end);
     checked++;
     const callsGate = [...gates].some((g) =>

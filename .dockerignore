@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env
+.env.local
+data
+dist
+installer/build
+prisma/dev.db
+prisma/*.db-journal
+site
+*.log

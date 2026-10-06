@@ -25,7 +25,7 @@ export function ForgotPasswordForm() {
 
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
-  const [delivery, setDelivery] = useState<"email" | "local" | "file" | null>(null);
+  const [delivery, setDelivery] = useState<"email" | "local" | "file" | "unavailable" | null>(null);
   const [handoff, setHandoff] = useState<string | null>(null);
   const [mailError, setMailError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ export function ForgotPasswordForm() {
     setLoading(false);
     setSent(true);
     const how = result.data?.delivery;
-    setDelivery(how === "email" || how === "local" ? how : "file");
+    setDelivery(how === "email" || how === "local" || how === "unavailable" ? how : "file");
     setHandoff(result.data?.handoff ?? null);
     setMailError(result.data?.mailError || null);
   }
@@ -45,10 +45,23 @@ export function ForgotPasswordForm() {
   if (sent) {
     return (
       <div className="space-y-4 text-sm text-parchment-300">
-        <p>
-          If an account exists for <strong className="text-parchment-100">{email}</strong>, a
-          reset link has been forged. It expires in 30 minutes.
-        </p>
+        {delivery === "unavailable" ? (
+          <p className="rounded border border-crimson-700 bg-abyss-900 p-3 leading-relaxed">
+            This server has no sender configured, so a reset link cannot be delivered to
+            anyone — including you. Ask whoever runs it to set one up under{" "}
+            <strong className="text-parchment-100">Settings &rarr; Email</strong>, then try
+            again.
+            <br />
+            <span className="text-parchment-500">
+              Nothing was sent, and no link was written anywhere.
+            </span>
+          </p>
+        ) : (
+          <p>
+            If an account exists for <strong className="text-parchment-100">{email}</strong>, a
+            reset link has been forged. It expires in 30 minutes.
+          </p>
+        )}
 
         {delivery === "email" && (
           <p className="rounded border border-abyss-600 bg-abyss-900 p-3 text-xs">

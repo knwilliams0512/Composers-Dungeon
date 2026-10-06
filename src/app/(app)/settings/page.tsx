@@ -9,7 +9,7 @@ import { UpdatePanel } from "@/components/settings/UpdatePanel";
 import { FreedomPanel } from "@/components/settings/FreedomPanel";
 import { AccessibilityPanel } from "@/components/settings/AccessibilityPanel";
 import { MailPanel } from "@/components/settings/MailPanel";
-import { appVersion, isDesktop } from "@/lib/desktop";
+import { appVersion, isDesktop, isHosted } from "@/lib/desktop";
 import { readMailConfigView } from "@/lib/mail";
 import { DRILL_KEYS } from "@/lib/drills";
 import { INSTRUMENTS } from "@/lib/studio/instruments";
@@ -102,15 +102,20 @@ export default async function SettingsPage() {
       />
 
       <div className="space-y-6">
-        <Panel
-          title="Updates"
-          icon="download"
-          subtitle="New lessons, new areas and fixes arrive here"
-        >
-          <UpdatePanel
-            initial={{ current: appVersion(), desktop: isDesktop(), available: false }}
-          />
-        </Panel>
+        {/* A hosted instance updates when it is redeployed, not when a player
+            asks it to, and it has no installer to hand the download to. The
+            panel would poll for a release it could never apply. */}
+        {!isHosted() && (
+          <Panel
+            title="Updates"
+            icon="download"
+            subtitle="New lessons, new areas and fixes arrive here"
+          >
+            <UpdatePanel
+              initial={{ current: appVersion(), desktop: isDesktop(), available: false }}
+            />
+          </Panel>
+        )}
 
         <Panel
           title="Composer Tools"
@@ -137,9 +142,13 @@ export default async function SettingsPage() {
           />
         </Panel>
 
-        <MailPanel saved={mail} />
+        <MailPanel saved={mail} hosted={isHosted()} />
 
-        <Panel title="Your Data" icon="scroll" subtitle="All of it stays on this machine">
+        <Panel
+          title="Your Data"
+          icon="scroll"
+          subtitle={isHosted() ? "Yours, and exportable whenever you want" : "All of it stays on this machine"}
+        >
           <dl className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg border border-abyss-600/60 bg-abyss-900/40 py-3">
               <dt className="text-[10px] uppercase tracking-widest text-parchment-500">
@@ -161,9 +170,21 @@ export default async function SettingsPage() {
             </div>
           </dl>
           <p className="mt-4 text-sm leading-relaxed text-parchment-400">
-            Composer&apos;s Dungeon runs entirely on this computer. Nothing is uploaded, no
-            account lives on a server, and the Guild is populated only by people who sign up
-            on this install.
+            {isHosted() ? (
+              <>
+                You are playing on a hosted Composer&apos;s Dungeon. Your account, your
+                compositions and your guild live on its server, which is what lets you share
+                work with composers who are not sitting at your computer. The Windows
+                download runs the same game entirely offline, with nothing on a server at
+                all, if you would rather keep it to yourself.
+              </>
+            ) : (
+              <>
+                Composer&apos;s Dungeon runs entirely on this computer. Nothing is uploaded, no
+                account lives on a server, and the Guild is populated only by people who sign
+                up on this install.
+              </>
+            )}
           </p>
           {isDesktop() && (
             <p className="mt-2 flex items-start gap-2 text-xs text-parchment-500">
