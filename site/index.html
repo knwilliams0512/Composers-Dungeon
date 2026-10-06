@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Composer's Dungeon — Download</title>
 <meta name="description" content="Learn music theory in the Academy. Prove it in the Dungeon. An RPG for composers — download for Windows, free.">
+
+<!-- Link previews. og:image has to be absolute, and a GitHub Pages project
+     site is always https://<owner>.github.io/<repo>/ unless a CNAME is added
+     to site/ — if one ever is, this URL moves with it. The page itself uses
+     cover.svg; this PNG exists because scrapers do not read SVG. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Composer's Dungeon">
+<meta property="og:description" content="Learn music theory in the Academy. Prove it in the Dungeon. An RPG for composers — download for Windows, free.">
+<meta property="og:url" content="https://knwilliams0512.github.io/Composer-s-Dungeon/">
+<meta property="og:image" content="https://knwilliams0512.github.io/Composer-s-Dungeon/cover.png">
+<meta property="og:image:width" content="630">
+<meta property="og:image:height" content="500">
+<meta property="og:image:alt" content="A glowing gold treble clef inside an arcane circle, in the dark.">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   /* This page never needs regenerating: the /releases/latest/download/ URLs
      below always redirect to the newest published release. */
@@ -31,8 +45,18 @@
     line-height: 1.65;
   }
   .wrap { max-width: 46rem; margin: 0 auto; padding: 4rem 1.5rem 5rem; text-align: center; }
-  .note-mark { font-size: 3.2rem; filter: drop-shadow(0 0 18px rgba(227,194,109,.45)); animation: flicker 3s ease-in-out infinite; }
-  @keyframes flicker { 0%,100%{opacity:1} 45%{opacity:.85} 70%{opacity:.93} }
+  /* The cover art vignettes to this page's own background at its edges, so it
+     has to sit flush: any frame, radius or shadow would draw the seam the
+     artwork exists to hide. The negative margins close the gap the old emoji
+     needed. */
+  .cover {
+    display: block;
+    width: 630px; max-width: 100%; height: auto;
+    margin: -2.5rem auto -1.5rem;
+    animation: flicker 4s ease-in-out infinite;
+  }
+  @keyframes flicker { 0%,100%{opacity:1} 45%{opacity:.93} 70%{opacity:.97} }
+  @media (prefers-reduced-motion: reduce) { .cover { animation: none; } }
   h1 {
     font-size: clamp(2.2rem, 6vw, 3.4rem);
     letter-spacing: .04em;
@@ -100,7 +124,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="note-mark">🕯️</div>
+  <img class="cover" src="cover.svg" width="630" height="500" alt="" fetchpriority="high">
   <h1>Composer's Dungeon</h1>
   <p class="tag">The Academy teaches you. The Dungeon tests you.</p>
 

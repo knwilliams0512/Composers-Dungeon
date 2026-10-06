@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 630 500" width="630" height="500">
+  <!--
+    Cover art for the download page. Every colour here is one of the page's own
+    custom properties (see the :root block in index.html), so the image melts
+    into the page instead of sitting on it as a pasted rectangle.
+
+    The clef is the same path as public/icons/icon.svg, which is in turn the
+    glyph the app draws in its nav — installer icon, browser tab, sidebar and
+    this cover all carry one mark.
+
+    Regenerate the PNGs after editing:  npm run make:cover
+  -->
+  <defs>
+    <!-- abyss-950 ground with the arcane bloom the page puts behind its header -->
+    <radialGradient id="ground" cx="50%" cy="20%" r="88%">
+      <stop offset="0%" stop-color="#2d2547"/>
+      <stop offset="38%" stop-color="#171326"/>
+      <stop offset="72%" stop-color="#0c0a14"/>
+      <stop offset="100%" stop-color="#07060b"/>
+    </radialGradient>
+
+    <!-- the faint crimson wash the page carries at its lower right -->
+    <radialGradient id="ember" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#5c1e1d" stop-opacity=".5"/>
+      <stop offset="100%" stop-color="#5c1e1d" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- the clef is the scene's light source, so the dark around it is warm -->
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e3c26d" stop-opacity=".20"/>
+      <stop offset="45%" stop-color="#c9a84c" stop-opacity=".08"/>
+      <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- light rising past the mark, widening as it goes -->
+    <linearGradient id="shaft" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#e3c26d" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#e3c26d" stop-opacity=".07"/>
+      <stop offset="100%" stop-color="#f0d894" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="gold" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#f0d894"/>
+      <stop offset="52%" stop-color="#e3c26d"/>
+      <stop offset="100%" stop-color="#a8863a"/>
+    </linearGradient>
+
+    <!-- two blur passes: a broad bloom and a tight one, layered under the
+         crisp stroke rather than applied to it, so the glyph stays sharp -->
+    <filter id="soften" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="34"/>
+    </filter>
+    <filter id="dust-glow" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <filter id="bloom-wide" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="19"/>
+    </filter>
+    <filter id="bloom-tight" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+
+    <!--
+      The art fades to transparent at its edges rather than down to a colour.
+      The page's background behind this image is not a flat abyss-950 — it
+      carries the body's arcane bloom — so fading to any fixed colour leaves a
+      seam one way or the other. Fading to nothing has no colour to match.
+
+      The oval does the look; the four edge wipes guarantee the last pixels on
+      every border are fully transparent whatever the oval leaves behind.
+    -->
+    <radialGradient id="fade-oval" cx="50%" cy="46%" r="54%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="40%" stop-color="#fff"/>
+      <stop offset="100%" stop-color="#000"/>
+    </radialGradient>
+    <linearGradient id="wipe-t" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000"/><stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="wipe-b" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#000"/><stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="wipe-l" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#000"/><stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="wipe-r" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#000"/><stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="630" height="500">
+      <rect width="630" height="500" fill="url(#fade-oval)"/>
+      <rect width="630" height="96" fill="url(#wipe-t)"/>
+      <rect y="404" width="630" height="96" fill="url(#wipe-b)"/>
+      <rect width="110" height="500" fill="url(#wipe-l)"/>
+      <rect x="520" width="110" height="500" fill="url(#wipe-r)"/>
+    </mask>
+
+    <!-- the clef, centred on the origin at its own scale -->
+    <path id="clef"
+      d="M9.2 20.8C8.5 22.8 10.7 23.8 12.3 22.4 13.3 21.4 13 19.9 12.8 18.5 13.4 13.2 14.3 7.4 13.7 3.4 13.5 1.6 11.1 1.2 10.2 3.1 9 5.5 10.1 8 11.7 10 13.6 12.2 16.2 13.6 16.2 16.2 16.2 19.2 13.5 20.9 10.9 20.2 8.3 19.5 6.8 17.4 7.1 15.1 7.4 13 9.2 11.8 11 12.3 12.6 12.7 13.3 14 12.9 15.2"/>
+  </defs>
+
+  <g mask="url(#fade)">
+  <rect width="630" height="500" fill="url(#ground)"/>
+  <ellipse cx="585" cy="505" rx="300" ry="190" fill="url(#ember)"/>
+
+  <!-- light first, then the rings over it, then the mark -->
+  <path d="M258 500 L298 120 L332 120 L372 500 Z" fill="url(#shaft)" filter="url(#soften)"/>
+  <ellipse cx="315" cy="228" rx="215" ry="175" fill="url(#halo)"/>
+
+  <g fill="none">
+    <!-- an arcane circle around the mark, receding into the dark -->
+    <circle cx="315" cy="228" r="214" stroke="url(#gold)" stroke-opacity=".16" stroke-width="1.5"/>
+    <circle cx="315" cy="228" r="196" stroke="#c9a84c" stroke-opacity=".3" stroke-width="2.5"
+            stroke-dasharray="2 26" stroke-linecap="round"/>
+    <circle cx="315" cy="228" r="168" stroke="#4f63a8" stroke-opacity=".32" stroke-width="2"/>
+    <circle cx="315" cy="228" r="150" stroke="url(#gold)" stroke-opacity=".5" stroke-width="3"/>
+  </g>
+
+  <!-- the mark: broad bloom, tight bloom, then the crisp gradient stroke.
+       The blurs wrap the transform rather than sitting inside it, so their
+       stdDeviation is read in image pixels and not in the glyph's own 24-unit
+       space, where the 12.6x scale would turn 22 into 277. -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g filter="url(#bloom-wide)" opacity=".5">
+      <g transform="translate(315 228) scale(12.6) translate(-11.6 -12.5)">
+        <use href="#clef" stroke="#e3c26d" stroke-width="2.3"/>
+      </g>
+    </g>
+    <g filter="url(#bloom-tight)" opacity=".42">
+      <g transform="translate(315 228) scale(12.6) translate(-11.6 -12.5)">
+        <use href="#clef" stroke="#f0d894" stroke-width="1.7"/>
+      </g>
+    </g>
+    <g transform="translate(315 228) scale(12.6) translate(-11.6 -12.5)">
+      <use href="#clef" stroke="url(#gold)" stroke-width="1.5"/>
+      <use href="#clef" stroke="#f0d894" stroke-opacity=".55" stroke-width="0.5"/>
+    </g>
+  </g>
+
+  <!-- dust drifting up through the light, brightest where the light is -->
+  <g fill="#f0d894" filter="url(#dust-glow)" opacity=".8">
+    <use href="#motes"/>
+  </g>
+  <g id="motes" fill="#f0d894">
+    <circle cx="300" cy="58"  r="2.4" opacity=".45"/>
+    <circle cx="338" cy="40"  r="1.2" opacity=".30"/>
+    <circle cx="276" cy="130" r="1.0" opacity=".40"/>
+    <circle cx="360" cy="150" r="1.4" opacity=".38"/>
+    <circle cx="254" cy="206" r="1.2" opacity=".34"/>
+    <circle cx="382" cy="262" r="1.1" opacity=".30"/>
+    <circle cx="246" cy="300" r="2.0" opacity=".42"/>
+    <circle cx="372" cy="352" r="1.5" opacity=".33"/>
+    <circle cx="312" cy="452" r="1.9" opacity=".20"/>
+    <circle cx="188" cy="108" r="1.6" opacity=".35"/>
+    <circle cx="236" cy="72"  r="1.1" opacity=".28"/>
+    <circle cx="152" cy="182" r="2.0" opacity=".22"/>
+    <circle cx="118" cy="264" r="1.3" opacity=".18"/>
+    <circle cx="205" cy="318" r="1.7" opacity=".30"/>
+    <circle cx="166" cy="392" r="1.1" opacity=".16"/>
+    <circle cx="268" cy="418" r="2.2" opacity=".25"/>
+    <circle cx="402" cy="96"  r="1.4" opacity=".32"/>
+    <circle cx="452" cy="158" r="2.1" opacity=".26"/>
+    <circle cx="490" cy="238" r="1.2" opacity=".20"/>
+    <circle cx="436" cy="330" r="1.8" opacity=".28"/>
+    <circle cx="498" cy="384" r="1.3" opacity=".17"/>
+    <circle cx="378" cy="430" r="1.6" opacity=".22"/>
+    <circle cx="92"  cy="140" r="1.0" opacity=".12"/>
+    <circle cx="536" cy="112" r="1.2" opacity=".14"/>
+    <circle cx="548" cy="300" r="1.0" opacity=".12"/>
+    <circle cx="84"  cy="348" r="1.1" opacity=".12"/>
+  </g>
+
+  </g>
+</svg>
