@@ -7,7 +7,7 @@
  */
 
 export const DEFAULT_UPDATE_FEED =
-  "https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest/download/latest.json";
+  "https://github.com/knwilliams0512/Composers-Dungeon/releases/latest/download/latest.json";
 
 /** True only when running inside the installed Windows app. */
 export function isDesktop(): boolean {

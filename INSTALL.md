@@ -25,7 +25,7 @@ areas, 4 bosses, 8 artifacts and 15 achievements are inside the installer.
 
 ### Step by step
 
-1. Open the **[Releases page](https://github.com/knwilliams0512/Composer-s-Dungeon/releases)**.
+1. Open the **[Releases page](https://github.com/knwilliams0512/Composers-Dungeon/releases)**.
 2. Under the newest release, open **Assets** and click
    **`ComposersDungeonSetup.exe`** (about 30 MB).
 3. Your browser may warn that the file *"isn't commonly downloaded"*. Click the
@@ -108,7 +108,7 @@ if they're missing, sets up the database, builds the app and creates shortcuts.
 Or, in **PowerShell** (works once the repository is public):
 
 ```powershell
-irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scripts/windows/install.ps1 | iex
+irm https://raw.githubusercontent.com/knwilliams0512/Composers-Dungeon/HEAD/scripts/windows/install.ps1 | iex
 ```
 
 ### The manual way
@@ -116,8 +116,8 @@ irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scr
 Requires [Node.js 18+](https://nodejs.org) and [Git](https://git-scm.com/download/win).
 
 ```powershell
-git clone https://github.com/knwilliams0512/Composer-s-Dungeon.git
-cd Composer-s-Dungeon
+git clone https://github.com/knwilliams0512/Composers-Dungeon.git
+cd Composers-Dungeon
 copy .env.example .env
 npm install
 npm run setup          # creates the database and seeds all the content
@@ -151,8 +151,8 @@ There is no macOS installer yet — run it from source. Requires
 [Node.js 18+](https://nodejs.org) (or `brew install node`).
 
 ```bash
-git clone https://github.com/knwilliams0512/Composer-s-Dungeon.git
-cd Composer-s-Dungeon
+git clone https://github.com/knwilliams0512/Composers-Dungeon.git
+cd Composers-Dungeon
 cp .env.example .env
 # set a real secret:
 sed -i '' "s|change-me-to-a-long-random-string|$(openssl rand -base64 32)|" .env
@@ -173,8 +173,8 @@ and its own window. (The server still has to be running.)
 Same as macOS. Requires Node.js 18+.
 
 ```bash
-git clone https://github.com/knwilliams0512/Composer-s-Dungeon.git
-cd Composer-s-Dungeon
+git clone https://github.com/knwilliams0512/Composers-Dungeon.git
+cd Composers-Dungeon
 cp .env.example .env
 sed -i "s|change-me-to-a-long-random-string|$(openssl rand -base64 32)|" .env
 npm run setup

@@ -36,3 +36,28 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # configure-pages reports a bare "Not Found" when the repository has no
+      # Pages site, which reads like a broken workflow and is not one: it is a
+      # setting nobody has switched on yet. Three runs failed that way before
+      # anyone read the log, so the job now says what to do in its own summary.
+      #
+      # Note for anyone reaching for `enablement: true` on configure-pages: it
+      # cannot work here. The action's own action.yml requires a token other
+      # than the default GITHUB_TOKEN for that - a PAT with `repo`, or an app
+      # with administration:write - so it would fail identically while looking
+      # like the fix.
+      - name: Explain why Pages failed
+        if: failure()
+        run: |
+          {
+            echo "### GitHub Pages is not switched on for this repository"
+            echo
+            echo "Nothing in the repository can turn it on. Do this once:"
+            echo
+            echo "1. **Settings -> Pages -> Build and deployment -> Source: GitHub Actions**"
+            echo "2. Re-run this workflow."
+            echo
+            echo "On a free plan Pages also needs the repository to be **public**."
+            echo "The Settings -> Pages screen says which of the two is stopping it."
+          } >> "$GITHUB_STEP_SUMMARY"

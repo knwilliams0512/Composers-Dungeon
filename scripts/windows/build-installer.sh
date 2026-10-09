@@ -189,7 +189,7 @@ UPDATE_SHA="$(sha256sum "$UPDATE_ZIP" | cut -d" " -f1 | tr "a-f" "A-F")"
 cat > "$ROOT/dist/latest.json" <<JSON
 {
   "version": "$VERSION",
-  "url": "https://github.com/knwilliams0512/Composer-s-Dungeon/releases/download/v$VERSION/ComposersDungeon-$VERSION-update.zip",
+  "url": "https://github.com/knwilliams0512/Composers-Dungeon/releases/download/v$VERSION/ComposersDungeon-$VERSION-update.zip",
   "sha256": "$UPDATE_SHA",
   "publishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "notes": "$(node -p "JSON.stringify(process.env.RELEASE_NOTES || 'Improvements and new content.').slice(1,-1)")"

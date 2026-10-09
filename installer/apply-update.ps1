@@ -223,7 +223,7 @@ if (Test-Path $versionFile) {
     try { $current = (Get-Content $versionFile -Raw | ConvertFrom-Json).version } catch {}
 }
 
-$feed = "https://github.com/knwilliams0512/Composer-s-Dungeon/releases/latest/download/latest.json"
+$feed = "https://github.com/knwilliams0512/Composers-Dungeon/releases/latest/download/latest.json"
 $configFile = Join-Path $Root "launch\update-config.json"
 if (Test-Path $configFile) {
     try {

@@ -58,7 +58,7 @@ osslsigncode sign \
   -pkcs12 "$PFX" \
   -pass "${WINDOWS_CERT_PASSWORD:-}" \
   -n "Composer's Dungeon" \
-  -i "https://github.com/knwilliams0512/Composer-s-Dungeon" \
+  -i "https://github.com/knwilliams0512/Composers-Dungeon" \
   -ts "$TS_URL" \
   -h sha256 \
   -in "$TARGET" \

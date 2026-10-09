@@ -10,7 +10,7 @@
 
     Run it straight from GitHub:
 
-        irm https://raw.githubusercontent.com/knwilliams0512/Composer-s-Dungeon/HEAD/scripts/windows/install.ps1 | iex
+        irm https://raw.githubusercontent.com/knwilliams0512/Composers-Dungeon/HEAD/scripts/windows/install.ps1 | iex
 
     (That URL only resolves while the repository is public. If it's private,
     download the ZIP or clone it first, then run this script from inside.)
@@ -30,7 +30,7 @@
 [CmdletBinding()]
 param(
     [string]$InstallDir,
-    [string]$Repo = "https://github.com/knwilliams0512/Composer-s-Dungeon.git",
+    [string]$Repo = "https://github.com/knwilliams0512/Composers-Dungeon.git",
     [string]$Branch = "claude/composers-dungeon-fullstack-8aire4",
     [switch]$NoLaunch
 )

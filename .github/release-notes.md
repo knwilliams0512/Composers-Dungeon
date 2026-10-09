@@ -304,7 +304,7 @@ release the next time you launch it, and your compositions, levels and streaks
 are untouched.
 
 Full instructions for Windows, macOS, Linux, source installs, updating,
-uninstalling and troubleshooting: **[INSTALL.md](https://github.com/knwilliams0512/Composer-s-Dungeon/blob/HEAD/INSTALL.md)**
+uninstalling and troubleshooting: **[INSTALL.md](https://github.com/knwilliams0512/Composers-Dungeon/blob/HEAD/INSTALL.md)**
 
 ### Assets
 
