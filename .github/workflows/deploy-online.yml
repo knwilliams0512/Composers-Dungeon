@@ -79,6 +79,57 @@ jobs:
 
       - run: npm i -g vercel@latest neon@latest
 
+      - name: Check the Vercel token works
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # Two questions, asked separately, because they have different fixes
+          # and the CLI reports both as an unhelpful "User not found (404)"
+          # from whichever command happens to run first.
+          echo "1. Is the token itself valid?"
+          if ! WHO="$(vercel whoami --token "$VERCEL_TOKEN" 2>&1)"; then
+            {
+              echo "### The Vercel token is not valid"
+              echo
+              echo "Vercel said:"
+              echo '```'
+              echo "$WHO"
+              echo '```'
+              echo
+              echo "Usually one of:"
+              echo "- the **revoked** token was pasted rather than the new one"
+              echo "- the paste was truncated, or picked up a trailing space"
+              echo "- the token has expired"
+              echo
+              echo "Make a fresh one at **vercel.com → avatar → Settings → Tokens**,"
+              echo "then replace the \`VERCEL_TOKEN\` secret and run this again."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "$WHO" >&2
+            exit 1
+          fi
+          echo "   token belongs to: $WHO"
+
+          echo "2. Can it see the team '${{ inputs.vercel_scope }}'?"
+          if ! vercel teams ls --token "$VERCEL_TOKEN" 2>&1 | tee teams.txt; then
+            echo "Could not list teams." >&2; exit 1
+          fi
+          if ! grep -q -- '${{ inputs.vercel_scope }}' teams.txt; then
+            {
+              echo "### The token cannot see the team \`${{ inputs.vercel_scope }}\`"
+              echo
+              echo "Teams this token can reach:"
+              echo '```'
+              cat teams.txt
+              echo '```'
+              echo
+              echo "Either the scope slug is wrong — it is the first path segment of"
+              echo "the project's dashboard URL — or the token was created against"
+              echo "your personal account rather than the team."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "   team is reachable"
+
       - name: Read the Neon connection strings
         id: db
         env:
