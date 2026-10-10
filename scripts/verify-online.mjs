@@ -58,7 +58,25 @@ try {
       page.click('button[type="submit"]'),
     ]);
     await pause(2000);
-    ok(`${p.name} signed up`, !/\/signup/.test(page.url()));
+
+    // Not "did we leave /signup", which is true even when the account was
+    // created and the session was not. A row in the database with no usable
+    // session looks like success and then fails every later check for reasons
+    // that have nothing to do with what those checks are testing — which is
+    // exactly what happened on the first live run. Landing on /login means
+    // the sign-in that follows signup did not take, and the usual cause is a
+    // missing NEXTAUTH_SECRET on the deployment.
+    const landed = page.url().replace(BASE, "") || "/";
+    const signedIn = !/\/signup|\/login/.test(landed);
+    ok(`${p.name} signed up AND has a session (landed on ${landed})`, signedIn);
+    if (!signedIn && /\/login/.test(landed)) {
+      console.log(
+        "        ^ the account was created but signing in did not take.\n" +
+          "          Check NEXTAUTH_SECRET is set on the deployment: without it\n" +
+          "          NextAuth cannot sign a session, so every page needing one\n" +
+          "          bounces back to /login."
+      );
+    }
     pages.push(page);
   }
 
