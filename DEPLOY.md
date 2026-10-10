@@ -56,7 +56,25 @@ or so people, not a home for a game with players on most of the day.
 
 1. **Create a Neon project.** Copy both connection strings it gives you: the
    *pooled* one and the *direct* one.
-2. **Create the schema and content**, once, from your own machine:
+2. **Create the schema and content.** With a `NEON_API_KEY` in the environment
+   there is a script for it, which reads both connection strings, pushes the
+   schema, seeds the content and writes `.env.hosted.local` with everything the
+   host needs:
+
+   ```sh
+   NEON_API_KEY=... ./scripts/neon-bootstrap.sh
+   ```
+
+   A note on Neon's own onboarding steps, which do not all apply here:
+   `neon login` signs in through a browser and cannot complete in a headless
+   session — the API key is the documented non-interactive path. And
+   `neon config init` + `neon deploy` apply a `neon.ts` policy of services,
+   functions and auth to a branch; they do not host a Next.js app, so they do
+   not replace Vercel, and the scaffolded policy's `auth: true` enables Neon
+   Auth, a second identity system this app has no use for — it already
+   authenticates with NextAuth against its own `User` table.
+
+   To do the same by hand instead:
    ```sh
    export DATABASE_URL="<neon DIRECT url>"
    export DIRECT_DATABASE_URL="$DATABASE_URL"
