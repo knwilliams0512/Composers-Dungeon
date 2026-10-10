@@ -87,6 +87,27 @@ jobs:
           # Two questions, asked separately, because they have different fixes
           # and the CLI reports both as an unhelpful "User not found (404)"
           # from whichever command happens to run first.
+          # A copied token very often arrives with a trailing newline or a
+          # stray space, and Vercel rejects that as "not valid" with no hint
+          # that the value is nearly right. Strip whitespace before using it.
+          CLEAN="$(printf '%s' "$VERCEL_TOKEN" | tr -d '[:space:]')"
+          if [ "$CLEAN" != "$VERCEL_TOKEN" ]; then
+            echo "note: the stored secret had surrounding whitespace; using the trimmed value"
+            VERCEL_TOKEN="$CLEAN"
+            echo "::add-mask::$VERCEL_TOKEN"
+          fi
+
+          # A fingerprint, not the token: its length and the scheme prefix that
+          # every Vercel token shares publicly. Enough to tell an empty secret
+          # from a truncated paste from a well-formed token, and not enough to
+          # be worth anything to anyone reading the log.
+          echo "secret fingerprint: ${#VERCEL_TOKEN} characters, starts \"$(printf '%s' "$VERCEL_TOKEN" | cut -c1-4)\""
+          case "$VERCEL_TOKEN" in
+            vcp_*) ;;
+            "") echo "The VERCEL_TOKEN secret is empty." >&2; exit 1 ;;
+            *) echo "note: this does not start with vcp_, which Vercel tokens normally do" ;;
+          esac
+
           echo "1. Is the token itself valid?"
           if ! WHO="$(vercel whoami --token "$VERCEL_TOKEN" 2>&1)"; then
             {
@@ -109,6 +130,9 @@ jobs:
             exit 1
           fi
           echo "   token belongs to: $WHO"
+          # Hand the trimmed value to the rest of the job, so a secret stored
+          # with a stray newline does not fail three steps further on.
+          echo "VERCEL_TOKEN=$VERCEL_TOKEN" >> "$GITHUB_ENV"
 
           # A warning, not a gate. A token scoped narrowly may be refused the
           # team listing while still being perfectly able to deploy, and a
