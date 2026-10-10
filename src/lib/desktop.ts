@@ -99,6 +99,20 @@ export function isValidManifest(value: unknown): value is UpdateManifest {
 export function appBaseUrl(): string {
   const configured = process.env.NEXTAUTH_URL?.trim();
   if (configured) return configured.replace(/\/+$/, "");
+
+  // A host that assigns the URL only once the first deploy has happened leaves
+  // a chicken-and-egg: the address to put in a password-reset link is not
+  // knowable at the moment the app is configured. Vercel publishes the stable
+  // production domain as VERCEL_PROJECT_PRODUCTION_URL, so a link built from
+  // it keeps working. VERCEL_URL is deliberately not used: it is the
+  // individual deployment's hostname and changes with every push, so links
+  // mailed out would rot as soon as anything else shipped.
+  //
+  // Without this a hosted instance falls through to localhost and mails every
+  // player a reset link that only works on the server's own machine.
+  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (production) return `https://${production.replace(/\/+$/, "")}`;
+
   const port = process.env.PORT?.trim() || "3000";
   return `http://localhost:${port}`;
 }

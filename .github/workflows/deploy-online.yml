@@ -1,0 +1,171 @@
+name: Deploy the online game
+
+# Puts the app on Vercel and points it at the Neon database that the
+# "Set up the Neon database" workflow already seeded.
+#
+# It runs here rather than from a development machine for the same reason that
+# one does: a GitHub runner can reach api.vercel.com and api.neon.tech, which a
+# restricted agent environment cannot.
+#
+# Needs one secret that is not here yet:
+#
+#   VERCEL_TOKEN   Vercel -> Account Settings -> Tokens -> Create
+#
+# NEON_API_KEY is already present, from connecting the repository to Neon, and
+# is what lets this read the connection strings rather than anyone copying a
+# database password by hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: "The address you will sign up with (becomes CD_ADMIN_EMAIL)"
+        required: true
+      project_name:
+        description: "Vercel project name"
+        required: true
+        default: "composers-dungeon"
+      neon_project_id:
+        description: "Neon project ID"
+        required: true
+        default: "royal-boat-29341408"
+      neon_branch:
+        description: "Neon branch"
+        required: true
+        default: "production"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-online
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the tokens are present
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          missing=""
+          [ -z "$VERCEL_TOKEN" ] && missing="$missing VERCEL_TOKEN"
+          [ -z "$NEON_API_KEY" ] && missing="$missing NEON_API_KEY"
+          if [ -n "$missing" ]; then
+            {
+              echo "### Missing secrets:$missing"
+              echo
+              echo "Add them under **Settings → Secrets and variables → Actions**."
+              echo "\`VERCEL_TOKEN\` comes from Vercel → Account Settings → Tokens."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Not set:$missing" >&2
+            exit 1
+          fi
+
+      - run: npm i -g vercel@latest neon@latest
+
+      - name: Read the Neon connection strings
+        id: db
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          DIRECT="$(neon connection-string '${{ inputs.neon_branch }}' \
+            --project-id '${{ inputs.neon_project_id }}')"
+          POOLED="$(neon connection-string '${{ inputs.neon_branch }}' \
+            --project-id '${{ inputs.neon_project_id }}' --pooled)"
+          [ -n "$DIRECT" ] && [ -n "$POOLED" ] || { echo "Neon returned no connection string." >&2; exit 1; }
+          echo "::add-mask::$DIRECT"
+          echo "::add-mask::$POOLED"
+          # Serverless functions must not hold a real Postgres connection open,
+          # so the runtime url goes through the pooler and is capped at one
+          # connection per function instance. DDL still needs the direct one.
+          case "$POOLED" in
+            *\?*) RUNTIME="${POOLED}&pgbouncer=true&connection_limit=1" ;;
+            *)    RUNTIME="${POOLED}?pgbouncer=true&connection_limit=1" ;;
+          esac
+          echo "::add-mask::$RUNTIME"
+          echo "runtime=$RUNTIME" >> "$GITHUB_OUTPUT"
+          echo "direct=$DIRECT" >> "$GITHUB_OUTPUT"
+
+      - name: Create and link the Vercel project
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # Both are safe to repeat: the project may already exist from an
+          # earlier run, and `link` only writes .vercel/project.json.
+          vercel project add '${{ inputs.project_name }}' --token "$VERCEL_TOKEN" 2>/dev/null || true
+          vercel link --yes --project '${{ inputs.project_name }}' --token "$VERCEL_TOKEN"
+
+      - name: Set the environment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          RUNTIME_URL: ${{ steps.db.outputs.runtime }}
+          DIRECT_URL: ${{ steps.db.outputs.direct }}
+          ADMIN_EMAIL: ${{ inputs.admin_email }}
+        run: |
+          # Generated here and never printed. It signs every session cookie, so
+          # it should not pass through a chat log or an email on its way in.
+          SECRET="$(openssl rand -base64 32)"
+          echo "::add-mask::$SECRET"
+
+          set_env() {
+            # Remove first so a re-run updates rather than erroring on a
+            # duplicate, and so a rotated database password actually lands.
+            vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+            printf '%s' "$2" | vercel env add "$1" production --token "$VERCEL_TOKEN" >/dev/null
+            echo "  set $1"
+          }
+
+          set_env DATABASE_URL        "$RUNTIME_URL"
+          set_env DIRECT_DATABASE_URL "$DIRECT_URL"
+          set_env DATABASE_PROVIDER   "postgresql"
+          set_env CD_HOSTED           "1"
+          set_env NEXTAUTH_SECRET     "$SECRET"
+          set_env CD_ADMIN_EMAIL      "$ADMIN_EMAIL"
+          # NEXTAUTH_URL is deliberately not set. appBaseUrl() falls back to
+          # VERCEL_PROJECT_PRODUCTION_URL, which is the stable production
+          # domain and is known to the running app without anyone having to
+          # learn the URL before the first deploy has produced it.
+
+      - name: Deploy
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          URL="$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" | tail -1)"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $URL"
+
+      - name: Check it is actually serving
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          # A green deploy is not the same as a working app: a bad DATABASE_URL
+          # surfaces only when a page tries to query. /login renders and the
+          # middleware runs, so a 200 means the build, the env and the database
+          # are all good.
+          for i in 1 2 3 4 5 6; do
+            CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$URL/login" || echo 000)"
+            echo "attempt $i: /login -> $CODE"
+            [ "$CODE" = "200" ] && break
+            sleep 10
+          done
+          if [ "$CODE" != "200" ]; then
+            echo "The deployment is not serving /login (last code $CODE)." >&2
+            exit 1
+          fi
+          {
+            echo "### The online game is live"
+            echo
+            echo "**$URL**"
+            echo
+            echo "Sign up with \`${{ inputs.admin_email }}\` — that is the only"
+            echo "account allowed to configure the mail sender."
+          } >> "$GITHUB_STEP_SUMMARY"
