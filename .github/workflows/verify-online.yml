@@ -1,0 +1,90 @@
+name: Verify the online guild
+
+# Proves a live hosted instance actually does the thing it was put online for:
+# two different people, two separate browser sessions, one shared guild, and
+# one seeing what the other wrote.
+#
+# Runs on a runner because this is the only place that can reach both the
+# deployed site and the database — an agent environment's network policy
+# answers 403 to CONNECT for *.vercel.app and api.neon.tech alike.
+#
+# Needs no Vercel token: just the public URL and the NEON_API_KEY that is
+# already in this repository's secrets. So it works whether the app was
+# deployed by the Deploy workflow or by Vercel's own GitHub integration.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "The live site, e.g. https://composers-dungeon.vercel.app"
+        required: true
+      neon_project_id:
+        description: "Neon project ID"
+        required: true
+        default: "royal-boat-29341408"
+      neon_branch:
+        description: "Neon branch"
+        required: true
+        default: "production"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Find a browser
+        id: browser
+        run: |
+          # ubuntu-latest ships Chrome; fall back rather than assume it.
+          for c in /usr/bin/google-chrome /usr/bin/chromium-browser /usr/bin/chromium; do
+            if [ -x "$c" ]; then echo "path=$c" >> "$GITHUB_OUTPUT"; echo "using $c"; exit 0; fi
+          done
+          sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser
+          echo "path=/usr/bin/chromium-browser" >> "$GITHUB_OUTPUT"
+
+      - name: Read the database connection
+        id: db
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          if [ -z "$NEON_API_KEY" ]; then
+            echo "NEON_API_KEY is not in this repository's Actions secrets." >&2
+            exit 1
+          fi
+          npm i -g neon@latest >/dev/null 2>&1
+          DIRECT="$(neon connection-string '${{ inputs.neon_branch }}' \
+            --project-id '${{ inputs.neon_project_id }}')"
+          [ -n "$DIRECT" ] || { echo "Neon returned no connection string." >&2; exit 1; }
+          echo "::add-mask::$DIRECT"
+          echo "direct=$DIRECT" >> "$GITHUB_OUTPUT"
+
+      - name: Run the two-player guild test
+        env:
+          DATABASE_URL: ${{ steps.db.outputs.direct }}
+          DIRECT_DATABASE_URL: ${{ steps.db.outputs.direct }}
+          DATABASE_PROVIDER: postgresql
+          CHROME_PATH: ${{ steps.browser.outputs.path }}
+        run: |
+          node scripts/make-postgres-schema.mjs
+          npx prisma generate --schema prisma/schema.postgres.prisma >/dev/null
+          node scripts/verify-online.mjs '${{ inputs.url }}' | tee result.txt
+
+      - name: Say what happened
+        if: always()
+        run: |
+          {
+            echo "### Online guild check — ${{ inputs.url }}"
+            echo
+            echo '```'
+            cat result.txt 2>/dev/null || echo "(the test did not get far enough to report)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
