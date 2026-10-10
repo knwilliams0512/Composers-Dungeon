@@ -251,7 +251,11 @@ try {
 }
 catch {
     if ($Silent) { Write-Log "feed unreachable - continuing offline"; exit 0 }
-    Fail "Couldn't reach the update server. Check your internet connection."
+    # Do not blame the player's connection. The feed is also unreachable when
+    # the release it lives on is not public, and telling someone with working
+    # internet to check their internet sends them hunting for a fault that is
+    # not on their machine.
+    Fail "Couldn't reach the update server. If your connection is fine, the update feed may not be published yet - reinstall from the download page instead."
 }
 
 if (-not $manifest.version -or -not $manifest.url -or -not $manifest.sha256) {
