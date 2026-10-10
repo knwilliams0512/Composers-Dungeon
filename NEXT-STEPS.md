@@ -1,6 +1,6 @@
-# Where this is, and the one thing left
+# Where this is
 
-Updated 2026-10-10. Delete this file once the box below is ticked.
+Updated 2026-10-10. Nothing here is blocking; it is the state of play.
 
 ## The online game is live and verified
 
@@ -29,15 +29,46 @@ Because the desktop launcher now points at this same server, a player on the
 Windows installer and a player in a browser share one account system, one
 guild and one library.
 
-## ☐ Turn GitHub Pages on, for the download page
+## The download page is deliberately not published
 
-**Settings → Pages → Build and deployment → Source: GitHub Actions**, then
-re-run **Download site**.
+itch.io is the download channel, and Steam is coming, so the GitHub Pages
+page is not needed. It is also not possible as things stand: the repository
+is private, and Pages requires either a public repository or GitHub Pro.
 
-Every run so far has failed with `Not Found` from the Pages API, which means no
-Pages site exists for the repository yet. Nothing in the repo can create one.
-On a free plan Pages also needs the repository to be public; that screen says
-which of the two is stopping it.
+`site/` and `.github/workflows/pages.yml` are kept rather than deleted. The
+workflow only runs on pushes that touch `site/**`, so it costs nothing sitting
+there, and the cover art and copy are reusable for the itch.io page. If the
+repository ever goes public, the page needs one switch: **Settings → Pages →
+Build and deployment → Source: GitHub Actions**, then re-run **Download site**.
+
+Two consequences of the repository being private, both already handled:
+
+- **Release assets need a GitHub login**, so the installer cannot be
+  downloaded from GitHub by a player. itch.io serves it instead.
+- **The update feed lives on those releases**, so the shipped app can never
+  reach it. `installer/update-config.json` has `enabled: false` rather than
+  leaving a check that fails on every launch. The `feedUrl` is still there, so
+  re-enabling is one word if releases ever become public.
+
+## Hosting plans, and the one that could still bite
+
+| | Plan | Status |
+|---|---|---|
+| Neon | paid | Fine. The free tier's 100 compute-hour monthly ceiling does not apply. |
+| Vercel | Hobby | Fine **only while the game is free.** |
+| GitHub | Free | Fine. Private repo, so no Pages. |
+
+Vercel's Hobby plan is non-commercial only — their fair-use guidelines define
+commercial use as any deployment serving "the financial gain of anyone
+involved in any part of the production of the project". The game is free on
+itch.io and will be free on Steam, so Hobby covers it today. **If it ever
+becomes paid, the backend has to move to Vercel Pro ($20/user/mo) before
+launch, not after.** That is the one item on this page that is a deadline
+rather than a note.
+
+Also for the Steam build: Steam patches games itself, so the shell updater
+must stay off there. It is already off, but confirm it deliberately when
+packaging rather than relying on that.
 
 ## What is set on the Vercel project
 
