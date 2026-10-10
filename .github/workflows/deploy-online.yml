@@ -254,6 +254,26 @@ jobs:
           SECRET="$(openssl rand -base64 32)"
           echo "::add-mask::$SECRET"
 
+          # Does this project already have a session secret?
+          #
+          # It matters because set_env below removes before adding, so writing
+          # a fresh secret on every deploy rotates the key that signs every
+          # session cookie -- which signs out every player, mid-lesson, each
+          # time anything is deployed. The first deploy must create one; every
+          # later deploy must leave it exactly alone.
+          HAVE_SECRET=no
+          if vercel env ls production --scope "$SCOPE" --token "$VERCEL_TOKEN" > envs.txt 2>&1; then
+            if grep -qE '(^|[[:space:]])NEXTAUTH_SECRET([[:space:]]|$)' envs.txt; then
+              HAVE_SECRET=yes
+            fi
+          else
+            # Could not tell. Keeping the existing secret is the safe guess: a
+            # missing secret fails loudly on the next sign-in, while a rotated
+            # one quietly logs everybody out.
+            echo "note: could not list the environment; leaving any existing secret in place"
+            HAVE_SECRET=yes
+          fi
+
           set_env() {
             # Remove first so a re-run updates rather than erroring on a
             # duplicate, and so a rotated database password actually lands.
@@ -266,7 +286,11 @@ jobs:
           set_env DIRECT_DATABASE_URL "$DIRECT_URL"
           set_env DATABASE_PROVIDER   "postgresql"
           set_env CD_HOSTED           "1"
-          set_env NEXTAUTH_SECRET     "$SECRET"
+          if [ "$HAVE_SECRET" = "yes" ]; then
+            echo "  kept NEXTAUTH_SECRET (rotating it would sign out every player)"
+          else
+            set_env NEXTAUTH_SECRET   "$SECRET"
+          fi
           set_env CD_ADMIN_EMAIL      "$ADMIN_EMAIL"
           # NEXTAUTH_URL is deliberately not set. appBaseUrl() falls back to
           # VERCEL_PROJECT_PRODUCTION_URL, which is the stable production

@@ -1,0 +1,86 @@
+name: Put one account at max level
+
+# For the owner's own account, so late-game content can be reached without
+# playing through 200 levels to get there.
+#
+# Deliberately takes an exact address and nothing else. There is no "everyone",
+# no pattern and no "the newest account": a progression edit that matches more
+# than it meant to rewrites real players' saves, and nobody takes a backup
+# first.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "The exact address the account was created with"
+        required: true
+      skills:
+        description: "Also max every skill, not just the composer level"
+        type: boolean
+        default: true
+      neon_project_id:
+        description: "Neon project ID"
+        required: true
+        default: "royal-boat-29341408"
+      neon_branch:
+        description: "Neon branch"
+        required: true
+        default: "production"
+
+permissions:
+  contents: read
+
+jobs:
+  grant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm i -g neon@latest
+
+      - name: Read the database connection
+        id: db
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_BRANCH: ${{ inputs.neon_branch }}
+          NEON_PROJECT: ${{ inputs.neon_project_id }}
+        run: |
+          # The direct connection, not the pooler: this is a handful of
+          # statements from one process, and the pooled url is shaped for
+          # serverless functions rather than a one-shot script.
+          DIRECT="$(neon connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT")"
+          [ -n "$DIRECT" ] || { echo "Neon returned no connection string." >&2; exit 1; }
+          echo "::add-mask::$DIRECT"
+          echo "direct=$DIRECT" >> "$GITHUB_OUTPUT"
+
+      - name: Set the level
+        env:
+          DATABASE_URL: ${{ steps.db.outputs.direct }}
+          DIRECT_DATABASE_URL: ${{ steps.db.outputs.direct }}
+          # Through env, never interpolated into the script body: an address is
+          # user input, and user input spliced into a shell command is a shell
+          # command.
+          EMAIL: ${{ inputs.email }}
+          SKILLS: ${{ inputs.skills }}
+        run: |
+          set -o pipefail
+          node scripts/make-postgres-schema.mjs
+          npx prisma generate --schema prisma/schema.postgres.prisma >/dev/null
+          ARGS=""
+          if [ "$SKILLS" = "true" ]; then ARGS="--skills"; fi
+          npx tsx scripts/grant-level.ts "$EMAIL" $ARGS | tee result.txt
+
+      - name: Say what happened
+        if: always()
+        run: |
+          {
+            echo "### Max level"
+            echo
+            echo '```'
+            cat result.txt 2>/dev/null || echo "(nothing was changed)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
