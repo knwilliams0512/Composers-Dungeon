@@ -51,6 +51,27 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser
           echo "path=/usr/bin/chromium-browser" >> "$GITHUB_OUTPUT"
 
+      - name: Check the site responds at all
+        run: |
+          # Fail here, legibly, rather than twelve lines deep in a browser
+          # timeout. A wrong domain, a build that never finished, and a site
+          # that is up but has no environment all look identical from inside
+          # the test; they do not look identical here.
+          URL='${{ inputs.url }}'
+          CODE="$(curl -s -o body.txt -w '%{http_code}' --max-time 45 -L "$URL/login" || echo 000)"
+          echo "GET $URL/login -> $CODE"
+          case "$CODE" in
+            200) echo "The site is up and serving." ;;
+            000) echo "Nothing answered at that address. Check the URL is the live .vercel.app domain, not the vercel.com dashboard." >&2; exit 1 ;;
+            404) echo "That address resolves but has no app on it. Wrong domain, or the deployment has not finished." >&2; exit 1 ;;
+            500|502|503)
+              echo "The app is deployed but erroring. That is almost always a missing environment variable:" >&2
+              echo "DATABASE_URL, NEXTAUTH_SECRET, DATABASE_PROVIDER and CD_HOSTED all have to be set on the project." >&2
+              head -c 600 body.txt >&2 || true
+              exit 1 ;;
+            *) echo "Unexpected status $CODE." >&2; exit 1 ;;
+          esac
+
       - name: Read the database connection
         id: db
         env:
