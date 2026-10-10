@@ -220,6 +220,45 @@ for (const [file, text] of [
 if (!/app\.previous/.test(launcher))
   fail("installer/app-launcher.ps1", "cannot restore the previous app when an update leaves a broken one");
 
+// 6. Nothing that reaches a player's machine may carry a database credential.
+//
+// The installer ships installer/update-config.json verbatim, and the launcher
+// reads serverUrl from it. The tempting shortcut for "make the desktop app
+// online" is to put the hosted DATABASE_URL there and let each copy talk to
+// Postgres directly. That would hand every player who installs the game read
+// and write access to every other player's account, every composition and the
+// whole guild — password included, in a plain text file on their disk. The app
+// talks to the hosted SERVER, exactly as a browser does, and the database
+// stays behind it.
+const SHIPPED = ["installer/update-config.json"];
+for (const file of SHIPPED) {
+  if (!existsSync(file)) continue;
+  const text = readFileSync(file, "utf8");
+  if (/postgres(ql)?:\/\//i.test(text))
+    fail(file, "contains a Postgres connection string, and this file is shipped to every player");
+  if (/mysql:\/\/|mongodb(\+srv)?:\/\//i.test(text))
+    fail(file, "contains a database connection string, and this file is shipped to every player");
+  // A URL carrying user:password@ is a credential whatever the scheme.
+  if (/:\/\/[^/\s"']*:[^/\s"']*@/.test(text))
+    fail(file, "contains a url with an embedded password, and this file is shipped to every player");
+
+  try {
+    const cfg = JSON.parse(text);
+    if (cfg.serverUrl) {
+      if (!/^https:\/\//.test(cfg.serverUrl))
+        fail(file, `serverUrl must be https (it is "${cfg.serverUrl}") — players' sessions travel over it`);
+      if (/localhost|127\.0\.0\.1/.test(cfg.serverUrl))
+        fail(file, `serverUrl points at ${cfg.serverUrl}, which is every player's own machine, not a shared server`);
+    }
+  } catch {
+    fail(file, "is not valid JSON, and the launcher reads it on every start");
+  }
+}
+
+// The launcher must not be able to grow a direct database connection either.
+if (/DATABASE_URL\s*=\s*["']?postgres/i.test(launcher))
+  fail("installer/app-launcher.ps1", "sets DATABASE_URL to Postgres; a player's machine must never hold the shared database's credentials");
+
 console.log(`launcher: ${FILES.length} PowerShell files checked for structure and known traps`);
 if (problems.length === 0) console.log("OK - no launcher problems");
 else { console.log(`FAIL - ${problems.length} problems:`); problems.forEach((p) => console.log("  -", p)); }

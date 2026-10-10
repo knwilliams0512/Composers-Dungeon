@@ -413,6 +413,35 @@ function Test-DungeonAlive([int]$candidate) {
     catch { return $false }
 }
 
+function Get-OnlineServer {
+    # The address of the shared game, if this install is pointed at one.
+    #
+    # It is a SERVER url, never a database one. Shipping a database connection
+    # string to a player's machine would hand every player read and write
+    # access to every other player's account, so the app talks to the hosted
+    # server exactly as a browser does, and the database stays behind it.
+    $configFile = Join-Path $PSScriptRoot "update-config.json"
+    if (-not (Test-Path $configFile)) { return "" }
+    try {
+        $cfg = Get-Content $configFile -Raw | ConvertFrom-Json
+        if (-not $cfg.serverUrl) { return "" }
+        return ([string]$cfg.serverUrl).TrimEnd("/")
+    }
+    catch { return "" }
+}
+
+function Test-ServerReachable($address) {
+    # Short timeout on purpose: this runs before the window opens, and a player
+    # on a dead connection should drop to offline play quickly rather than
+    # stare at nothing while a request times out.
+    if (-not $address) { return $false }
+    try {
+        $r = Invoke-WebRequest -Uri "$address/manifest.webmanifest" -UseBasicParsing -TimeoutSec 6
+        return ($r.StatusCode -eq 200)
+    }
+    catch { return $false }
+}
+
 # Two launches at once - a double-click on the shortcut, or the desktop and the
 # Start menu in quick succession - used to race here: both would find the port
 # free, both would start a server, and the two of them would be writing to the
@@ -425,18 +454,44 @@ try {
 }
 catch { $startupLock = $null }
 
-if ($Port -eq 0) {
-    $Port = 3000
-    while ($Port -lt 3020 -and -not (Test-PortFree $Port)) {
-        if (Test-DungeonAlive $Port) { break }
-        $Port++
+# --- Online or on this machine ----------------------------------------------
+# When this install is pointed at a shared server and that server answers, the
+# app IS that server: same account, same guild, same library as everyone else,
+# and no local server starts at all.
+#
+# When it does not answer - no internet, server down - the app falls back to
+# playing from the local database rather than refusing to open. That keeps the
+# promise the installer is built on. The two are separate worlds, because the
+# offline save lives on this machine and nowhere else, so the app says which
+# one you are in rather than leaving you to guess.
+$onlineServer = Get-OnlineServer
+$playingOnline = $false
+if ($onlineServer) {
+    if (Test-ServerReachable $onlineServer) {
+        $playingOnline = $true
+        $url = $onlineServer
     }
-    if ($Port -ge 3020) {
-        if ($startupLock) { try { $startupLock.ReleaseMutex() } catch {} }
-        Show-Problem "Every port from 3000 to 3019 is busy. Close some apps and try again."
+    else {
+        Add-Content -Path (Join-Path $DataDir "server.log") `
+            -Value ("[launcher] {0} did not answer; playing from the local database instead" -f $onlineServer) `
+            -ErrorAction SilentlyContinue
     }
 }
-$url = "http://localhost:$Port"
+
+if (-not $playingOnline) {
+    if ($Port -eq 0) {
+        $Port = 3000
+        while ($Port -lt 3020 -and -not (Test-PortFree $Port)) {
+            if (Test-DungeonAlive $Port) { break }
+            $Port++
+        }
+        if ($Port -ge 3020) {
+            if ($startupLock) { try { $startupLock.ReleaseMutex() } catch {} }
+            Show-Problem "Every port from 3000 to 3019 is busy. Close some apps and try again."
+        }
+    }
+    $url = "http://localhost:$Port"
+}
 
 # --- Repair the database before serving from it ------------------------------
 # Every launch, not just after an update. The update path is the one that broke
@@ -448,7 +503,7 @@ $url = "http://localhost:$Port"
 # seed that an update could not complete, so a player whose database was busy
 # at the wrong moment gets the new lessons on their next launch instead of
 # silently staying a version behind.
-if (Test-PortFree $Port) {
+if ((-not $playingOnline) -and (Test-PortFree $Port)) {
     $upgradeScript = Join-Path $AppDir "upgrade.js"
     if ((Test-Path $upgradeScript) -and (Test-Path $NodeExe)) {
         try {
@@ -467,7 +522,7 @@ if (Test-PortFree $Port) {
 
 # --- Server -----------------------------------------------------------------
 $startedServer = $false
-if (Test-PortFree $Port) {
+if ((-not $playingOnline) -and (Test-PortFree $Port)) {
     $log = Join-Path $DataDir "server.log"
 
     # Prisma wants forward slashes; loopback-only binding keeps Windows
