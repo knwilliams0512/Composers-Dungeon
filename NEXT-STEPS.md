@@ -1,136 +1,116 @@
-# Where this is, and the two things left
+# Where this is, and the one switch left
 
-Written overnight on 2026-10-10. Delete this file once both boxes are ticked.
+Updated 2026-10-10. Delete this file once both boxes are ticked.
 
 ## The short version
 
-The game is **online and serving** at <https://composers-dungeon.vercel.app>,
-against a Neon Postgres holding the full curriculum. Accounts really are
-created there — the overnight test signed two up and found both in the
-database.
+The deploy works end to end now. The run at 20:08 UTC authenticated with
+Vercel, read both Neon connection strings, linked the project, set all six
+environment variables, built in one minute and aliased the result to
+<https://composers-dungeon.vercel.app>.
 
-It is **not usable yet**, for exactly one reason: the Vercel project is missing
-its environment variables. Nothing is wrong with the code or the database.
+So the thing that blocked this all along — the Vercel project having no
+`NEXTAUTH_SECRET` — **is fixed**. The site is built, configured and pointed at
+the Neon database holding the full curriculum.
 
-## What the live site says is wrong
+It is still not reachable by players, for one new reason, and it is a toggle
+rather than a bug.
 
-The verification run reports, from the site itself:
+## ☐ 1. Let people in without a Vercel login
 
-```
-FAIL  Smoke Test Aria signed up and holds a session
-      last seen at /api/auth/error
-      page said: Server error — There is a problem with the server
-                 configuration. Check the server logs for more information.
-```
-
-That is NextAuth's message for a missing `NEXTAUTH_SECRET`. Without it nothing
-can sign a session cookie, so signing up writes the account and then leaves the
-player signed out, and every page that needs a session turns them away.
-
-## ☐ 1. Give the Vercel project its environment
-
-Two ways. Either finishes it.
-
-**A — let the workflow do it (one secret).**
-
-The deploy has now failed four times on the same thing, and the fifth run
-finally said what it was. It prints a fingerprint of the secret before using
-it:
+The deploy's own output said it:
 
 ```
-secret fingerprint: 60 characters, starts "vcp_"
-Error: The token provided via `--token` argument is not valid.
+! Deployment Protection is on for this project (Vercel Authentication).
 ```
 
-Well-formed, right length, right prefix, no stray whitespace — and rejected.
-That combination means the token is **revoked**, and 60 characters is the
-length of the very first token, the one that was revoked after being pasted
-into a chat. So the secret was never actually replaced.
+and the check that follows saw the consequence:
 
-The likely cause is clicking **New repository secret** rather than the
-**pencil** beside the existing row. Creating one that already exists fails, and
-the error is easy to miss.
-
-So:
-
-1. Make a token at vercel.com → avatar → Settings → Tokens. In the **Scope**
-   picker, **Nexus** has a `>` and opens a submenu — choose **All Projects**
-   inside it. Not `composers-dungeon`: a token's scope is an account or a team,
-   never a project, and a project-scoped one cannot do the team-level work a
-   deploy needs.
-2. At
-   <https://github.com/knwilliams0512/Composers-Dungeon/settings/secrets/actions>
-   click the **pencil** on the existing `VERCEL_TOKEN` row, paste, **Update
-   secret**.
-3. Check the row then reads **"Updated now"**. If it still shows an old
-   timestamp, it did not save, and that is the whole problem.
-4. Dispatch **Deploy the online game**. It sets all six variables from Neon,
-   deploys, and checks the result serves.
-
-If the row says "Updated now" and it is still rejected, the `All Projects`
-scope is not producing a token the CLI can authenticate with; remake it as
-**Full Account**.
-
-**B — by hand.** In the Vercel project → Settings → Environment Variables, for
-Production:
-
-| Variable | Value |
-|---|---|
-| `NEXTAUTH_SECRET` | 32 random bytes, base64 — see below |
-| `CD_HOSTED` | `1` |
-| `DATABASE_PROVIDER` | `postgresql` |
-| `CD_ADMIN_EMAIL` | `haelan544@gmail.com` |
-
-and add the **Neon integration** for `DATABASE_URL` / `DIRECT_DATABASE_URL`
-rather than pasting a connection string, so the pooled-vs-direct distinction is
-right. Then redeploy.
-
-```powershell
-$b = New-Object byte[] 32
-[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
-[Convert]::ToBase64String($b)
+```
+attempt 1: /login -> 302
+...
+The deployment is not serving /login (last code 302).
 ```
 
-`NEXTAUTH_URL` is deliberately not needed — the app falls back to Vercel's own
-production domain.
+Vercel switches Deployment Protection on for every new project. It means each
+request is bounced to a Vercel SSO login, so only someone signed in to the
+Nexus team can open the site. For a staging dashboard that is a sensible
+default. For a game strangers are meant to sign up to, it keeps everybody out,
+and no amount of correct code or environment would show anything but that 302.
 
-Then dispatch **Verify the online guild** with the site URL. It signs up two
-players in separate browsers, has them join one guild, posts as one and checks
-the other sees it. Fourteen checks; it fails loudly if any of them does.
+**Vercel → the `composers-dungeon` project → Settings → Deployment Protection
+→ Vercel Authentication → *Only Preview Deployments*** (or *Disabled*).
+
+*Only Preview Deployments* is the better of the two: the production alias that
+players are given is public, while preview builds stay behind the login.
+
+Then dispatch **Deploy the online game** again, or go straight to **Verify the
+online guild** with `https://composers-dungeon.vercel.app` — the deployment
+already up is fine, it was only ever the door that was locked.
+
+There is an uncommitted change on this branch that would do this from the
+workflow instead, through Vercel's projects API. It is held back deliberately:
+automatically removing an access control is not something to slip into a
+commit, so it is the owner's call. The file is
+`.github/workflows/deploy-online.yml`; `git diff` shows it.
 
 ## ☐ 2. Turn GitHub Pages on, for the download page
 
 **Settings → Pages → Build and deployment → Source: GitHub Actions**, then
 re-run **Download site**.
 
-Five runs have failed on `Not Found` from the Pages API, which means no Pages
-site exists for the repository. Nothing in the repo can create one. On a free
-plan Pages also needs the repository to be public; that screen says which of
-the two is stopping it.
+Every run so far has failed with `Not Found` from the Pages API, which means no
+Pages site exists for the repository yet. Nothing in the repo can create one.
+On a free plan Pages also needs the repository to be public; that screen says
+which of the two is stopping it.
 
-## What changed overnight
+## What is set on the Vercel project
 
-- **Signed-out players were being sent to next-auth's own generic page** rather
-  than this app's login screen, on all twelve protected routes. `middleware.ts`
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Neon pooled, with `pgbouncer=true&connection_limit=1` |
+| `DIRECT_DATABASE_URL` | Neon direct |
+| `DATABASE_PROVIDER` | `postgresql` |
+| `CD_HOSTED` | `1` |
+| `NEXTAUTH_SECRET` | generated in the run, never printed |
+| `CD_ADMIN_EMAIL` | `knwilliams0512@gmail.com` |
+
+`CD_ADMIN_EMAIL` is the only account allowed to configure the mail sender, and
+without a sender nobody can reset a password — so sign up with that address
+first. An earlier version of this note named a different address, which was
+wrong; this is the one the deploy actually set. If you want it to be a
+different mailbox, it is one field in Vercel's environment variables, or one
+re-dispatch of the deploy with another value.
+
+`NEXTAUTH_URL` is deliberately unset — the app falls back to Vercel's own
+production domain, which is known to it without anyone having to learn the URL
+before the first deploy produced it.
+
+## What changed, and what it fixed
+
+- **The deploy was reading a revoked token.** GitHub refuses to create a secret
+  whose name already exists, so the replacement token landed beside the old one
+  as `VERCEL_TOKEN_` rather than over the top of `VERCEL_TOKEN`. Six runs died
+  on a token that could never work. Both names are now tried and whichever
+  Vercel accepts is used. Asking Vercel is the only test that separates them: a
+  revoked token keeps its length and its `vcp_` prefix, so the fingerprint the
+  workflow printed called it well-formed right up to the point it was refused.
+- **A latent bug that fix exposed.** The three steps that deploy each declared
+  `VERCEL_TOKEN` in their own `env:`, and a step-level `env:` entry overrides
+  `$GITHUB_ENV` — so the trimmed, verified value was being silently replaced by
+  the raw secret further down the job. They inherit it now.
+- **Signed-out players were sent to next-auth's own generic page** rather than
+  this app's login screen, on all twelve protected routes. `middleware.ts`
   re-exported next-auth's default, which silently ignores configuration.
-- **Two checks in the live test could never fail** — one looked for text the
-  app does not contain, the other asked a question that is true when signed
-  out. Both had been printing `ok` since they were written.
-- **The README and the landing page said things that were not true**: nine
-  areas and four bosses against sixteen and ten, fifteen achievements against
-  fifty-eight. The three guild raid bosses were missing from the landing page
-  entirely — the one feature that needs other people, absent from the pitch.
-  `npm run check:claims` now holds every count to the seed data.
-- Workflow fixes: a deploy could report success when it failed, dispatch inputs
-  were interpolated into shell scripts, and a curl fallback made the error
-  message for a wrong hostname unreachable.
+- **The installed Windows app now joins the shared world** instead of running a
+  private SQLite copy, and falls back to local play when the server cannot be
+  reached. `check-launcher.mjs` enforces that no database credential is ever
+  shipped to a player's machine.
+- **Two checks in the live test could never fail** — one looked for text the app
+  does not contain, the other asked a question that is true when signed out.
+  Both had been printing `ok` since they were written.
+- **The README and landing page stated counts that were wrong.**
+  `npm run check:claims` now holds every one of them to the seed data.
 
 19 checkers pass, the typecheck is clean, and both the desktop (SQLite) and
 hosted (Postgres) builds compile.
-
-## Still open, not blocking
-
-The **Windows desktop app** keeps its own local SQLite file, so a player on the
-installer has a separate world from the web version. Whether it should also
-point at the hosted server — same account and guild everywhere, but needing
-internet — is a design decision, not a bug.
