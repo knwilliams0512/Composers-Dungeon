@@ -1,4 +1,26 @@
-export { default } from "next-auth/middleware";
+import { withAuth } from "next-auth/middleware";
+
+/**
+ * The bare `export { default } from "next-auth/middleware"` looks equivalent
+ * and is not. Called that way, withAuth receives Next's NextFetchEvent as its
+ * options argument, so it never sees any configuration — including
+ * `pages.signIn: "/login"` from authOptions, which lives in a different module
+ * and is read by the API route, not by this one. The result was that every
+ * signed-out visitor to a protected route landed on next-auth's own generic
+ * provider page at /api/auth/signin rather than this app's login screen, and
+ * the per-page `redirect("/login")` guards never ran, because the middleware
+ * had already answered.
+ *
+ * authOptions itself cannot be imported here: it pulls in bcryptjs and Prisma,
+ * neither of which runs in the edge runtime this middleware executes in. The
+ * one thing the middleware needs is the sign-in path, so it is named here, and
+ * scripts/check-routes.mjs holds the two copies to the same value.
+ */
+export default withAuth({
+  pages: {
+    signIn: "/login",
+  },
+});
 
 /**
  * Everything inside the app shell requires an authenticated session.

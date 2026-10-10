@@ -52,7 +52,41 @@ for (const g of groups) {
     fail(`${page} never establishes who is signed in`);
 }
 
-console.log(`routes: ${groups.length} app routes, all named in the middleware matcher`);
+// The middleware answers before any page renders, so the sign-in path IT knows
+// is the one signed-out visitors actually reach. authOptions names the same
+// path for the API route, but the middleware cannot import it — authOptions
+// pulls in bcryptjs and Prisma, which do not run in the edge runtime. Two
+// copies of one value, so they are checked against each other: when they
+// disagree, visitors land on next-auth's generic provider page instead of this
+// app's login screen, and nothing else in the build notices.
+const mw = readFileSync("src/middleware.ts", "utf8");
+const authSrc = readFileSync("src/lib/auth.ts", "utf8");
+const mwSignIn = mw.match(/signIn:\s*"([^"]+)"/)?.[1];
+const authSignIn = authSrc.match(/pages:\s*\{[^}]*signIn:\s*"([^"]+)"/s)?.[1];
+if (!mwSignIn) {
+  fail(
+    'src/middleware.ts does not name a signIn page. Without one, withAuth sends ' +
+      "signed-out visitors to next-auth's own /api/auth/signin instead of this app's login screen."
+  );
+} else if (!authSignIn) {
+  fail("src/lib/auth.ts does not set pages.signIn");
+} else if (mwSignIn !== authSignIn) {
+  fail(
+    `the middleware signs in at "${mwSignIn}" but authOptions says "${authSignIn}" — ` +
+      "signed-out visitors and the API route would disagree about where login lives"
+  );
+}
+if (!/withAuth\s*\(/.test(mw)) {
+  fail(
+    'src/middleware.ts must call withAuth({...}) rather than re-exporting its default: ' +
+      "the bare re-export receives Next's fetch event as its options and silently ignores every setting."
+  );
+}
+
+console.log(
+  `routes: ${groups.length} app routes, all named in the middleware matcher; ` +
+    `sign-in path "${mwSignIn ?? "?"}" agrees with authOptions`
+);
 if (problems.length === 0) console.log("OK - no route problems");
 else { console.log(`FAIL - ${problems.length} problems:`); problems.forEach((p) => console.log("  -", p)); }
 process.exit(problems.length ? 1 : 0);
