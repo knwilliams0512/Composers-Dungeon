@@ -69,19 +69,23 @@ jobs:
         id: cs
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          # Through env, never interpolated into the script body: a dispatch
+          # input containing a quote would close the quote and run the rest.
+          NEON_BRANCH: ${{ inputs.neon_branch }}
+          NEON_PROJECT: ${{ inputs.project_id }}
         run: |
-          npm i -g neon@latest >/dev/null 2>&1
+          npm i -g neon@latest >/dev/null || {
+            echo "Could not install the Neon CLI." >&2; exit 1; }
           # The DIRECT string, not the pooled one: a pooler cannot run DDL, so
           # the schema push and the seed both have to go straight to Postgres.
-          DIRECT="$(neon connection-string '${{ inputs.neon_branch }}' \
-            --project-id '${{ inputs.project_id }}')"
+          DIRECT="$(neon connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT")"
           if [ -z "$DIRECT" ]; then
             echo "Neon returned no connection string for that project/branch." >&2
             exit 1
           fi
           echo "::add-mask::$DIRECT"
           echo "direct=$DIRECT" >> "$GITHUB_OUTPUT"
-          echo "Got a connection string for branch '${{ inputs.neon_branch }}'."
+          echo "Got a connection string for branch '$NEON_BRANCH'."
 
       - name: Push the schema
         env:

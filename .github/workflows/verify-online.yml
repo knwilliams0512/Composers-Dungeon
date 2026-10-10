@@ -48,17 +48,30 @@ jobs:
           for c in /usr/bin/google-chrome /usr/bin/chromium-browser /usr/bin/chromium; do
             if [ -x "$c" ]; then echo "path=$c" >> "$GITHUB_OUTPUT"; echo "using $c"; exit 0; fi
           done
-          sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser
-          echo "path=/usr/bin/chromium-browser" >> "$GITHUB_OUTPUT"
+          sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser || true
+          # Re-test rather than assume: chromium-browser is a transitional
+          # package that can install to a different path or a snap, and the
+          # failure would otherwise surface as a puppeteer spawn error three
+          # steps later instead of as "no browser".
+          for c in /usr/bin/chromium-browser /usr/bin/chromium /snap/bin/chromium; do
+            if [ -x "$c" ]; then echo "path=$c" >> "$GITHUB_OUTPUT"; echo "using $c"; exit 0; fi
+          done
+          echo "No browser could be found or installed." >&2
+          exit 1
 
       - name: Check the site responds at all
+        env:
+          # Through env, never interpolated into the script body: a dispatch
+          # input containing a quote would otherwise close the quote and run
+          # the remainder as commands on the runner.
+          URL: ${{ inputs.url }}
         run: |
           # Fail here, legibly, rather than twelve lines deep in a browser
           # timeout. A wrong domain, a build that never finished, and a site
           # that is up but has no environment all look identical from inside
           # the test; they do not look identical here.
-          URL='${{ inputs.url }}'
-          CODE="$(curl -s -o body.txt -w '%{http_code}' --max-time 45 -L "$URL/login" || echo 000)"
+          CODE="$(curl -s -o body.txt -w '%{http_code}' --max-time 45 -L "$URL/login")" || CODE=000
+          [ -n "$CODE" ] || CODE=000
           echo "GET $URL/login -> $CODE"
           case "$CODE" in
             200) echo "The site is up and serving." ;;
@@ -76,14 +89,16 @@ jobs:
         id: db
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_BRANCH: ${{ inputs.neon_branch }}
+          NEON_PROJECT: ${{ inputs.neon_project_id }}
         run: |
           if [ -z "$NEON_API_KEY" ]; then
             echo "NEON_API_KEY is not in this repository's Actions secrets." >&2
             exit 1
           fi
-          npm i -g neon@latest >/dev/null 2>&1
-          DIRECT="$(neon connection-string '${{ inputs.neon_branch }}' \
-            --project-id '${{ inputs.neon_project_id }}')"
+          npm i -g neon@latest >/dev/null || {
+            echo "Could not install the Neon CLI." >&2; exit 1; }
+          DIRECT="$(neon connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT")"
           [ -n "$DIRECT" ] || { echo "Neon returned no connection string." >&2; exit 1; }
           echo "::add-mask::$DIRECT"
           echo "direct=$DIRECT" >> "$GITHUB_OUTPUT"
@@ -92,8 +107,11 @@ jobs:
         env:
           DATABASE_URL: ${{ steps.db.outputs.direct }}
           DIRECT_DATABASE_URL: ${{ steps.db.outputs.direct }}
-          DATABASE_PROVIDER: postgresql
+          # No DATABASE_PROVIDER here on purpose: the script talks to Prisma
+          # directly and never loads src/lib/db-provider.ts, the only thing
+          # that reads it. Setting it would imply a dependency that is not real.
           CHROME_PATH: ${{ steps.browser.outputs.path }}
+          URL: ${{ inputs.url }}
         run: |
           # Without pipefail the pipeline reports tee's exit code, not the
           # test's, so a failing check goes green. It did exactly that on the
@@ -101,13 +119,15 @@ jobs:
           set -o pipefail
           node scripts/make-postgres-schema.mjs
           npx prisma generate --schema prisma/schema.postgres.prisma >/dev/null
-          node scripts/verify-online.mjs '${{ inputs.url }}' | tee result.txt
+          node scripts/verify-online.mjs "$URL" | tee result.txt
 
       - name: Say what happened
         if: always()
+        env:
+          URL: ${{ inputs.url }}
         run: |
           {
-            echo "### Online guild check — ${{ inputs.url }}"
+            echo "### Online guild check — $URL"
             echo
             echo '```'
             cat result.txt 2>/dev/null || echo "(the test did not get far enough to report)"

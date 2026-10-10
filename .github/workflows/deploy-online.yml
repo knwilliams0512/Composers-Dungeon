@@ -82,6 +82,7 @@ jobs:
       - name: Check the Vercel token works
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SCOPE: ${{ inputs.vercel_scope }}
         run: |
           # Two questions, asked separately, because they have different fixes
           # and the CLI reports both as an unhelpful "User not found (404)"
@@ -114,14 +115,14 @@ jobs:
           # check that is stricter than the thing it is checking for would
           # reject a token that works. The real answer comes from link and
           # deploy below; this only makes a later failure easier to read.
-          echo "2. Which teams can it see? (informational)"
+          echo "2. Which teams can it see? (informational)"  # SCOPE from env
           if vercel teams ls --token "$VERCEL_TOKEN" > teams.txt 2>&1; then
             cat teams.txt
-            if grep -q -- '${{ inputs.vercel_scope }}' teams.txt; then
-              echo "   '${{ inputs.vercel_scope }}' is reachable"
+            if grep -qF -- "$SCOPE" teams.txt; then
+              echo "   '$SCOPE' is reachable"
             else
               {
-                echo "### Warning: the team \`${{ inputs.vercel_scope }}\` was not in this token's team list"
+                echo "### Warning: the team \`$SCOPE\` was not in this token's team list"
                 echo
                 echo '```'
                 cat teams.txt
@@ -133,7 +134,7 @@ jobs:
                 echo "and the token cannot do the team-level work a deploy needs."
                 echo "Create one scoped to **Nexus** instead."
               } >> "$GITHUB_STEP_SUMMARY"
-              echo "   warning: '${{ inputs.vercel_scope }}' not listed; continuing anyway"
+              echo "   warning: '$SCOPE' not listed; continuing anyway"
             fi
           else
             echo "   could not list teams; continuing, since deploying may still work"
@@ -143,11 +144,11 @@ jobs:
         id: db
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_BRANCH: ${{ inputs.neon_branch }}
+          NEON_PROJECT: ${{ inputs.neon_project_id }}
         run: |
-          DIRECT="$(neon connection-string '${{ inputs.neon_branch }}' \
-            --project-id '${{ inputs.neon_project_id }}')"
-          POOLED="$(neon connection-string '${{ inputs.neon_branch }}' \
-            --project-id '${{ inputs.neon_project_id }}' --pooled)"
+          DIRECT="$(neon connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT")"
+          POOLED="$(neon connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT" --pooled)"
           [ -n "$DIRECT" ] && [ -n "$POOLED" ] || { echo "Neon returned no connection string." >&2; exit 1; }
           echo "::add-mask::$DIRECT"
           echo "::add-mask::$POOLED"
@@ -165,12 +166,13 @@ jobs:
       - name: Create and link the Vercel project
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SCOPE: ${{ inputs.vercel_scope }}
+          PROJECT: ${{ inputs.project_name }}
         run: |
           # Both are safe to repeat: the project may already exist from an
           # earlier run, and `link` only writes .vercel/project.json.
-          SCOPE='${{ inputs.vercel_scope }}'
-          vercel project add '${{ inputs.project_name }}' --scope "$SCOPE" --token "$VERCEL_TOKEN" 2>/dev/null || true
-          vercel link --yes --project '${{ inputs.project_name }}' --scope "$SCOPE" --token "$VERCEL_TOKEN"
+          vercel project add "$PROJECT" --scope "$SCOPE" --token "$VERCEL_TOKEN" 2>/dev/null || true
+          vercel link --yes --project "$PROJECT" --scope "$SCOPE" --token "$VERCEL_TOKEN"
 
       - name: Set the environment
         env:
@@ -208,21 +210,32 @@ jobs:
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SCOPE: ${{ inputs.vercel_scope }}
         run: |
-          URL="$(vercel deploy --prod --yes --scope '${{ inputs.vercel_scope }}' --token "$VERCEL_TOKEN" | tail -1)"
+          # Without pipefail the pipeline reports tail's exit code, so a failed
+          # deploy goes green with a fragment of an error message as the URL,
+          # and the check below then blames the app for not serving.
+          set -o pipefail
+          URL="$(vercel deploy --prod --yes --scope "$SCOPE" --token "$VERCEL_TOKEN" | tail -1)"
+          case "$URL" in
+            https://*) ;;
+            *) echo "vercel did not return a deployment URL (got: $URL)" >&2; exit 1 ;;
+          esac
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Deployed: $URL"
 
       - name: Check it is actually serving
         env:
           URL: ${{ steps.deploy.outputs.url }}
+          ADMIN_EMAIL: ${{ inputs.admin_email }}
         run: |
           # A green deploy is not the same as a working app: a bad DATABASE_URL
           # surfaces only when a page tries to query. /login renders and the
           # middleware runs, so a 200 means the build, the env and the database
           # are all good.
           for i in 1 2 3 4 5 6; do
-            CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$URL/login" || echo 000)"
+            CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$URL/login")" || CODE=000
+            [ -n "$CODE" ] || CODE=000
             echo "attempt $i: /login -> $CODE"
             [ "$CODE" = "200" ] && break
             sleep 10
@@ -236,6 +249,6 @@ jobs:
             echo
             echo "**$URL**"
             echo
-            echo "Sign up with \`${{ inputs.admin_email }}\` — that is the only"
+            echo "Sign up with \`$ADMIN_EMAIL\` — that is the only"
             echo "account allowed to configure the mail sender."
           } >> "$GITHUB_STEP_SUMMARY"
