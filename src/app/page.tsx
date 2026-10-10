@@ -357,7 +357,7 @@ export default async function LandingPage() {
           {BOSSES.map((b) => (
             <li
               key={b.name}
-              className={`card flex items-center gap-3 px-4 py-3 ${
+              className={`card flex items-start gap-3 px-4 py-3 ${
                 b.final ? "border-crimson-500/40" : b.guild ? "border-arcane-400/30" : ""
               }`}
             >
@@ -373,14 +373,22 @@ export default async function LandingPage() {
                 }
               />
               <div className="min-w-0">
-                <p className="truncate font-display tracking-wide text-parchment-100">{b.name}</p>
-                <p className="truncate text-[11px] text-parchment-500">
-                  {b.title}
-                  {/* Said on the card rather than in a footnote: needing other
-                      people is the single most important thing to know about
-                      these three before setting out to fight one alone. */}
-                  {b.guild ? ` · needs ${b.guild} in your guild` : ""}
-                </p>
+                {/* Wraps rather than truncates: "The Hundred-Handed Org…" and
+                    "The Work of Many Lifetim…" were both being cut off, and a
+                    boss whose name you cannot read is poor advertising for
+                    fighting it. The cards are already unequal heights. */}
+                <p className="font-display tracking-wide text-parchment-100">{b.name}</p>
+                <p className="truncate text-[11px] text-parchment-500">{b.title}</p>
+                {/* Its own line, not appended to the title. Appended, it was
+                    the part `truncate` cut off — "needs 3 in your g…" — losing
+                    the single most important thing to know about these three
+                    before setting out to fight one alone. */}
+                {b.guild ? (
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-arcane-300">
+                    <Icon name="users" size={11} className="shrink-0" />
+                    needs {b.guild} in your guild
+                  </p>
+                ) : null}
               </div>
               <span className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.2em] text-parchment-600">
                 Lv {b.level}
