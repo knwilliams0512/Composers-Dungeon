@@ -56,8 +56,16 @@ or so people, not a home for a game with players on most of the day.
 
 1. **Create a Neon project.** Copy both connection strings it gives you: the
    *pooled* one and the *direct* one.
-2. **Create the schema and content.** With a `NEON_API_KEY` in the environment
-   there is a script for it, which reads both connection strings, pushes the
+2. **Create the schema and content.** The route that works, and the one the
+   live database was built with, is the **Set up the Neon database** workflow:
+   dispatch it from the Actions tab. It runs on a GitHub runner, which can
+   reach `api.neon.tech` when a restricted agent environment cannot, and uses
+   the `NEON_API_KEY` that connecting the repository to Neon puts in the
+   repository's Actions secrets. Re-run it after any change to the schema or
+   the lessons; it is additive and leaves accounts, compositions, guild
+   memberships and posts alone.
+
+   Locally instead, with a `NEON_API_KEY` in the environment, which reads both connection strings, pushes the
    schema, seeds the content and writes `.env.hosted.local` with everything the
    host needs:
 
