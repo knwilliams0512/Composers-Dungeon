@@ -25,6 +25,14 @@ on:
         description: "Vercel project name"
         required: true
         default: "composers-dungeon"
+      vercel_scope:
+        description: >-
+          The Vercel team/account slug the project lives under. It is the
+          first path segment of the project's dashboard URL:
+          vercel.com/<scope>/<project>. Without it the CLI looks in the
+          personal account and either fails or creates a second, empty project.
+        required: true
+        default: "nexus-4be1"
       neon_project_id:
         description: "Neon project ID"
         required: true
@@ -100,8 +108,9 @@ jobs:
         run: |
           # Both are safe to repeat: the project may already exist from an
           # earlier run, and `link` only writes .vercel/project.json.
-          vercel project add '${{ inputs.project_name }}' --token "$VERCEL_TOKEN" 2>/dev/null || true
-          vercel link --yes --project '${{ inputs.project_name }}' --token "$VERCEL_TOKEN"
+          SCOPE='${{ inputs.vercel_scope }}'
+          vercel project add '${{ inputs.project_name }}' --scope "$SCOPE" --token "$VERCEL_TOKEN" 2>/dev/null || true
+          vercel link --yes --project '${{ inputs.project_name }}' --scope "$SCOPE" --token "$VERCEL_TOKEN"
 
       - name: Set the environment
         env:
@@ -109,6 +118,7 @@ jobs:
           RUNTIME_URL: ${{ steps.db.outputs.runtime }}
           DIRECT_URL: ${{ steps.db.outputs.direct }}
           ADMIN_EMAIL: ${{ inputs.admin_email }}
+          SCOPE: ${{ inputs.vercel_scope }}
         run: |
           # Generated here and never printed. It signs every session cookie, so
           # it should not pass through a chat log or an email on its way in.
@@ -118,8 +128,8 @@ jobs:
           set_env() {
             # Remove first so a re-run updates rather than erroring on a
             # duplicate, and so a rotated database password actually lands.
-            vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
-            printf '%s' "$2" | vercel env add "$1" production --token "$VERCEL_TOKEN" >/dev/null
+            vercel env rm "$1" production --yes --scope "$SCOPE" --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+            printf '%s' "$2" | vercel env add "$1" production --scope "$SCOPE" --token "$VERCEL_TOKEN" >/dev/null
             echo "  set $1"
           }
 
@@ -139,7 +149,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          URL="$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" | tail -1)"
+          URL="$(vercel deploy --prod --yes --scope '${{ inputs.vercel_scope }}' --token "$VERCEL_TOKEN" | tail -1)"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Deployed: $URL"
 
