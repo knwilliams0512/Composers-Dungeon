@@ -95,6 +95,10 @@ jobs:
           DATABASE_PROVIDER: postgresql
           CHROME_PATH: ${{ steps.browser.outputs.path }}
         run: |
+          # Without pipefail the pipeline reports tee's exit code, not the
+          # test's, so a failing check goes green. It did exactly that on the
+          # first run: four checks failed and the job reported success.
+          set -o pipefail
           node scripts/make-postgres-schema.mjs
           npx prisma generate --schema prisma/schema.postgres.prisma >/dev/null
           node scripts/verify-online.mjs '${{ inputs.url }}' | tee result.txt

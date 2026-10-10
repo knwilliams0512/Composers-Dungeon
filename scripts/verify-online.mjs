@@ -73,19 +73,30 @@ try {
 
   for (const page of pages) {
     await page.goto(`${BASE}/guild`, { waitUntil: "networkidle0", timeout: 60000 });
-    await page.evaluate(() => {
+    const clicked = await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll("button")).find(
         (b) => b.textContent.trim() === "Join"
       );
-      btn?.click();
+      if (!btn) return false;
+      btn.click();
+      return true;
     });
-    await pause(3000);
+    ok("a guild offered a Join button", clicked);
   }
 
-  const memberships = await db.guildMember.findMany({
-    where: { user: { email: { in: PLAYERS.map((p) => p.email) } } },
-    select: { guildId: true },
-  });
+  // Poll rather than sleep. A fixed wait was the whole reason this reported a
+  // failure the first time: the first hit on a serverless function wakes both
+  // a cold lambda and a scale-to-zero database, which together take far longer
+  // than any sleep worth writing.
+  let memberships = [];
+  for (let i = 0; i < 20; i++) {
+    memberships = await db.guildMember.findMany({
+      where: { user: { email: { in: PLAYERS.map((p) => p.email) } } },
+      select: { guildId: true },
+    });
+    if (memberships.length === 2) break;
+    await pause(3000);
+  }
   ok("both joined a guild", memberships.length === 2);
   ok(
     "both joined the SAME guild",
@@ -103,10 +114,13 @@ try {
       );
       btn?.click();
     });
-    await pause(4000);
-
-    await pages[1].goto(`${BASE}/guild`, { waitUntil: "networkidle0", timeout: 60000 });
-    const seen = await pages[1].evaluate(() => document.body.innerText);
+    let seen = "";
+    for (let i = 0; i < 10; i++) {
+      await pause(3000);
+      await pages[1].goto(`${BASE}/guild`, { waitUntil: "networkidle0", timeout: 60000 });
+      seen = await pages[1].evaluate(() => document.body.innerText);
+      if (seen.includes(MESSAGE)) break;
+    }
     ok("the second player sees the first player's post", seen.includes(MESSAGE));
     ok("and sees who wrote it", seen.includes(PLAYERS[0].name));
   }
@@ -115,7 +129,17 @@ try {
   await pages[0].goto(`${BASE}/settings`, { waitUntil: "networkidle0", timeout: 60000 });
   const settings = await pages[0].evaluate(() => document.body.innerText);
   ok("the updater is hidden on a hosted instance", !/Check for updates/i.test(settings));
-  ok("the Email panel says a sender is required", /not optional/i.test(settings));
+  // This copy only renders when CD_HOSTED=1, so it is the most direct read
+  // available on whether that variable actually reached the deployment.
+  const hosted = /not optional/i.test(settings);
+  ok("CD_HOSTED is set on the deployment (Email panel says a sender is required)", hosted);
+  if (!hosted) {
+    console.log(
+      "        ^ set CD_HOSTED=1 in the project's environment variables and redeploy.\n" +
+        "          Without it the app still runs, but it offers the desktop password-reset\n" +
+        "          hand-over on a public server, which is an account takeover."
+    );
+  }
 } finally {
   // Always, even if an assertion threw: a real database should not be left
   // holding smoke-test players. Cascades clear memberships and posts.
