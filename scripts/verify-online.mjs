@@ -73,10 +73,32 @@ try {
 
   for (const page of pages) {
     await page.goto(`${BASE}/guild`, { waitUntil: "networkidle0", timeout: 60000 });
+
+    // Say what is actually on screen before asserting about it. "No Join
+    // button" has several very different causes — a redirect to the Placement
+    // Trial, a signed-out session, an error page, or simply different button
+    // text — and they are indistinguishable from the assertion alone.
+    const seenAt = page.url().replace(BASE, "") || "/";
+    const buttons = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("button"))
+        .map((b) => b.textContent.trim())
+        .filter(Boolean)
+        .slice(0, 12)
+    );
+    const heading = await page.evaluate(
+      () => document.querySelector("h1, h2")?.textContent?.trim() ?? "(no heading)"
+    );
+    console.log(`        /guild landed on ${seenAt} — "${heading}"`);
+    console.log(`        buttons: ${JSON.stringify(buttons)}`);
+
     const clicked = await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll("button")).find(
-        (b) => b.textContent.trim() === "Join"
-      );
+      // Tolerate an icon or whitespace inside the button rather than
+      // demanding the text be exactly "Join". "Switch" is the same control
+      // for a guild you are already in, so it must not be matched.
+      const btn = Array.from(document.querySelectorAll("button")).find((b) => {
+        const t = b.textContent.trim();
+        return t === "Join" || (t.includes("Join") && !t.includes("Switch"));
+      });
       if (!btn) return false;
       btn.click();
       return true;
