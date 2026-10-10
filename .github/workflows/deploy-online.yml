@@ -10,6 +10,8 @@ name: Deploy the online game
 # Needs one secret that is not here yet:
 #
 #   VERCEL_TOKEN   Vercel -> Account Settings -> Tokens -> Create
+#                  (or VERCEL_TOKEN_ -- either name works, and whichever
+#                  one Vercel actually accepts is the one that gets used)
 #
 # NEON_API_KEY is already present, from connecting the repository to Neon, and
 # is what lets this read the connection strings rather than anyone copying a
@@ -61,10 +63,15 @@ jobs:
       - name: Check the tokens are present
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN_ALT: ${{ secrets.VERCEL_TOKEN_ }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
+          # GitHub refuses to create a secret whose name already exists, so a
+          # replacement token often ends up stored beside the old one under a
+          # near-miss name rather than over the top of it. Accept either, and
+          # let the step below decide which of them actually authenticates.
           missing=""
-          [ -z "$VERCEL_TOKEN" ] && missing="$missing VERCEL_TOKEN"
+          [ -z "$VERCEL_TOKEN" ] && [ -z "$VERCEL_TOKEN_ALT" ] && missing="$missing VERCEL_TOKEN"
           [ -z "$NEON_API_KEY" ] && missing="$missing NEON_API_KEY"
           if [ -n "$missing" ]; then
             {
@@ -82,6 +89,7 @@ jobs:
       - name: Check the Vercel token works
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN_ALT: ${{ secrets.VERCEL_TOKEN_ }}
           SCOPE: ${{ inputs.vercel_scope }}
         run: |
           # Two questions, asked separately, because they have different fixes
@@ -90,32 +98,63 @@ jobs:
           # A copied token very often arrives with a trailing newline or a
           # stray space, and Vercel rejects that as "not valid" with no hint
           # that the value is nearly right. Strip whitespace before using it.
-          CLEAN="$(printf '%s' "$VERCEL_TOKEN" | tr -d '[:space:]')"
-          if [ "$CLEAN" != "$VERCEL_TOKEN" ]; then
-            echo "note: the stored secret had surrounding whitespace; using the trimmed value"
-            VERCEL_TOKEN="$CLEAN"
-            echo "::add-mask::$VERCEL_TOKEN"
-          fi
+          #
+          # Both secret names are tried in turn and the first one Vercel
+          # accepts is the one the rest of the job uses. Asking Vercel is the
+          # only way to tell a live token from a revoked one: a revoked token
+          # keeps its length and its vcp_ prefix, so it looks perfectly
+          # well-formed right up to the point it is refused.
+          WORKING=""
+          WORKING_NAME=""
+          LAST_ERROR="(no token was set)"
+          N=0
+          for CANDIDATE in "$VERCEL_TOKEN" "$VERCEL_TOKEN_ALT"; do
+            N=$((N + 1))
+            case $N in
+              1) NAME="VERCEL_TOKEN" ;;
+              *) NAME="VERCEL_TOKEN_" ;;
+            esac
 
-          # A fingerprint, not the token: its length and the scheme prefix that
-          # every Vercel token shares publicly. Enough to tell an empty secret
-          # from a truncated paste from a well-formed token, and not enough to
-          # be worth anything to anyone reading the log.
-          echo "secret fingerprint: ${#VERCEL_TOKEN} characters, starts \"$(printf '%s' "$VERCEL_TOKEN" | cut -c1-4)\""
-          case "$VERCEL_TOKEN" in
-            vcp_*) ;;
-            "") echo "The VERCEL_TOKEN secret is empty." >&2; exit 1 ;;
-            *) echo "note: this does not start with vcp_, which Vercel tokens normally do" ;;
-          esac
+            CLEAN="$(printf '%s' "$CANDIDATE" | tr -d '[:space:]')"
+            if [ -z "$CLEAN" ]; then
+              echo "$NAME: not set, skipping"
+              continue
+            fi
+            if [ "$CLEAN" != "$CANDIDATE" ]; then
+              echo "note: $NAME had surrounding whitespace; using the trimmed value"
+            fi
+            echo "::add-mask::$CLEAN"
 
-          echo "1. Is the token itself valid?"
-          if ! WHO="$(vercel whoami --token "$VERCEL_TOKEN" 2>&1)"; then
+            # A fingerprint, not the token: its length and the scheme prefix
+            # that every Vercel token shares publicly. Enough to tell an empty
+            # secret from a truncated paste from a well-formed token, and not
+            # enough to be worth anything to anyone reading the log.
+            echo "$NAME: ${#CLEAN} characters, starts \"$(printf '%s' "$CLEAN" | cut -c1-4)\""
+            case "$CLEAN" in
+              vcp_*) ;;
+              *) echo "  note: does not start with vcp_, which Vercel tokens normally do" ;;
+            esac
+
+            echo "  asking Vercel whether it is valid"
+            if WHO="$(vercel whoami --token "$CLEAN" 2>&1)"; then
+              echo "  accepted, belongs to: $WHO"
+              WORKING="$CLEAN"
+              WORKING_NAME="$NAME"
+              break
+            fi
+            echo "  rejected: $WHO"
+            LAST_ERROR="$WHO"
+          done
+
+          if [ -z "$WORKING" ]; then
             {
-              echo "### The Vercel token is not valid"
+              echo "### No valid Vercel token"
+              echo
+              echo "Neither \`VERCEL_TOKEN\` nor \`VERCEL_TOKEN_\` was accepted."
               echo
               echo "Vercel said:"
               echo '```'
-              echo "$WHO"
+              echo "$LAST_ERROR"
               echo '```'
               echo
               echo "Usually one of:"
@@ -124,15 +163,21 @@ jobs:
               echo "- the token has expired"
               echo
               echo "Make a fresh one at **vercel.com → avatar → Settings → Tokens**,"
-              echo "then replace the \`VERCEL_TOKEN\` secret and run this again."
+              echo "scoped to **All Projects** under the team, then replace a secret"
+              echo "and run this again."
             } >> "$GITHUB_STEP_SUMMARY"
-            echo "$WHO" >&2
+            echo "$LAST_ERROR" >&2
             exit 1
           fi
-          echo "   token belongs to: $WHO"
-          # Hand the trimmed value to the rest of the job, so a secret stored
-          # with a stray newline does not fail three steps further on.
-          echo "VERCEL_TOKEN=$VERCEL_TOKEN" >> "$GITHUB_ENV"
+
+          echo "using the token stored as $WORKING_NAME"
+          # Hand the chosen value to the rest of the job. Every later step
+          # reads it from here and deliberately does not re-declare
+          # VERCEL_TOKEN in its own env: a step-level env entry overrides
+          # $GITHUB_ENV, which would quietly put the untrimmed, possibly
+          # revoked secret back in place three steps further on.
+          VERCEL_TOKEN="$WORKING"
+          echo "VERCEL_TOKEN=$WORKING" >> "$GITHUB_ENV"
 
           # A warning, not a gate. A token scoped narrowly may be refused the
           # team listing while still being perfectly able to deploy, and a
@@ -189,7 +234,6 @@ jobs:
 
       - name: Create and link the Vercel project
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           SCOPE: ${{ inputs.vercel_scope }}
           PROJECT: ${{ inputs.project_name }}
         run: |
@@ -200,7 +244,6 @@ jobs:
 
       - name: Set the environment
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           RUNTIME_URL: ${{ steps.db.outputs.runtime }}
           DIRECT_URL: ${{ steps.db.outputs.direct }}
           ADMIN_EMAIL: ${{ inputs.admin_email }}
@@ -233,7 +276,6 @@ jobs:
       - name: Deploy
         id: deploy
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           SCOPE: ${{ inputs.vercel_scope }}
         run: |
           # Without pipefail the pipeline reports tail's exit code, so a failed
