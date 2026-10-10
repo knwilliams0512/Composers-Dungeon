@@ -109,26 +109,35 @@ jobs:
           fi
           echo "   token belongs to: $WHO"
 
-          echo "2. Can it see the team '${{ inputs.vercel_scope }}'?"
-          if ! vercel teams ls --token "$VERCEL_TOKEN" 2>&1 | tee teams.txt; then
-            echo "Could not list teams." >&2; exit 1
+          # A warning, not a gate. A token scoped narrowly may be refused the
+          # team listing while still being perfectly able to deploy, and a
+          # check that is stricter than the thing it is checking for would
+          # reject a token that works. The real answer comes from link and
+          # deploy below; this only makes a later failure easier to read.
+          echo "2. Which teams can it see? (informational)"
+          if vercel teams ls --token "$VERCEL_TOKEN" > teams.txt 2>&1; then
+            cat teams.txt
+            if grep -q -- '${{ inputs.vercel_scope }}' teams.txt; then
+              echo "   '${{ inputs.vercel_scope }}' is reachable"
+            else
+              {
+                echo "### Warning: the team \`${{ inputs.vercel_scope }}\` was not in this token's team list"
+                echo
+                echo '```'
+                cat teams.txt
+                echo '```'
+                echo
+                echo "If the deploy fails just below, this is why. A Vercel token is"
+                echo "scoped to an **account or team**, never to a project — so if the"
+                echo "scope picker offered \`composers-dungeon\`, that was the project"
+                echo "and the token cannot do the team-level work a deploy needs."
+                echo "Create one scoped to **Nexus** instead."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "   warning: '${{ inputs.vercel_scope }}' not listed; continuing anyway"
+            fi
+          else
+            echo "   could not list teams; continuing, since deploying may still work"
           fi
-          if ! grep -q -- '${{ inputs.vercel_scope }}' teams.txt; then
-            {
-              echo "### The token cannot see the team \`${{ inputs.vercel_scope }}\`"
-              echo
-              echo "Teams this token can reach:"
-              echo '```'
-              cat teams.txt
-              echo '```'
-              echo
-              echo "Either the scope slug is wrong — it is the first path segment of"
-              echo "the project's dashboard URL — or the token was created against"
-              echo "your personal account rather than the team."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-          echo "   team is reachable"
 
       - name: Read the Neon connection strings
         id: db
