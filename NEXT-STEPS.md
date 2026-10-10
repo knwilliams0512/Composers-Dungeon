@@ -1,59 +1,35 @@
-# Where this is, and the one switch left
+# Where this is, and the one thing left
 
-Updated 2026-10-10. Delete this file once both boxes are ticked.
+Updated 2026-10-10. Delete this file once the box below is ticked.
 
-## The short version
+## The online game is live and verified
 
-The deploy works end to end now. The run at 20:08 UTC authenticated with
-Vercel, read both Neon connection strings, linked the project, set all six
-environment variables, built in one minute and aliased the result to
-<https://composers-dungeon.vercel.app>.
+<https://composers-dungeon.vercel.app>
 
-So the thing that blocked this all along — the Vercel project having no
-`NEXTAUTH_SECRET` — **is fixed**. The site is built, configured and pointed at
-the Neon database holding the full curriculum.
-
-It is still not reachable by players, for one new reason, and it is a toggle
-rather than a bug.
-
-## ☐ 1. Let people in without a Vercel login
-
-The deploy's own output said it:
+The two-player test ran against it at 21:37 UTC and all fourteen checks
+passed. Two accounts signed up in separate browsers, both joined The
+Composer's Guild, one posted, and the other saw the post with the right
+author on it. The test accounts were deleted afterwards.
 
 ```
-! Deployment Protection is on for this project (Vercel Authentication).
+ok    both accounts exist in the live database
+ok    both joined the SAME guild
+ok    the second player sees the first player's post
+ok    and sees who wrote it
+ok    the updater is hidden on a hosted instance
+ok    CD_HOSTED is set on the deployment
 ```
 
-and the check that follows saw the consequence:
+Getting here took three fixes beyond the code: the deploy was reading a
+revoked token (see below), the project was missing `NEXTAUTH_SECRET`, and
+Vercel's deployment protection was bouncing every visitor to a Vercel login.
+All three are settled.
 
-```
-attempt 1: /login -> 302
-...
-The deployment is not serving /login (last code 302).
-```
+Because the desktop launcher now points at this same server, a player on the
+Windows installer and a player in a browser share one account system, one
+guild and one library.
 
-Vercel switches Deployment Protection on for every new project. It means each
-request is bounced to a Vercel SSO login, so only someone signed in to the
-Nexus team can open the site. For a staging dashboard that is a sensible
-default. For a game strangers are meant to sign up to, it keeps everybody out,
-and no amount of correct code or environment would show anything but that 302.
-
-**Vercel → the `composers-dungeon` project → Settings → Deployment Protection
-→ Vercel Authentication → *Only Preview Deployments*** (or *Disabled*).
-
-*Only Preview Deployments* is the better of the two: the production alias that
-players are given is public, while preview builds stay behind the login.
-
-Then dispatch **Deploy the online game** again, or go straight to **Verify the
-online guild** with `https://composers-dungeon.vercel.app` — the deployment
-already up is fine, it was only ever the door that was locked.
-
-The deploy could do this itself through Vercel's projects API, and a step for
-it was written and tested, but it is deliberately not in the repository:
-automatically removing an access control is the owner's call, not something to
-slip into a commit. The toggle above is the one place it belongs.
-
-## ☐ 2. Turn GitHub Pages on, for the download page
+## ☐ Turn GitHub Pages on, for the download page
 
 **Settings → Pages → Build and deployment → Source: GitHub Actions**, then
 re-run **Download site**.
