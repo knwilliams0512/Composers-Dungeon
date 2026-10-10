@@ -1,0 +1,126 @@
+name: Set up the Neon database
+
+# Brings the hosted Postgres up to this build: pushes the schema and seeds the
+# curriculum. Safe to run again after any change to the schema or the lessons.
+#
+# This runs here rather than from a development machine for one reason: a
+# GitHub runner can reach api.neon.tech. It needs NEON_API_KEY in the
+# repository's Actions secrets, which connecting the repository to Neon adds.
+#
+# It never prints a connection string. Both are registered with ::add-mask::
+# the moment they are read, so a later `set -x` or a failing command cannot
+# spill a live database credential into a public log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "Neon project ID"
+        required: true
+        default: "royal-boat-29341408"
+      neon_branch:
+        description: "Neon branch to target"
+        required: true
+        default: "production"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check the API key is present
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          if [ -z "$NEON_API_KEY" ]; then
+            {
+              echo "### NEON_API_KEY is not set"
+              echo
+              echo "Add it under **Settings → Secrets and variables → Actions**,"
+              echo "named exactly \`NEON_API_KEY\`. Create the key itself in Neon"
+              echo "under Account settings → API keys."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "NEON_API_KEY is not set in this repository's Actions secrets." >&2
+            exit 1
+          fi
+          echo "NEON_API_KEY is present."
+
+      - run: npm ci
+
+      - name: Derive and check the Postgres schema
+        run: |
+          node scripts/make-postgres-schema.mjs
+          node scripts/check-schemas.mjs
+
+      - name: Read the direct connection string
+        id: cs
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          npm i -g neon@latest >/dev/null 2>&1
+          # The DIRECT string, not the pooled one: a pooler cannot run DDL, so
+          # the schema push and the seed both have to go straight to Postgres.
+          DIRECT="$(neon connection-string '${{ inputs.neon_branch }}' \
+            --project-id '${{ inputs.project_id }}')"
+          if [ -z "$DIRECT" ]; then
+            echo "Neon returned no connection string for that project/branch." >&2
+            exit 1
+          fi
+          echo "::add-mask::$DIRECT"
+          echo "direct=$DIRECT" >> "$GITHUB_OUTPUT"
+          echo "Got a connection string for branch '${{ inputs.neon_branch }}'."
+
+      - name: Push the schema
+        env:
+          DATABASE_URL: ${{ steps.cs.outputs.direct }}
+          DIRECT_DATABASE_URL: ${{ steps.cs.outputs.direct }}
+        run: |
+          npx prisma db push --schema prisma/schema.postgres.prisma --skip-generate
+          npx prisma generate --schema prisma/schema.postgres.prisma
+
+      - name: Seed lessons, areas, bosses and exams
+        env:
+          DATABASE_URL: ${{ steps.cs.outputs.direct }}
+          DIRECT_DATABASE_URL: ${{ steps.cs.outputs.direct }}
+        run: npx tsx prisma/seed.ts
+
+      - name: Report what is in the database
+        env:
+          DATABASE_URL: ${{ steps.cs.outputs.direct }}
+          DIRECT_DATABASE_URL: ${{ steps.cs.outputs.direct }}
+        run: |
+          # Counts only. Proves the seed landed without echoing anything secret,
+          # and shows player data is untouched by a re-run.
+          node -e '
+            const { PrismaClient } = require("@prisma/client");
+            const db = new PrismaClient();
+            (async () => {
+              const [lessons, exams, bosses, areas, guilds, users] = await Promise.all([
+                db.lesson.count(), db.unitExam.count(), db.boss.count(),
+                db.dungeonArea.count(), db.guild.count(), db.user.count(),
+              ]);
+              const rows = [
+                ["lessons", lessons], ["unit exams", exams], ["bosses", bosses],
+                ["dungeon areas", areas], ["guilds", guilds],
+                ["registered players", users],
+              ];
+              let out = "### Neon database is up to this build\n\n| | |\n|---|---|\n";
+              for (const [k, v] of rows) out += `| ${k} | ${v} |\n`;
+              require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);
+              for (const [k, v] of rows) console.log(`${k}: ${v}`);
+              await db.$disconnect();
+            })().catch((e) => { console.error(e.message); process.exit(1); });
+          '
