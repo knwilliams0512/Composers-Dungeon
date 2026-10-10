@@ -1,0 +1,99 @@
+name: Report the live guilds
+
+# Answers "is the guild I founded in the app actually there?" and, if asked,
+# joins it with a demo account so it is not a house of one.
+#
+# This runs here rather than from a laptop because the Neon API key already
+# lives in this repository's secrets, so nobody has to hold a connection
+# string to ask the question.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "The live site the app opens, e.g. https://composers-dungeon.vercel.app"
+        required: true
+        default: "https://composers-dungeon.vercel.app"
+      join:
+        description: "Join the player-founded guild with a demo account"
+        type: boolean
+        default: true
+      neon_project_id:
+        description: "Neon project ID"
+        required: true
+        default: "royal-boat-29341408"
+      neon_branch:
+        description: "Neon branch"
+        required: true
+        default: "production"
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm i -g neon@latest
+
+      - name: Find a browser
+        id: browser
+        run: |
+          for candidate in /usr/bin/google-chrome /usr/bin/chromium-browser /usr/bin/chromium; do
+            if [ -x "$candidate" ]; then
+              echo "path=$candidate" >> "$GITHUB_OUTPUT"
+              echo "using $candidate"
+              exit 0
+            fi
+          done
+          echo "No Chrome on this runner." >&2
+          exit 1
+
+      - name: Read the database connection
+        id: db
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_BRANCH: ${{ inputs.neon_branch }}
+          NEON_PROJECT: ${{ inputs.neon_project_id }}
+        run: |
+          DIRECT="$(neon connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT")"
+          [ -n "$DIRECT" ] || { echo "Neon returned no connection string." >&2; exit 1; }
+          echo "::add-mask::$DIRECT"
+          echo "direct=$DIRECT" >> "$GITHUB_OUTPUT"
+
+      - name: Report, and join if asked
+        env:
+          DATABASE_URL: ${{ steps.db.outputs.direct }}
+          DIRECT_DATABASE_URL: ${{ steps.db.outputs.direct }}
+          CHROME_PATH: ${{ steps.browser.outputs.path }}
+          URL: ${{ inputs.url }}
+          JOIN: ${{ inputs.join }}
+        run: |
+          # Without pipefail the pipeline reports tee's exit code, not the
+          # script's, so a failed check goes green. That has already happened
+          # once in this repository and cost a run to notice.
+          set -o pipefail
+          node scripts/make-postgres-schema.mjs
+          npx prisma generate --schema prisma/schema.postgres.prisma >/dev/null
+          ARGS=""
+          if [ "$JOIN" = "true" ]; then ARGS="--join"; fi
+          node scripts/guild-report.mjs "$URL" $ARGS | tee result.txt
+
+      - name: Say what was found
+        if: always()
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          {
+            echo "### Guilds in the live world — $URL"
+            echo
+            echo '```'
+            cat result.txt 2>/dev/null || echo "(the report did not get far enough to print)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
