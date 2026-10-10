@@ -31,15 +31,45 @@ player signed out, and every page that needs a session turns them away.
 
 Two ways. Either finishes it.
 
-**A — let the workflow do it (one secret).** A Vercel token scoped to the
-**`Nexus` team** (not the `composers-dungeon` project — a token's scope is an
-account or a team, never a project) at vercel.com → avatar → Settings →
-Tokens. Put it at
+**A — let the workflow do it (one secret).**
 
-<https://github.com/knwilliams0512/Composers-Dungeon/settings/secrets/actions/new>
+The deploy has now failed four times on the same thing, and the fifth run
+finally said what it was. It prints a fingerprint of the secret before using
+it:
 
-named exactly `VERCEL_TOKEN`, then dispatch **Deploy the online game**. It sets
-all six variables from Neon, deploys, and checks the result serves.
+```
+secret fingerprint: 60 characters, starts "vcp_"
+Error: The token provided via `--token` argument is not valid.
+```
+
+Well-formed, right length, right prefix, no stray whitespace — and rejected.
+That combination means the token is **revoked**, and 60 characters is the
+length of the very first token, the one that was revoked after being pasted
+into a chat. So the secret was never actually replaced.
+
+The likely cause is clicking **New repository secret** rather than the
+**pencil** beside the existing row. Creating one that already exists fails, and
+the error is easy to miss.
+
+So:
+
+1. Make a token at vercel.com → avatar → Settings → Tokens. In the **Scope**
+   picker, **Nexus** has a `>` and opens a submenu — choose **All Projects**
+   inside it. Not `composers-dungeon`: a token's scope is an account or a team,
+   never a project, and a project-scoped one cannot do the team-level work a
+   deploy needs.
+2. At
+   <https://github.com/knwilliams0512/Composers-Dungeon/settings/secrets/actions>
+   click the **pencil** on the existing `VERCEL_TOKEN` row, paste, **Update
+   secret**.
+3. Check the row then reads **"Updated now"**. If it still shows an old
+   timestamp, it did not save, and that is the whole problem.
+4. Dispatch **Deploy the online game**. It sets all six variables from Neon,
+   deploys, and checks the result serves.
+
+If the row says "Updated now" and it is still rejected, the `All Projects`
+scope is not producing a token the CLI can authenticate with; remake it as
+**Full Account**.
 
 **B — by hand.** In the Vercel project → Settings → Environment Variables, for
 Production:
