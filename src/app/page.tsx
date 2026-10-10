@@ -37,7 +37,7 @@ const JOURNEY: { icon: IconName; title: string; body: string }[] = [
   {
     icon: "candle",
     title: "Descend",
-    body: "Sixteen dungeon areas, ninety-three rooms, and seven bosses — generated trials, theory puzzles, creative curses and hidden treasure. Every area trains a different craft, and every trial hands you a finished brief.",
+    body: "Sixteen dungeon areas, ninety-three rooms, and ten bosses — generated trials, theory puzzles, creative curses and hidden treasure. Seven you face alone; the last three open only for a whole guild. Every area trains a different craft, and every trial hands you a finished brief.",
   },
   {
     icon: "quill",
@@ -140,11 +140,23 @@ const AREAS = [
 ];
 
 /**
- * The seven bosses, in the order the levels open them. They are gated by level
+ * All ten bosses, in the order the levels open them. They are gated by level
  * rather than by area, so they are listed in their own right rather than hung
  * off particular rows of the descent.
+ *
+ * The last three are fought by a whole guild rather than alone, and were
+ * missing from this list entirely while the page said "seven bosses" — which
+ * left the one feature that needs other people off the page that exists to
+ * explain the game. scripts/check-claims.ts now holds this count to the seed.
  */
-const BOSSES: { level: number; name: string; title: string; final?: boolean }[] = [
+const BOSSES: {
+  level: number;
+  name: string;
+  title: string;
+  final?: boolean;
+  /** How many guild members must be present before it will open. */
+  guild?: number;
+}[] = [
   { level: 3, name: "The Pale Soprano", title: "Voice of the Frozen Hall" },
   { level: 4, name: "The Iron Metronome", title: "Tyrant of the Tower" },
   { level: 5, name: "The Chromatic Serpent", title: "Coiled Guardian of the Crypt" },
@@ -152,6 +164,14 @@ const BOSSES: { level: number; name: string; title: string; final?: boolean }[] 
   { level: 14, name: "The Hundred-Handed Organist", title: "Warden of the Orchestral Abyss" },
   { level: 20, name: "The Forgotten Composer", title: "Final Echo of the Cathedral", final: true },
   { level: 25, name: "The Silent Orchestra", title: "Ninety-Nine Players and No Conductor" },
+  { level: 28, name: "The Two Galleries", title: "The Cathedral That Answers Itself", guild: 2 },
+  { level: 32, name: "The Grand Dispute", title: "Four Composers Who Will Not Yield", guild: 3 },
+  {
+    level: 36,
+    name: "The Work of Many Lifetimes",
+    title: "Begun By Someone Who Did Not Finish",
+    guild: 4,
+  },
 ];
 
 export default async function LandingPage() {
@@ -330,7 +350,7 @@ export default async function LandingPage() {
 
         <div className="mt-12 rune-divider">
           <span className="font-display text-xs uppercase tracking-[0.35em] text-crimson-400">
-            And Seven Things That Fight Back
+            And Ten Things That Fight Back
           </span>
         </div>
         <ul className="mt-7 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -338,17 +358,29 @@ export default async function LandingPage() {
             <li
               key={b.name}
               className={`card flex items-center gap-3 px-4 py-3 ${
-                b.final ? "border-crimson-500/40" : ""
+                b.final ? "border-crimson-500/40" : b.guild ? "border-arcane-400/30" : ""
               }`}
             >
               <Icon
-                name="skull"
+                name={b.guild ? "users" : "skull"}
                 size={16}
-                className={b.final ? "shrink-0 text-crimson-400" : "shrink-0 text-parchment-500"}
+                className={
+                  b.final
+                    ? "shrink-0 text-crimson-400"
+                    : b.guild
+                      ? "shrink-0 text-arcane-300"
+                      : "shrink-0 text-parchment-500"
+                }
               />
               <div className="min-w-0">
                 <p className="truncate font-display tracking-wide text-parchment-100">{b.name}</p>
-                <p className="truncate text-[11px] text-parchment-500">{b.title}</p>
+                <p className="truncate text-[11px] text-parchment-500">
+                  {b.title}
+                  {/* Said on the card rather than in a footnote: needing other
+                      people is the single most important thing to know about
+                      these three before setting out to fight one alone. */}
+                  {b.guild ? ` · needs ${b.guild} in your guild` : ""}
+                </p>
               </div>
               <span className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.2em] text-parchment-600">
                 Lv {b.level}

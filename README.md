@@ -132,9 +132,12 @@ setup chosen to suit the lesson — the minor-scales lesson in A minor, the
 time-signature lesson in 3/4 — and standards that check you applied the idea.
 
 ### The Dungeon (`/dungeon`)
-Nine areas (Hall of Melody, Crypt of Harmony, Tower of Rhythm, Hall of the
-Virtuoso, Ancient Conservatory, Impressionist Gardens, Frozen Conservatory,
-Inferno of Virtuosity, Cathedral of Composition) with level/tier gating.
+Sixteen areas (Hall of Melody, Crypt of Harmony, Tower of Rhythm, Hall of the
+Virtuoso, Ancient Conservatory, Impressionist Gardens, The Frozen
+Conservatory, The Inferno of Virtuosity, Cathedral of Composition, The
+Instrument Menagerie, The Orchestral Abyss, The Loom of Variations, The
+Whispering Catacombs, The Clockwork Bazaar, The Garden of Forking Cadences,
+The Hall of a Hundred Staves) with level/tier gating, holding 93 rooms.
 Room types: Challenge, Puzzle (interactive, solutions checked server-side),
 Curse (creative restrictions), Treasure (artifacts), Rest, and Boss rooms.
 A weighted **challenge generator** assembles endless challenges from 60+
@@ -144,11 +147,17 @@ composer brief and a gradeable standard. Areas carry lore, a danger rating and
 survival advice; the **Ancient Motif** artifact grants rerolls.
 
 ### Bosses (`/bosses`)
-Four bosses with HP, phases, objectives, tactics, backstory and artifact
-rewards — The Pale
-Soprano, The Iron Metronome, The Chromatic Serpent, and the five-movement
-final encounter **The Forgotten Composer**. Objectives deal damage; the final
-blow requires submitting the finished composition.
+Ten bosses with HP, phases, objectives, tactics, backstory and artifact
+rewards. Seven are fought alone — The Pale Soprano, The Iron Metronome, The
+Chromatic Serpent, The Canon That Eats Itself, The Hundred-Handed Organist,
+The Forgotten Composer and The Silent Orchestra. Objectives deal damage; the
+final blow requires submitting the finished composition.
+
+The remaining three are **fought by a whole guild** rather than alone — The Two
+Galleries, The Grand Dispute and The Work of Many Lifetimes — and need two,
+three and four composers respectively before the encounter will open. See
+`scripts/check-raids.mjs`, which proves none of them is soloable and that each
+is still finishable by its minimum guild.
 
 ### Progression
 - Overall Composer Level (`100 · n^1.4` XP curve)
@@ -158,7 +167,7 @@ blow requires submitting the finished composition.
 - **Creative Flame** daily streak: +10% XP while burning, milestone rewards at
   1/7/30/100 days, and forgiving **Rest Days** that protect a missed day
 - Encouraging recommendation engine (weakest skill → matching dungeon area)
-- 15 achievements, 8 artifacts, 5 unlockable composer specializations
+- 58 achievements, 21 artifacts, 5 unlockable composer specializations
   (Virtuoso, Impressionist, Classicist, Cinematic, Experimentalist)
 - **Daily Dungeon Challenge** generated fresh each UTC day
 
