@@ -302,12 +302,27 @@ jobs:
           for i in 1 2 3 4 5 6; do
             CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$URL/login")" || CODE=000
             [ -n "$CODE" ] || CODE=000
-            echo "attempt $i: /login -> $CODE"
+            # Where a redirect points is the whole diagnosis: to vercel.com is
+            # deployment protection, anywhere else is the app's own doing.
+            WHERE="$(curl -s -o /dev/null -w '%{redirect_url}' --max-time 30 "$URL/login" 2>/dev/null)" || WHERE=""
+            echo "attempt $i: /login -> $CODE${WHERE:+  (redirects to $WHERE)}"
             [ "$CODE" = "200" ] && break
             sleep 10
           done
           if [ "$CODE" != "200" ]; then
             echo "The deployment is not serving /login (last code $CODE)." >&2
+            case "$WHERE" in
+              *vercel.com*)
+                {
+                  echo "### The site is behind a Vercel login"
+                  echo
+                  echo "\`/login\` redirects to \`$WHERE\`, so deployment"
+                  echo "protection is still on and no player can reach the game."
+                  echo "Turn it off at **Vercel → the project → Settings →**"
+                  echo "**Deployment Protection → Vercel Authentication**."
+                } >> "$GITHUB_STEP_SUMMARY"
+                ;;
+            esac
             exit 1
           fi
           {

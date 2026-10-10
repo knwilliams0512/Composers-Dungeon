@@ -48,11 +48,10 @@ Then dispatch **Deploy the online game** again, or go straight to **Verify the
 online guild** with `https://composers-dungeon.vercel.app` — the deployment
 already up is fine, it was only ever the door that was locked.
 
-There is an uncommitted change on this branch that would do this from the
-workflow instead, through Vercel's projects API. It is held back deliberately:
-automatically removing an access control is not something to slip into a
-commit, so it is the owner's call. The file is
-`.github/workflows/deploy-online.yml`; `git diff` shows it.
+The deploy could do this itself through Vercel's projects API, and a step for
+it was written and tested, but it is deliberately not in the repository:
+automatically removing an access control is the owner's call, not something to
+slip into a commit. The toggle above is the one place it belongs.
 
 ## ☐ 2. Turn GitHub Pages on, for the download page
 
