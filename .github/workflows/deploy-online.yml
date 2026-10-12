@@ -306,17 +306,43 @@ jobs:
           # deploy goes green with a fragment of an error message as the URL,
           # and the check below then blames the app for not serving.
           set -o pipefail
-          URL="$(vercel deploy --prod --yes --scope "$SCOPE" --token "$VERCEL_TOKEN" | tail -1)"
+          vercel deploy --prod --yes --scope "$SCOPE" --token "$VERCEL_TOKEN" | tee deploy.log
+          URL="$(tail -1 deploy.log)"
           case "$URL" in
             https://*) ;;
             *) echo "vercel did not return a deployment URL (got: $URL)" >&2; exit 1 ;;
           esac
+
+          # The per-deployment URL and the production alias are protected
+          # SEPARATELY. With Vercel Authentication set to previews only -- the
+          # correct setting for a public game -- the alias is open while the
+          # deployment URL still redirects to Vercel's SSO forever. Checking
+          # the deployment URL therefore fails on a perfectly good deploy, and
+          # did: six attempts, six 302s, on a site that was already serving
+          # players fine on its alias.
+          #
+          # So the alias is what gets checked, because it is also the only URL
+          # anyone is ever given. Vercel prints it as "Aliased"; the escape
+          # codes come off first or the match fails on a coloured line.
+          ALIAS="$(sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' deploy.log \
+            | sed -n 's/.*Aliased[[:space:]]*\(https:\/\/[^[:space:]]*\).*/\1/p' \
+            | head -1)"
+          if [ -n "$ALIAS" ]; then
+            echo "alias:    $ALIAS"
+          else
+            # No alias line: a first deploy before any domain is attached. The
+            # deployment URL is then the only address there is.
+            echo "note: no alias in the output; checking the deployment URL instead"
+            ALIAS="$URL"
+          fi
+
           echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "alias=$ALIAS" >> "$GITHUB_OUTPUT"
           echo "Deployed: $URL"
 
       - name: Check it is actually serving
         env:
-          URL: ${{ steps.deploy.outputs.url }}
+          URL: ${{ steps.deploy.outputs.alias }}
           ADMIN_EMAIL: ${{ inputs.admin_email }}
         run: |
           # A green deploy is not the same as a working app: a bad DATABASE_URL
