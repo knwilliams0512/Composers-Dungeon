@@ -29,6 +29,43 @@ Because the desktop launcher now points at this same server, a player on the
 Windows installer and a player in a browser share one account system, one
 guild and one library.
 
+## The installed app, and getting onto the server
+
+Torchfire exists on the server at max level (200, all 9 skills), and the
+deploy is green end to end: alias parsed, `/login` answering 200 on the
+production alias.
+
+**The installer is the part that lagged.** `serverUrl` support landed on
+2026-10-10; the newest release, v1.18.1, was built on 2026-10-05. So no
+installer anyone had ever downloaded contained the code that points the app
+at the server, and the app on disk had been playing its own local SQLite
+world the whole time -- correctly, because that is what it does when no
+server is reachable. A build from this branch exists as an artifact on the
+Windows installer run; installing it is what moves the app into the shared
+world.
+
+A local save does **not** migrate. An account made offline lives in the
+SQLite file on that machine; signing in online is a separate character.
+`scripts/grant-level.ts` exists partly to take the sting out of that.
+
+## What this cost, and the check that was missing
+
+Three things blocked the online game this week and none of them were in the
+code: a revoked token stored under a near-miss secret name, Vercel's
+deployment protection, and an installer predating the feature. Every one
+looked identical to a code bug from inside the repository.
+
+The deploy's own serving check then failed twice on deploys that were
+serving players perfectly well, because it asked the per-deployment URL --
+which Vercel keeps behind SSO by design, even when the alias is public. It
+now asks whether ANY of the project's addresses serves, which is the
+question that was always meant.
+
+What is still missing is a check that starts at the installer rather than at
+the server. Every check in this repository begins after the app is already
+talking to something; none of them would have noticed that the shipped
+launcher could not talk to anything at all.
+
 ## The download page is deliberately not published
 
 itch.io is the download channel, and Steam is coming, so the GitHub Pages
