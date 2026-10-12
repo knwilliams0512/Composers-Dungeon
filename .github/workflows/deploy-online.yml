@@ -305,80 +305,101 @@ jobs:
           # Without pipefail the pipeline reports tail's exit code, so a failed
           # deploy goes green with a fragment of an error message as the URL,
           # and the check below then blames the app for not serving.
-          set -o pipefail
-          vercel deploy --prod --yes --scope "$SCOPE" --token "$VERCEL_TOKEN" | tee deploy.log
-          URL="$(tail -1 deploy.log)"
+          # The CLI puts the deployment URL on stdout and EVERYTHING else on
+          # stderr -- progress, the "Aliased" line, the next-steps block. The
+          # previous attempt teed stdout and then looked for "Aliased" in it,
+          # which could never match: stdout held one line, the URL, without
+          # even a trailing newline. So the two streams are captured
+          # separately, and stderr is echoed back so the log still reads the
+          # same.
+          if ! vercel deploy --prod --yes --scope "$SCOPE" --token "$VERCEL_TOKEN" \
+               > deploy.out 2> deploy.err; then
+            cat deploy.err >&2
+            echo "vercel deploy failed" >&2
+            exit 1
+          fi
+          cat deploy.err
+
+          URL="$(tail -1 deploy.out)"
           case "$URL" in
             https://*) ;;
             *) echo "vercel did not return a deployment URL (got: $URL)" >&2; exit 1 ;;
           esac
 
-          # The per-deployment URL and the production alias are protected
-          # SEPARATELY. With Vercel Authentication set to previews only -- the
-          # correct setting for a public game -- the alias is open while the
-          # deployment URL still redirects to Vercel's SSO forever. Checking
-          # the deployment URL therefore fails on a perfectly good deploy, and
-          # did: six attempts, six 302s, on a site that was already serving
-          # players fine on its alias.
-          #
-          # So the alias is what gets checked, because it is also the only URL
-          # anyone is ever given. Vercel prints it as "Aliased"; the escape
-          # codes come off first or the match fails on a coloured line.
-          ALIAS="$(sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' deploy.log \
+          # The production alias, from stderr where it is actually printed.
+          # Escape codes come off first: that line is coloured.
+          ALIAS="$(sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' deploy.err \
             | sed -n 's/.*Aliased[[:space:]]*\(https:\/\/[^[:space:]]*\).*/\1/p' \
             | head -1)"
-          if [ -n "$ALIAS" ]; then
-            echo "alias:    $ALIAS"
-          else
-            # No alias line: a first deploy before any domain is attached. The
-            # deployment URL is then the only address there is.
-            echo "note: no alias in the output; checking the deployment URL instead"
-            ALIAS="$URL"
-          fi
 
+          echo "deployment: $URL"
+          echo "alias:      ${ALIAS:-(none printed)}"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "alias=$ALIAS" >> "$GITHUB_OUTPUT"
-          echo "Deployed: $URL"
 
       - name: Check it is actually serving
         env:
-          URL: ${{ steps.deploy.outputs.alias }}
+          URL: ${{ steps.deploy.outputs.url }}
+          ALIAS: ${{ steps.deploy.outputs.alias }}
+          PROJECT: ${{ inputs.project_name }}
           ADMIN_EMAIL: ${{ inputs.admin_email }}
         run: |
           # A green deploy is not the same as a working app: a bad DATABASE_URL
           # surfaces only when a page tries to query. /login renders and the
           # middleware runs, so a 200 means the build, the env and the database
           # are all good.
-          for i in 1 2 3 4 5 6; do
-            CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$URL/login")" || CODE=000
-            [ -n "$CODE" ] || CODE=000
-            # Where a redirect points is the whole diagnosis: to vercel.com is
-            # deployment protection, anywhere else is the app's own doing.
-            WHERE="$(curl -s -o /dev/null -w '%{redirect_url}' --max-time 30 "$URL/login" 2>/dev/null)" || WHERE=""
-            echo "attempt $i: /login -> $CODE${WHERE:+  (redirects to $WHERE)}"
-            [ "$CODE" = "200" ] && break
-            sleep 10
+          #
+          # Asked as "is there an address that serves?" rather than "does this
+          # one address serve?", because the project has several and they are
+          # protected independently. The per-deployment URL stays behind
+          # Vercel's SSO even when the alias is public -- that is the correct
+          # configuration for a game anyone can play -- so checking it alone
+          # failed twice on deploys that were serving players perfectly well.
+          CANDIDATES="$ALIAS https://$PROJECT.vercel.app $URL"
+          SERVING=""
+          TRIED=""
+          for CANDIDATE in $CANDIDATES; do
+            [ -n "$CANDIDATE" ] || continue
+            case " $TRIED " in *" $CANDIDATE "*) continue ;; esac
+            TRIED="$TRIED $CANDIDATE"
+
+            echo "trying $CANDIDATE"
+            for i in 1 2 3 4; do
+              CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$CANDIDATE/login")" || CODE=000
+              [ -n "$CODE" ] || CODE=000
+              # Where a redirect points is the whole diagnosis: to vercel.com is
+              # deployment protection, anywhere else is the app's own doing.
+              WHERE="$(curl -s -o /dev/null -w '%{redirect_url}' --max-time 30 "$CANDIDATE/login" 2>/dev/null)" || WHERE=""
+              echo "  attempt $i: /login -> $CODE${WHERE:+  (redirects to $WHERE)}"
+              if [ "$CODE" = "200" ]; then SERVING="$CANDIDATE"; break; fi
+              # A protected address will never answer 200, so stop asking it.
+              case "$WHERE" in *vercel.com/sso*) echo "  (behind Vercel's SSO; moving on)"; break ;; esac
+              sleep 10
+            done
+            [ -n "$SERVING" ] && break
           done
-          if [ "$CODE" != "200" ]; then
-            echo "The deployment is not serving /login (last code $CODE)." >&2
-            case "$WHERE" in
-              *vercel.com*)
-                {
-                  echo "### The site is behind a Vercel login"
-                  echo
-                  echo "\`/login\` redirects to \`$WHERE\`, so deployment"
-                  echo "protection is still on and no player can reach the game."
-                  echo "Turn it off at **Vercel → the project → Settings →**"
-                  echo "**Deployment Protection → Vercel Authentication**."
-                } >> "$GITHUB_STEP_SUMMARY"
-                ;;
-            esac
+
+          if [ -z "$SERVING" ]; then
+            echo "No address served /login." >&2
+            {
+              echo "### The game is not reachable"
+              echo
+              echo "None of these served \`/login\`:"
+              for c in $TRIED; do echo "- \`$c\`"; done
+              echo
+              echo "If they all redirect to vercel.com, deployment protection is on"
+              echo "for the production alias too. Set **Vercel → the project →**"
+              echo "**Settings → Deployment Protection → Vercel Authentication** to"
+              echo "*Only Preview Deployments*."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+
+          echo "serving: $SERVING"
           {
             echo "### The online game is live"
             echo
-            echo "**$URL**"
+            echo "**$SERVING**"
             echo
             echo "Sign up with \`$ADMIN_EMAIL\` — that is the only"
             echo "account allowed to configure the mail sender."
