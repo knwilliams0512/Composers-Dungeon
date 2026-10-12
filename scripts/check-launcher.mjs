@@ -259,6 +259,51 @@ for (const file of SHIPPED) {
 if (/DATABASE_URL\s*=\s*["']?postgres/i.test(launcher))
   fail("installer/app-launcher.ps1", "sets DATABASE_URL to Postgres; a player's machine must never hold the shared database's credentials");
 
+// --- Falling back to the local world must never be silent -------------------
+// A configured server that does not answer used to drop straight through to the
+// local database, logging a line nobody reads. A player then builds a
+// character and founds a guild in a world only their own PC can see, certain
+// they are online. That happened, and it cost three days and two wrong
+// diagnoses, because nothing on screen ever said which world was open.
+//
+// So the unreachable path has to put the choice in front of the player. These
+// hold that shape in place, because a comment promising it already drifted
+// once: the old code said "the app says which one you are in" while only
+// writing to server.log.
+{
+  const f = "installer/app-launcher.ps1";
+  if (!/function\s+Show-OfflineChoice/i.test(launcher)) {
+    fail(f, "has no Show-OfflineChoice: an unreachable server would fall back to the local save silently");
+  }
+  // The decision block itself must consult it, not merely define it.
+  const block = launcher.match(/\$onlineServer\s*=\s*Get-OnlineServer[\s\S]*?\n(?=if \(-not \$playingOnline\))/);
+  if (!block) {
+    fail(f, "the online-or-local decision block could not be found, so it cannot be checked");
+  } else {
+    const code = block[0];
+    if (!/Show-OfflineChoice/.test(code))
+      fail(f, "decides to play offline without calling Show-OfflineChoice, so the player is never told");
+    if (!/\bquit\b/.test(code))
+      fail(f, "offers no way to quit instead of being dropped into a separate offline save");
+    // Exiting while holding the startup mutex makes the next launch wait out
+    // the full 60-second timeout for nothing.
+    const quitPath = code.match(/if \(\$choice -eq "quit"\)[\s\S]*?exit 0/);
+    if (!quitPath) fail(f, "has no quit path in the offline decision");
+    else if (!/ReleaseMutex/.test(quitPath[0]))
+      fail(f, "quits while still holding the startup mutex, so the next launch waits 60s for nothing");
+    // A player who keeps retrying a dead server must not loop forever.
+    if (/while\s*\(\s*\$true\s*\)/.test(code))
+      fail(f, "retries an unreachable server in an unbounded loop");
+    if (!/for \(\$attempt = 1; \$attempt -le \d+;/.test(code))
+      fail(f, "does not bound how many times the server can be retried");
+  }
+  // The dialog must name the consequence, not just report a failure. "Separate"
+  // is the whole point: progress made offline cannot be moved.
+  const dlg = launcher.match(/function\s+Show-OfflineChoice[\s\S]*?\n}\n/i);
+  if (dlg && !/SEPARATE|separate/.test(dlg[0]))
+    fail(f, "the offline dialog does not say the offline save is separate, which is the only thing a player needs to know");
+}
+
 console.log(`launcher: ${FILES.length} PowerShell files checked for structure and known traps`);
 if (problems.length === 0) console.log("OK - no launcher problems");
 else { console.log(`FAIL - ${problems.length} problems:`); problems.forEach((p) => console.log("  -", p)); }

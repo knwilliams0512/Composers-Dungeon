@@ -430,6 +430,48 @@ function Get-OnlineServer {
     catch { return "" }
 }
 
+function Show-OfflineChoice($address) {
+    # A shared server was configured and did not answer.
+    #
+    # Dropping silently to the local database is how a player builds a
+    # character, founds a guild and invites nobody -- in a world only their own
+    # PC can see -- while believing they are online. That is not a hypothetical:
+    # it is what happened here, and it took three days and two wrong diagnoses
+    # to notice, because nothing on screen ever said which world was open.
+    #
+    # Offline play stays available. It stops being automatic.
+    $message = @"
+Can't reach the shared world.
+
+$address did not answer, so the account, guild and library
+there are not available right now.
+
+   Yes      Try again
+   No       Play offline on this PC
+            (a SEPARATE save - progress made here will not
+             appear in the shared world, and cannot be moved)
+   Cancel   Quit
+"@
+    try {
+        # 3 = Yes/No/Cancel, 48 = warning icon. The 30-second timeout matters:
+        # a launch nobody is watching must still open the game rather than wait
+        # on a dialog forever.
+        $answer = (New-Object -ComObject WScript.Shell).Popup(
+            $message, 30, "Composer's Dungeon", 51)
+    }
+    catch {
+        # No scripting host, no dialog. Behave as it always did rather than
+        # refuse to open: a player with a broken WScript still deserves to play.
+        return "offline"
+    }
+    switch ($answer) {
+        6 { return "retry" }
+        7 { return "offline" }
+        2 { return "quit" }
+        default { return "offline" }   # -1 is the timeout
+    }
+}
+
 function Test-ServerReachable($address) {
     # Short timeout on purpose: this runs before the window opens, and a player
     # on a dead connection should drop to offline play quickly rather than
@@ -459,22 +501,60 @@ catch { $startupLock = $null }
 # app IS that server: same account, same guild, same library as everyone else,
 # and no local server starts at all.
 #
-# When it does not answer - no internet, server down - the app falls back to
-# playing from the local database rather than refusing to open. That keeps the
-# promise the installer is built on. The two are separate worlds, because the
-# offline save lives on this machine and nowhere else, so the app says which
-# one you are in rather than leaving you to guess.
+# When it does not answer - no internet, server down - the app can still play
+# from the local database rather than refusing to open, which is the promise
+# the installer is built on. But it ASKS first. The two are separate worlds and
+# nothing can be moved between them, so being put in the wrong one without
+# being told is the one outcome worth a dialog before the window opens.
 $onlineServer = Get-OnlineServer
 $playingOnline = $false
 if ($onlineServer) {
-    if (Test-ServerReachable $onlineServer) {
-        $playingOnline = $true
-        $url = $onlineServer
-    }
-    else {
+    # Bounded: a player who keeps choosing "Try again" on a server that is down
+    # should not be able to sit in this loop forever.
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        if (Test-ServerReachable $onlineServer) {
+            $playingOnline = $true
+            $url = $onlineServer
+            break
+        }
         Add-Content -Path (Join-Path $DataDir "server.log") `
-            -Value ("[launcher] {0} did not answer; playing from the local database instead" -f $onlineServer) `
+            -Value ("[launcher] {0} did not answer (attempt {1})" -f $onlineServer, $attempt) `
             -ErrorAction SilentlyContinue
+
+        $choice = Show-OfflineChoice $onlineServer
+        if ($choice -eq "retry") { continue }
+        if ($choice -eq "quit") {
+            # Release the startup mutex by hand: exiting while holding it would
+            # make the next launch wait the full 60 seconds for nothing.
+            if ($startupLock) { try { $startupLock.ReleaseMutex() } catch {} }
+            Add-Content -Path (Join-Path $DataDir "server.log") `
+                -Value "[launcher] player chose to quit rather than play offline" `
+                -ErrorAction SilentlyContinue
+            exit 0
+        }
+        Add-Content -Path (Join-Path $DataDir "server.log") `
+            -Value "[launcher] player chose offline play on this machine" `
+            -ErrorAction SilentlyContinue
+        break
+    }
+
+    # Retries exhausted while the player was still asking to try again.
+    # Opening offline now without a word is precisely what the dialog above
+    # exists to prevent, so say it once before the window appears.
+    if ((-not $playingOnline) -and ($choice -eq "retry")) {
+        Add-Content -Path (Join-Path $DataDir "server.log") `
+            -Value "[launcher] retries exhausted; opening offline play" `
+            -ErrorAction SilentlyContinue
+        try {
+            # 0 = OK only, 48 = warning. It informs; there is nothing left to
+            # decide, and a dialog that cannot be answered must not block.
+            $null = (New-Object -ComObject WScript.Shell).Popup(
+                ("Still can't reach {0}.`n`n" -f $onlineServer) +
+                "Opening offline play on this PC instead. This is a SEPARATE save:" + "`n" +
+                "progress made here will not appear in the shared world.",
+                20, "Composer's Dungeon", 48)
+        }
+        catch { }
     }
 }
 
