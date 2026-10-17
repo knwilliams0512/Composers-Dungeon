@@ -54,6 +54,7 @@ import { Inspector } from "./Inspector";
 import { Mixer } from "./Mixer";
 import { NotationToolbar, type ToolTab } from "./NotationToolbar";
 import { NotationPanel } from "./NotationPanel";
+import { clampPitch } from "@/lib/studio/range";
 import { DrumPad, Fretboard, PianoKeyboard } from "./PianoKeyboard";
 import { TopBar, type SaveState } from "./TopBar";
 
@@ -463,7 +464,9 @@ export function StudioEditor({
       if (noteInput && letters.includes(e.key.toLowerCase()) && !e.ctrlKey && !e.metaKey) {
         const idx = letters.indexOf(e.key.toLowerCase());
         const semis = [0, 2, 4, 5, 7, 9, 11][idx];
-        const pitch = (baseOctave + 2) * 12 + semis;
+        // Clamped for the same reason the keyboard is: a high base octave
+        // plus this two-octave offset can land past MIDI 127.
+        const pitch = clampPitch((baseOctave + 2) * 12 + semis);
         const tick = cursor?.tick ?? 0;
         apply((s) =>
           toggleNote(s, {

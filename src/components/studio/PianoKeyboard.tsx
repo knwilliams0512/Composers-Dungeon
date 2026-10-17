@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import {
+  DEFAULT_SPAN,
+  MAX_SPAN,
+  MIDI_MAX,
+  MIN_SPAN,
+  clampPitch,
+  maxBaseOctave,
+  pitchLabel,
+} from "@/lib/studio/range";
 
 /**
  * The on-screen keyboard: a way in for anyone who thinks in keys rather than
@@ -14,7 +23,7 @@ const BLACK: Record<number, number> = { 1: 0, 3: 1, 6: 3, 8: 4, 10: 5 };
 const NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 
 export function PianoKeyboard({
-  octaves = 3,
+  octaves = DEFAULT_SPAN,
   baseOctave,
   onOctaveChange,
   onPlay,
@@ -30,24 +39,33 @@ export function PianoKeyboard({
   highlighted?: number[];
 }) {
   const [held, setHeld] = useState<number | null>(null);
+  // How many octaves are on screen at once. Three was the whole keyboard for
+  // anyone writing at the piano, which is a quarter of the instrument.
+  const [span, setSpan] = useState(Math.max(MIN_SPAN, Math.min(MAX_SPAN, octaves)));
   const lit = new Set(highlighted);
 
-  const whiteCount = octaves * 7;
+  const base = Math.max(0, Math.min(maxBaseOctave(span), baseOctave));
+  const whiteCount = span * 7;
   const whiteW = 100 / whiteCount;
 
   const whites: { pitch: number; index: number }[] = [];
   const blacks: { pitch: number; left: number }[] = [];
 
-  for (let o = 0; o < octaves; o++) {
+  for (let o = 0; o < span; o++) {
     for (let i = 0; i < 7; i++) {
-      const pitch = (baseOctave + o + 1) * 12 + WHITE[i];
+      const pitch = (base + o + 1) * 12 + WHITE[i];
+      if (pitch > MIDI_MAX) continue;
       whites.push({ pitch, index: o * 7 + i });
     }
     for (const semi of Object.keys(BLACK).map(Number)) {
-      const pitch = (baseOctave + o + 1) * 12 + semi;
+      const pitch = (base + o + 1) * 12 + semi;
+      if (pitch > MIDI_MAX) continue;
       blacks.push({ pitch, left: (o * 7 + BLACK[semi] + 1) * whiteW });
     }
   }
+
+  const lowest = whites.length ? whites[0].pitch : 0;
+  const highest = whites.length ? whites[whites.length - 1].pitch : 0;
 
   return (
     <div className="border-t border-abyss-700 bg-abyss-900">
@@ -55,17 +73,46 @@ export function PianoKeyboard({
         <Icon name="piano" size={13} className="text-parchment-500" />
         <span className="text-[10px] uppercase tracking-[0.2em] text-parchment-500">Keyboard</span>
         <button
-          onClick={() => onOctaveChange(Math.max(0, baseOctave - 1))}
-          className="rounded px-1.5 text-parchment-400 hover:bg-abyss-700"
-          title="Down an octave"
+          onClick={() => onOctaveChange(Math.max(0, base - 1))}
+          disabled={base <= 0}
+          className="rounded px-1.5 text-parchment-400 hover:bg-abyss-700 disabled:opacity-30"
+          title="Move the keyboard down an octave"
         >
           −
         </button>
-        <span className="text-[10px] text-parchment-400">C{baseOctave}</span>
+        <span className="text-[10px] tabular-nums text-parchment-400">
+          {pitchLabel(lowest)}–{pitchLabel(highest)}
+        </span>
         <button
-          onClick={() => onOctaveChange(Math.min(7, baseOctave + 1))}
-          className="rounded px-1.5 text-parchment-400 hover:bg-abyss-700"
-          title="Up an octave"
+          onClick={() => onOctaveChange(Math.min(maxBaseOctave(span), base + 1))}
+          disabled={base >= maxBaseOctave(span)}
+          className="rounded px-1.5 text-parchment-400 hover:bg-abyss-700 disabled:opacity-30"
+          title="Move the keyboard up an octave"
+        >
+          +
+        </button>
+
+        <span className="ml-2 text-[10px] text-parchment-600">Show</span>
+        <button
+          onClick={() => setSpan((n) => Math.max(MIN_SPAN, n - 1))}
+          disabled={span <= MIN_SPAN}
+          className="rounded px-1.5 text-parchment-400 hover:bg-abyss-700 disabled:opacity-30"
+          title="Fewer octaves on screen"
+        >
+          −
+        </button>
+        <span className="text-[10px] tabular-nums text-parchment-400">{span} oct</span>
+        <button
+          onClick={() => {
+            // Widening can push the window past MIDI 127, so the base slides
+            // down to make room rather than the top keys silently vanishing.
+            const next = Math.min(MAX_SPAN, span + 1);
+            setSpan(next);
+            if (base > maxBaseOctave(next)) onOctaveChange(maxBaseOctave(next));
+          }}
+          disabled={span >= MAX_SPAN}
+          className="rounded px-1.5 text-parchment-400 hover:bg-abyss-700 disabled:opacity-30"
+          title="More octaves on screen"
         >
           +
         </button>
@@ -87,11 +134,11 @@ export function PianoKeyboard({
             key={k.pitch}
             onMouseDown={(e) => {
               setHeld(k.pitch);
-              onPlay(k.pitch, e.shiftKey);
+              onPlay(clampPitch(k.pitch), e.shiftKey);
             }}
             onMouseUp={() => setHeld(null)}
             onMouseLeave={() => setHeld((h) => (h === k.pitch ? null : h))}
-            title={`${NAMES[k.pitch % 12]}${Math.floor(k.pitch / 12) - 1}`}
+            title={pitchLabel(k.pitch)}
             className={`absolute top-0 h-full rounded-b border border-abyss-600 transition-colors ${
               held === k.pitch
                 ? "bg-gold-400"
@@ -107,11 +154,11 @@ export function PianoKeyboard({
             key={k.pitch}
             onMouseDown={(e) => {
               setHeld(k.pitch);
-              onPlay(k.pitch, e.shiftKey);
+              onPlay(clampPitch(k.pitch), e.shiftKey);
             }}
             onMouseUp={() => setHeld(null)}
             onMouseLeave={() => setHeld((h) => (h === k.pitch ? null : h))}
-            title={`${NAMES[k.pitch % 12]}${Math.floor(k.pitch / 12) - 1}`}
+            title={pitchLabel(k.pitch)}
             className={`absolute top-0 z-10 h-3/5 rounded-b border border-abyss-950 transition-colors ${
               held === k.pitch
                 ? "bg-gold-500"
