@@ -157,3 +157,44 @@ before the first deploy produced it.
 
 31 checkers pass, the typecheck is clean, and both the desktop (SQLite) and
 hosted (Postgres) builds compile.
+
+---
+
+## Getting the work on this branch in front of players
+
+Both workflows are `workflow_dispatch` — they only run when you start them —
+so nothing pushed to this branch is live until you do. The last deploy ran on
+12 October, and everything since then is sitting in the branch.
+
+Two of them, in this order, both under **Actions** on GitHub:
+
+1. **Set up the Neon database** — re-seeds the hosted database from the seed
+   files. Everything written since the last deploy lives there rather than in
+   the app bundle: the 20 new lesson sections and their figures, the detail
+   layer for 21 lessons, and lore, danger ratings and survival tips for six
+   areas and six bosses. A redeploy alone will not show any of it.
+
+2. **Deploy the online game** — ships the app code: the Studio's new notation,
+   the time map that makes fermatas hold and crescendos grow, the pedal and
+   chord-symbol work, and the award banners.
+
+### Re-seeding does not cost anybody their progress
+
+Worth saying plainly, because the seeder does delete rows — it replaces quiz
+questions, exercises and unit-exam questions wholesale rather than merging
+them, and two of those sit at the other end of a cascade from something a
+player earned.
+
+`scripts/verify-reseed.ts` proves it rather than asserting it. It seeds a
+scratch database, creates a player with XP, a level, lesson progress, a quiz
+attempt, a unit-exam attempt, boss progress and a completed boss objective,
+seeds again the way a content update would, and counts what survived. All of
+it does. Run it against a scratch file before any seed you are nervous about:
+
+```
+DATABASE_URL="file:/tmp/scratch.db" npx prisma db push --skip-generate
+DATABASE_URL="file:/tmp/scratch.db" npx tsx scripts/verify-reseed.ts
+```
+
+It refuses to run against anything that is not a `file:` URL, so it cannot be
+pointed at the live database by accident.
