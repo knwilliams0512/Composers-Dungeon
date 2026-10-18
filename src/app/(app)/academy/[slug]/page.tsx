@@ -6,6 +6,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { LessonFigure } from "@/components/academy/figures/LessonFigure";
 import { LessonFlow } from "@/components/academy/LessonFlow";
+import { LessonPractice } from "@/components/academy/LessonPractice";
 import { Icon, SKILL_ICONS } from "@/components/ui/Icon";
 import { Callout, Panel } from "@/components/ui/primitives";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
@@ -367,6 +368,8 @@ export default async function LessonPage({ params }: { params: { slug: string } 
           Prove It
         </span>
       </div>
+
+      <LessonPractice slug={lesson.slug} />
 
       <LessonFlow
         lessonSlug={lesson.slug}

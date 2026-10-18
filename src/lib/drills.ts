@@ -13,6 +13,7 @@
  * Scoring is re-run on the server from the same functions, because a score
  * posted by a client is not a score.
  */
+import type { IconName } from "@/components/ui/Icon";
 import { LETTERS } from "@/lib/notation";
 
 export const DRILL_KEYS = [
@@ -32,7 +33,8 @@ export interface DrillInfo {
   blurb: string;
   /** The instruction shown while a question is up. */
   prompt: string;
-  icon: string;
+  /** Typed, so a drill naming an icon that does not exist fails to compile. */
+  icon: IconName;
   accent: string;
   skill: string;
   /** How a question is answered. */

@@ -153,13 +153,23 @@ export const orchestralLessons: SeedLesson[] = [
     ],
     quiz: [
       {
+        // This slot used to repeat, word for word, a question the transposition
+        // lesson already asks at difficulty 5 — and labelled it 9. One
+        // instrument at a time is the earlier lesson's job; this one is about
+        // holding two transpositions at once, which is what a score asks of you.
         subject: "TRANSPOSITION",
         difficulty: 9,
-        prompt: "You want a B♭ clarinet to sound a concert F. What do you write?",
-        choices: ["E♭", "F", "G", "A"],
-        answerIndex: 2,
+        prompt:
+          "A cor anglais in F and a B♭ clarinet must both sound a concert A. What does each part write?",
+        choices: [
+          "E for the cor anglais, B for the clarinet",
+          "D for the cor anglais, B for the clarinet",
+          "E for the cor anglais, G for the clarinet",
+          "B for the cor anglais, E for the clarinet",
+        ],
+        answerIndex: 0,
         explanation:
-          "A B♭ instrument sounds a major second below what it reads, so the written note is a major second above the sounding one: G sounds F.",
+          "An instrument in F sounds a perfect fifth below what it reads, so write a fifth above: A becomes E. A B♭ instrument sounds a major second below, so write a second above: A becomes B. The two parts look a fourth apart on the page and sound in unison.",
       },
       {
         subject: "TRANSPOSITION",
