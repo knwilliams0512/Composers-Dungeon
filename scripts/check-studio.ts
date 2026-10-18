@@ -9,6 +9,14 @@
  * looked wrong, while every consumer that treats a pitch as a byte was being
  * handed something that is not one.
  */
+import { readFileSync } from "node:fs";
+import { scheduleScore } from "../src/lib/studio/audio";
+import { addDynamic } from "../src/lib/studio/edit";
+import {
+  DEFAULT_LAYOUT,
+  STUDIO_VERSION,
+  type StudioScore,
+} from "../src/lib/studio/model";
 import {
   DEFAULT_SPAN,
   MAX_SPAN,
@@ -104,6 +112,95 @@ for (const [pitch, want] of [
 ] as [number, string][]) {
   const got = pitchLabel(pitch);
   if (got !== want) fail(`pitchLabel(${pitch}) gave "${got}", expected "${want}"`);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dynamics have to reach the sound                                           */
+/* -------------------------------------------------------------------------- */
+// Reported as "dynamics don't actually change anything", and the engine turned
+// out to be innocent: scheduleScore maps a printed dynamic to a gain correctly.
+// What was broken was where the marks landed. The panel wrote every dynamic at
+// the cursor, clicking one does not move the cursor, and addDynamic replaces
+// whatever sits on that tick — rightly, two dynamics on one beat being
+// nonsense — so clicking pp then ff left only ff. However many you clicked, the
+// score held exactly one dynamic, nothing contrasted, and the fair conclusion
+// was that dynamics did nothing.
+//
+// So the assertion is not "the table has entries" but "a quiet passage
+// schedules quieter than a loud one".
+{
+  const note = (id: string, start: number, pitch: number) => ({ id, start, duration: 4, pitch });
+  const base: StudioScore = {
+    version: STUDIO_VERSION,
+    info: { title: "d", subtitle: "", composer: "", arranger: "", lyricist: "", copyright: "", description: "" },
+    key: "C",
+    mode: "major",
+    meter: { beats: 4, unit: 4 },
+    tempo: 120,
+    parts: [
+      {
+        id: "p1",
+        instrumentId: "piano",
+        visible: true,
+        muted: false,
+        solo: false,
+        volume: 0.8,
+        pan: 0,
+        staves: [
+          {
+            id: "s1",
+            clef: "treble",
+            lines: 5,
+            voices: [{ id: "v1", rests: [], notes: [note("a", 0, 60), note("b", 4, 62), note("c", 8, 64)] }],
+            dynamics: [],
+            hairpins: [],
+            texts: [],
+            octaveLines: [],
+          },
+        ],
+      },
+    ],
+    groups: [],
+    measures: [{ id: "m1" }],
+    layout: DEFAULT_LAYOUT,
+    masterVolume: 1,
+  };
+
+  let s = addDynamic(base, "p1", "s1", 0, "ppp");
+  s = addDynamic(s, "p1", "s1", 4, "mf");
+  s = addDynamic(s, "p1", "s1", 8, "fff");
+  const gains = scheduleScore(s).notes.map((x) => x.gain);
+  if (gains.length !== 3) fail(`expected 3 scheduled notes, got ${gains.length}`);
+  else {
+    if (!(gains[0] < gains[1] && gains[1] < gains[2]))
+      fail(`ppp/mf/fff scheduled at ${gains.map((g) => g.toFixed(3)).join(", ")}; they must rise`);
+    // And audibly apart, not merely different in the sixth decimal place.
+    if (gains[2] / Math.max(gains[0], 1e-9) < 4)
+      fail(`fff is only ${(gains[2] / gains[0]).toFixed(1)}x ppp, which nobody would call a dynamic range`);
+  }
+
+  // Every dynamic the panel offers must actually move the needle.
+  const ALL = ["ppp", "pp", "p", "mp", "mf", "f", "ff", "fff"] as const;
+  const seen = ALL.map((d) => {
+    const one = addDynamic(base, "p1", "s1", 0, d);
+    return scheduleScore(one).notes[0].gain;
+  });
+  for (let i = 1; i < ALL.length; i++) {
+    if (!(seen[i] > seen[i - 1]))
+      fail(`${ALL[i]} is not louder than ${ALL[i - 1]} (${seen[i].toFixed(3)} vs ${seen[i - 1].toFixed(3)})`);
+  }
+
+  // The trap that caused the report: two dynamics on one tick collapse to one.
+  // That is correct, and it is why the editor must not put them all there.
+  let stacked = base;
+  for (const d of ["ppp", "mf", "fff"] as const) stacked = addDynamic(stacked, "p1", "s1", 0, d);
+  if (stacked.parts[0].staves[0].dynamics.length !== 1)
+    fail("two dynamics on one tick no longer replace each other; the editor relies on that");
+  // And the editor must place them by selection, not at a cursor that never moves.
+  const editor = readFileSync("src/components/studio/StudioEditor.tsx", "utf8");
+  const onDyn = /onDynamic:[\s\S]{0,400}?\),\n/.exec(editor)?.[0] ?? "";
+  if (!/selectionStart\(/.test(onDyn))
+    fail("onDynamic does not consult the selection, so every dynamic lands on the same tick again");
 }
 
 const spans = MAX_SPAN - MIN_SPAN + 1;

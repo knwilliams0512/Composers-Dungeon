@@ -508,6 +508,43 @@ export function StudioEditor({
 
   const selectedMeasure = selection.measureIndex ?? cursor?.measureIndex ?? 0;
 
+  /** The earliest tick among the selected notes, or null if none are. */
+  const selectionStart = useCallback(
+    (s: StudioScore): number | null => {
+      const ids = new Set(selection.noteIds ?? []);
+      if (ids.size === 0) return null;
+      let first: number | null = null;
+      for (const part of s.parts)
+        for (const staff of part.staves)
+          for (const v of staff.voices)
+            for (const n of v.notes)
+              if (ids.has(n.id) && (first === null || n.start < first)) first = n.start;
+      return first;
+    },
+    [selection.noteIds]
+  );
+
+  /** The whole stretch the selected notes cover, first onset to last release. */
+  const selectionSpan = useCallback(
+    (s: StudioScore): { start: number; duration: number } | null => {
+      const ids = new Set(selection.noteIds ?? []);
+      if (ids.size === 0) return null;
+      let from = Infinity;
+      let to = -Infinity;
+      for (const part of s.parts)
+        for (const staff of part.staves)
+          for (const v of staff.voices)
+            for (const n of v.notes)
+              if (ids.has(n.id)) {
+                from = Math.min(from, n.start);
+                to = Math.max(to, n.start + n.duration);
+              }
+      if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+      return { start: from, duration: Math.max(0, to - from) };
+    },
+    [selection.noteIds]
+  );
+
   const forEachSelectedNote = useCallback(
     (fn: (s: StudioScore, id: string) => StudioScore) => {
       const ids = selection.noteIds ?? [];
@@ -540,12 +577,35 @@ export function StudioEditor({
       onArticulation: (a: Articulation) =>
         forEachSelectedNote((s, id) => toggleArticulation(s, id, a)),
       onOrnament: (o: Ornament) => forEachSelectedNote((s, id) => toggleOrnament(s, id, o)),
+      // A dynamic goes where the music is: on the selected notes if there are
+      // any, and only otherwise at the cursor.
+      //
+      // Writing it at the cursor unconditionally made dynamics look broken.
+      // Clicking a dynamic does not move the cursor, and addDynamic replaces
+      // whatever already sits on that tick — correctly, since two dynamics on
+      // one beat is nonsense — so clicking pp then ff put both marks on the
+      // same tick and left only ff. However many you clicked, the score ended
+      // up with exactly one dynamic, so nothing ever contrasted with anything
+      // and the obvious conclusion was that dynamics do nothing.
       onDynamic: (d: Dynamic) =>
-        apply((s) => addDynamic(s, target.part.id, target.staff.id, cursor?.tick ?? 0, d)),
-      onHairpin: (k: "crescendo" | "diminuendo") =>
         apply((s) =>
-          addHairpin(s, target.part.id, target.staff.id, cursor?.tick ?? 0, ticksPerBeat(score.meter) * 2, k)
+          addDynamic(s, target.part.id, target.staff.id, selectionStart(s) ?? cursor?.tick ?? 0, d)
         ),
+      // A hairpin spans the selection, which is the whole point of one: select
+      // the passage that grows, click crescendo. With no selection it falls
+      // back to two beats from the cursor, as before.
+      onHairpin: (k: "crescendo" | "diminuendo") =>
+        apply((s) => {
+          const span = selectionSpan(s);
+          return addHairpin(
+            s,
+            target.part.id,
+            target.staff.id,
+            span?.start ?? cursor?.tick ?? 0,
+            span && span.duration > 0 ? span.duration : ticksPerBeat(score.meter) * 2,
+            k
+          );
+        }),
       onSlur: () => forEachSelectedNote((s, id) => updateNote(s, id, { slur: "begin" })),
       onAddMeasure: (where: "before" | "after" | "end") =>
         apply((s) =>
@@ -603,7 +663,7 @@ export function StudioEditor({
         }
       },
     }),
-    [apply, cursor, forEachSelectedNote, score, selectedMeasure, selection, target]
+    [apply, cursor, forEachSelectedNote, score, selectedMeasure, selection, selectionSpan, selectionStart, target]
   );
 
   /* ---- Render ----------------------------------------------------------- */
