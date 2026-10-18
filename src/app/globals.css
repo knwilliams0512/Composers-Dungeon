@@ -654,3 +654,85 @@ html[data-motion="reduce"] .opening { display: none; }
   52%      { transform: translateX(-3px); }
   74%      { transform: translateX(2px); }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Printing a score                                                            */
+/* -------------------------------------------------------------------------- */
+/*
+ * The engraver already lays out real pages in millimetres at the chosen page
+ * size, so printing is a matter of getting the editor out of the way and
+ * letting one engraved page be one sheet of paper. Before this, Ctrl+P
+ * produced a single sheet of dark editor chrome with a sliver of score in it.
+ *
+ * The page size itself cannot live here: `@page { size }` takes no custom
+ * properties, so ScoreCanvas injects a print-only <style> carrying the
+ * score's own dimensions. Everything that does not depend on those numbers
+ * lives here.
+ */
+@media print {
+  /* Nothing in the app has a dark background on paper. */
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  /*
+   * The editor chrome: toolbars, panels, the keyboard, the mixer, the
+   * inspector. Rather than tag each one — most are components that take no
+   * className — the two containers on the path to the score are marked and
+   * everything beside them at those levels goes. Adding a new panel to the
+   * editor therefore keeps it off paper by default, which is the right way
+   * round: a panel nobody remembered to hide would print.
+   */
+  .cd-screen-only,
+  .cd-print-shell > *:not(.cd-print-keep),
+  .cd-print-keep > *:not(.cd-print-keep):not(.cd-print-root) {
+    display: none !important;
+  }
+
+  /*
+   * The editor is a fixed-height shell with its own scrolling, which on paper
+   * clips everything after the first screenful. Relaxing height and overflow
+   * through the shell lets the pages flow instead.
+   */
+  .cd-print-shell,
+  .cd-print-shell *,
+  .cd-print-shell main {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .cd-print-root {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* One engraved page, one sheet. The px width the zoom control sets on
+   * screen is replaced by the real millimetre size. */
+  .cd-print-page {
+    width: var(--cd-page-w) !important;
+    height: var(--cd-page-h) !important;
+    margin: 0 !important;
+    border: 0 !important;
+    break-inside: avoid;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  /* No trailing blank sheet. */
+  .cd-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .cd-print-page svg {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}

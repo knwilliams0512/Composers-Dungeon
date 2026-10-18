@@ -97,8 +97,23 @@ export function ScoreCanvas({
 }: CanvasProps) {
   const engraved: EngravedScore = useMemo(() => engrave(score), [score]);
 
+  // The printed page size has to be a literal: `@page { size }` accepts no
+  // custom properties. The rest of the print rules live in globals.css.
+  const first = engraved.pages[0];
+  const printCss = first
+    ? `@page { size: ${first.width}mm ${first.height}mm; margin: 0; }\n` +
+      `:root { --cd-page-w: ${first.width}mm; --cd-page-h: ${first.height}mm; }`
+    : "";
+
   return (
-    <div className="flex flex-col items-center gap-6 py-6">
+    <div className="cd-print-root flex flex-col items-center gap-6 py-6">
+      {printCss && (
+        <style
+          media="print"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: printCss }}
+        />
+      )}
       {engraved.pages.map((page) => (
         <PageView
           key={page.index}
@@ -206,7 +221,7 @@ function PageView({
 
   return (
     <div
-      className="relative bg-white"
+      className="cd-print-page relative bg-white"
       style={{ width: pxW, height: pxH, boxShadow: PAGE_SHADOW }}
     >
       <svg

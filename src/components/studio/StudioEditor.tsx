@@ -611,7 +611,7 @@ export function StudioEditor({
   const currentMeasure = playhead !== null ? measureAtTick(score, playhead) + 1 : null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-abyss-950">
+    <div className="cd-print-shell flex h-screen flex-col overflow-hidden bg-abyss-950">
       <TopBar
         title={score.info.title}
         saveState={saveState}
@@ -670,7 +670,7 @@ export function StudioEditor({
         />
       )}
 
-      <div className="relative flex min-h-0 flex-1">
+      <div className="cd-print-keep relative flex min-h-0 flex-1">
         {showLeft && (
           <aside
             className={`w-60 shrink-0 border-r border-abyss-700 ${
@@ -691,7 +691,7 @@ export function StudioEditor({
         )}
 
         {/* ---- The score itself ------------------------------------------ */}
-        <main className="relative min-w-0 flex-1 overflow-auto bg-[#3a3a3c]">
+        <main className="cd-print-keep relative min-w-0 flex-1 overflow-auto bg-[#3a3a3c]">
           <ScoreCanvas
             score={score}
             zoom={zoom}
@@ -1015,6 +1015,7 @@ function DialogBody({
           <ExportButton label="MusicXML" onClick={() => downloadMusicXml(score)} />
           <ExportButton label="MIDI" onClick={() => downloadMidi(score)} />
           <ExportButton label="JSON" onClick={() => downloadJson(score, scoreId)} />
+          <ExportButton label="Print" onClick={() => window.print()} />
           <ExportButton label="Print / PDF" onClick={() => window.print()} />
         </div>
         <p className="pt-2 text-[11px] text-parchment-600">
