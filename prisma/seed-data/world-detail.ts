@@ -99,6 +99,76 @@ export const areaDetail: Record<string, AreaDetail> = {
       "Save your strongest cadence for the arrival that deserves it.",
     ],
   },
+
+  /* ---------------------------------------------------------------------- */
+  /* The six that had none                                                   */
+  /* ---------------------------------------------------------------------- */
+  //
+  // An audit found the same split here as in the Academy: the nine areas of
+  // the original descent each had lore, a danger rating and survival tips,
+  // and the six expansion areas — which are the later and harder ones — had
+  // none of it. The area page renders each of those only when present, so a
+  // player going deeper than the Cathedral found the writing simply stopping.
+
+  "instrument-menagerie": {
+    dangerRating: 3,
+    lore: "The cages are not cruelty, whatever it looks like. Each one is a set of rules with a voice inside it: a thing that can only sing the way it is built to sing, and that will tell you — immediately, and in front of everyone — when you have asked it for something it does not have. Composers arrive here able to write any note they like. They leave able to write the notes a particular body can reach, which is a smaller skill and a far more useful one.",
+    survivalTips: [
+      "Find the bottom and the top of an instrument before you write a line for it, and then stay well inside both.",
+      "A player has to breathe, and a bow has to turn round. Write the rests in or they will be taken anyway.",
+      "A transposing instrument is not lying to you. Write what the player reads, and work out the sound afterwards.",
+    ],
+  },
+
+  "orchestral-abyss": {
+    dangerRating: 4,
+    lore: "A hundred players and no conductor, in a pit deep enough that the sound arrives from everywhere at once. Nothing here is quiet and nothing here is clear, and the composers who try to solve it by writing louder are the ones still down there. The Abyss has exactly one exit, and it opens for anybody who can make a single line matter more than the ninety-nine around it.",
+    survivalTips: [
+      "Give the melody a register nothing else is using. That beats any dynamic marking.",
+      "Mark the accompaniment two or three levels quieter than the tune, in writing. A shared dynamic is not balance.",
+      "A doubling changes the colour of a line as much as its volume. Choose it; do not let it happen to you.",
+    ],
+  },
+
+  "loom-of-variations": {
+    dangerRating: 3,
+    lore: "The tapestry on the far wall is one thread, and nobody can agree where it starts. The Loom's demand sounds gentle and is not: change everything, keep the thing. Composers who change too little produce repetition and are sent back; composers who change too much produce a second piece and are sent back for a different reason. Somewhere between those is a variation, and the Loom knows exactly where.",
+    survivalTips: [
+      "Decide what the theme IS before varying it — the rhythm, the shape, or the harmony. Keep that, and the rest is yours.",
+      "One clear idea per variation. Two ideas at once reads as neither.",
+      "Order them so each is further from the theme than the last, and the set will feel like a journey rather than a list.",
+    ],
+  },
+
+  "whispering-catacombs": {
+    dangerRating: 4,
+    lore: "Everything said here is answered a bar later, a fifth higher, and very slightly wrong. There is no silence to compose into: the walls are already busy, and anything you write immediately acquires a second voice with opinions of its own. The old hands say the Catacombs are not a place where counterpoint is tested so much as a place where it is the weather, and that the only way through is to write a line that was expecting company.",
+    survivalTips: [
+      "Write the second voice as you write the first. Harmonising afterwards is how parallels get in.",
+      "Contrary motion is your footing. Two voices moving the same way are one voice with a thick coat on.",
+      "Check all six pairs of voices, not just the outer two. The alto and tenor are where the fifths hide.",
+    ],
+  },
+
+  "clockwork-bazaar": {
+    dangerRating: 3,
+    lore: "A market built on a clock nobody can read. Stalls open on the seventh beat and shut on the fifth; the beggar by the fountain is in four and has been for years, and somehow the whole street still dances. The Bazaar does not punish you for failing to find the pulse. It punishes you for pretending there is not one — everything here is counted, and anyone who cannot say what they are counting gets short-changed.",
+    survivalTips: [
+      "Commit to a grouping and articulate it. 7/8 as 2+2+3 is a dance; 7/8 as seven is a stumble.",
+      "Keep something holding the plain pulse or your syncopation has nothing to be late against.",
+      "Three against two is two players who are both right. Write both parts as though each were the only one.",
+    ],
+  },
+
+  "forking-cadences": {
+    dangerRating: 4,
+    lore: "A garden where every path ends in a cadence and every cadence opens two more. The paths are real and the map is not: composers have walked in here in C major, taken four reasonable turns, and come out somewhere they could not name. The way through is not to avoid the forks. It is to know, at every one, exactly how final the ending you just wrote was — because that is the thing that decides which door opens.",
+    survivalTips: [
+      "Grade your endings. A perfect authentic cadence stops the music; anything less leaves a door ajar on purpose.",
+      "A pivot chord belongs to both keys. Find one before you leave, and the join will not show.",
+      "One accidental is colour, not a journey. Nothing has changed key until the new key has cadenced.",
+    ],
+  },
 };
 
 export const bossDetail: Record<string, BossDetail> = {
@@ -132,6 +202,69 @@ export const bossDetail: Record<string, BossDetail> = {
       "Five movements, five demands: melody, harmony, rhythm, counterpoint and orchestration are each tested in turn.",
       "Material carries across movements. Bring a motif in, and transform it rather than replacing it.",
       "The final blow is a complete piece, not a passage. Nothing else ends this.",
+    ],
+  },
+
+  /* ---------------------------------------------------------------------- */
+  /* The six that had none                                                   */
+  /* ---------------------------------------------------------------------- */
+  //
+  // The four bosses of the original descent each had lore and tactics. The
+  // six added since — every expansion, orchestral and guild boss — had
+  // neither, so the hardest fights in the game were also the ones that told a
+  // player least about how to win them.
+
+  "hundred-handed-organist": {
+    lore: "It was built into the cathedral wall and it has never left, which is the only reason anybody survives meeting it. Every rank, every coupler, every stop drawn at once, because it can — and because for three hundred years nobody has given it a reason to do anything else. It is not loud out of malice. It is loud because nothing has ever been worth being quiet for.",
+    tactics: [
+      "You cannot out-volume it. Do not try — the fight is won in register and colour, not in dynamics.",
+      "Put the tune where nothing else is playing. An empty octave carries further than any marking.",
+      "Its weakest moment is the three-voice reduction. Keep the material intact with ninety-seven ranks taken away and it has nothing left to answer with.",
+    ],
+  },
+
+  "canon-that-eats-itself": {
+    lore: "It follows one bar behind, exactly, and it has been doing so long enough that there is no longer any way to tell which voice began. It does not attack; it simply repeats what you have just done, perfectly, for as long as you keep doing things. Composers who panic and write faster feed it. The only line that hurts it is one that was built, from the first note, to be heard against itself.",
+    tactics: [
+      "Write both voices at once, offset by a bar, and check every vertical interval as you go.",
+      "At the fifth, the answer lands a step away from where the octave put it — recheck the dissonances rather than assuming they transposed.",
+      "An inverted subject that still sounds deliberate is what ends this. Inversion that sounds like an accident does nothing.",
+    ],
+  },
+
+  "silent-orchestra": {
+    lore: "Every stand is filled, every instrument tuned, every eye up and waiting. They have been waiting a long time, and they are entirely willing. What they will not do is guess. They will play exactly what is written in front of them — no more, no less, and nothing at all of what you meant but did not put on the page. The Silent Orchestra cannot be beaten by having a good idea. It is beaten by a score.",
+    tactics: [
+      "It is immune to intention. Anything you did not write is not in the room: mark every dynamic, on every staff.",
+      "Transpose every part correctly before anything else. One clarinet a tone out and the harmony you wrote is not the harmony they play.",
+      "Hold one colour back until the end. An orchestra that has already played everything has nowhere to go when you need it.",
+    ],
+  },
+
+  "two-galleries": {
+    lore: "Two stone balconies facing each other across the nave, a choir standing in each, and two hundred years of waiting for a piece written for both of them. Everything brought here so far was written for one gallery and copied to the other, which is not antiphony — it is an echo, and a building does that by itself. They are not interested in being answered. They want to be needed.",
+    tactics: [
+      "End a phrase on the dominant and leave it there. A question that is also an answer gives the other gallery nothing to do.",
+      "Write for the distance: across a nave, fast detail turns to soup. Slower, wider, and built on long notes carries.",
+      "The rests are where the other choir lives. Compose the silences as deliberately as the notes.",
+    ],
+  },
+
+  "grand-dispute": {
+    lore: "Four composers, two hundred years, and every one of them right. One brought a subject that rises, one a subject that falls, one a subject with no leaps in it at all, and one brought four notes and a silence. Everybody who has tried to settle it has chosen a side, and choosing a side is how the Dispute is lost — it does not want a winner. It wants a development section in which all four are still themselves and none of them is winning.",
+    tactics: [
+      "Bring a subject distinct enough to be argued with: clear in rhythm, clear in shape, short enough to be recognised in fragments.",
+      "Combine rather than alternate. Four subjects taking turns is a queue, not a dispute.",
+      "Keep each one recognisable under transformation. A subject nobody can identify has conceded.",
+    ],
+  },
+
+  "many-lifetimes": {
+    lore: "It is not one thing and never was. Each movement of it was written by somebody else, in a different century, for a different reason, and it has been accumulating ever since — a piece that no single composer could have finished and that no single composer can end. It is the last thing in the dungeon because it is the only one that requires more than one person to beat.",
+    tactics: [
+      "This is not a solo fight. Material from other members of your guild is the weapon; bring theirs in and transform it.",
+      "Carry one idea across every movement. The thing it cannot survive is coherence.",
+      "Finish it. It has outlasted everyone who left a movement unresolved, and an incomplete piece is how it recruits.",
     ],
   },
 };
