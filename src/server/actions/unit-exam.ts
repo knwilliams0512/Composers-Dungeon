@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
 import { ALL_UNITS } from "@/lib/curriculum";
 import { previousUnit, unitOpen } from "@/lib/unit-gate";
-import { awardProgress, syncAchievements } from "@/lib/progression";
+import { awardProgress, syncAchievements, type AwardResult } from "@/lib/progression";
 
 /**
  * Sitting a unit exam.
@@ -150,6 +150,20 @@ export interface ExamResult {
   missed?: { slug: string; heading: string; prompt: string; why: string }[];
   unlocked?: string | null;
   xp?: number;
+  /**
+   * What passing earned, in full: the XP, any level-up, any skill level, the
+   * streak and any achievement unlocked by it.
+   *
+   * `xp` above is the number this action decided to grant. This is what the
+   * award actually did with it, which is not the same thing — a flame bonus
+   * raises it, and a level-up or an achievement is the part a learner cares
+   * about. Passing a unit exam is one of the largest single moments in the
+   * roadmap and it used to announce itself with one grey line of "+180 XP",
+   * because this action awaited the award and dropped it on the floor.
+   *
+   * Absent on a retake of a unit already passed, which grants nothing.
+   */
+  award?: AwardResult;
 }
 
 /**
@@ -252,12 +266,13 @@ export async function submitUnitExam(input: {
   });
 
   let xp = 0;
+  let award: AwardResult | undefined;
   if (passed && !alreadyPassed) {
     // Worth roughly a lesson, scaled by how far up the roadmap the unit sits.
     // Passing 6.6 should not pay the same as passing 1.1.
     const level = Number(input.unit.split(".")[0]) || 1;
     xp = 60 + level * 20;
-    await awardProgress({ userId, xp, skillXp: { TECHNIQUE: 15 } });
+    award = await awardProgress({ userId, xp, skillXp: { TECHNIQUE: 15 } });
     await syncAchievements(userId);
   }
 
@@ -276,5 +291,6 @@ export async function submitUnitExam(input: {
     missed,
     unlocked: passed ? next : null,
     xp,
+    award,
   };
 }

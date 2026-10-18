@@ -3,10 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createComposition } from "@/server/actions/profile";
+import { AwardBanner } from "@/components/ui/AwardBanner";
+import type { AwardResult } from "@/lib/progression";
 
 export function NewCompositionForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  /**
+   * What the last filing earned.
+   *
+   * It outlives the form on purpose. Filing closes the form and refreshes the
+   * page, so a banner rendered inside the form would exist for no frames at
+   * all — which is how 60 XP, and any level-up riding on it, came to be
+   * granted here without a word.
+   */
+  const [award, setAward] = useState<AwardResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -16,9 +27,18 @@ export function NewCompositionForm() {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn-secondary">
-        🖋️ File a New Composition
-      </button>
+      <div className="space-y-3">
+        {award && <AwardBanner award={award} />}
+        <button
+          onClick={() => {
+            setAward(null);
+            setOpen(true);
+          }}
+          className="btn-secondary"
+        >
+          🖋️ File a New Composition
+        </button>
+      </div>
     );
   }
 
@@ -32,6 +52,7 @@ export function NewCompositionForm() {
       setError(res.error ?? "Filing failed");
       return;
     }
+    setAward(res.award ?? null);
     setOpen(false);
     setTitle("");
     setDescription("");

@@ -12,6 +12,7 @@ import {
 import { AwardBanner } from "@/components/ui/AwardBanner";
 import { ScoreEditor } from "@/components/composer/ScoreEditor";
 import { Icon } from "@/components/ui/Icon";
+import type { AwardResult } from "@/lib/progression";
 import type { Check, CheckResult, Score } from "@/lib/score";
 import type { Freedom } from "@/lib/composer-freedom";
 
@@ -68,6 +69,17 @@ export function LessonFlow({
   const [visibility, setVisibility] = useState("PRIVATE");
   const [error, setError] = useState<string | null>(null);
   const [completion, setCompletion] = useState<LessonCompletionResult | null>(null);
+  /**
+   * What the last rewarded step inside the lesson earned.
+   *
+   * Passing the quiz is worth a third of the lesson's XP and finishing the
+   * practice another fifth, and either can carry a level-up, an achievement or
+   * a streak milestone with it. Both used to be granted in silence — the server
+   * awaited the award and dropped it — so the only banner in a whole lesson was
+   * the one at the very end, and doing three rewarded things felt like doing
+   * none.
+   */
+  const [stepAward, setStepAward] = useState<AwardResult | null>(null);
 
   async function handleQuizSubmit() {
     if (Object.keys(answers).length < quizQuestions.length) {
@@ -93,12 +105,16 @@ export function LessonFlow({
       passed: result.passed!,
       results: result.results!,
     });
+    // Only present the first time it is passed, so a retake shows nothing new
+    // rather than claiming XP it did not grant.
+    if (result.award) setStepAward(result.award);
     if (result.passed) setQuizPassed(true);
   }
 
   async function handlePractice() {
     setBusy(true);
-    await completePracticeExercise(lessonSlug);
+    const result = await completePracticeExercise(lessonSlug);
+    if (result.award) setStepAward(result.award);
     setPracticeDone(true);
     setBusy(false);
   }
@@ -339,6 +355,13 @@ export function LessonFlow({
             </div>
           )}
         </section>
+      )}
+
+      {/* The in-lesson award, until the completion banner supersedes it. */}
+      {stepAward && !completion?.award && (
+        <div className="mt-4">
+          <AwardBanner award={stepAward} />
+        </div>
       )}
 
       {completion?.award && (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { AwardBanner } from "@/components/ui/AwardBanner";
 import {
   startUnitExam,
   submitUnitExam,
@@ -115,7 +116,19 @@ export function UnitExam({
                 ? `Unit ${result.unlocked} is open. The lessons of this unit stay available if you ever want them — you simply do not have to do them.`
                 : "That was the last unit of the roadmap. Every lesson in the Academy is now open."}
             </p>
-            {result.xp ? (
+            {/*
+              Passing a unit is the biggest single moment on the roadmap, and
+              for a long time it said so in one grey line of "+180 XP" — while
+              the level-up, the skill level and any achievement it unlocked
+              happened invisibly, because the server dropped the award. The
+              banner is the same one a lesson ends on, which is the point: the
+              larger moment should not be the quieter one.
+            */}
+            {result.award ? (
+              <div className="mt-3">
+                <AwardBanner award={result.award} />
+              </div>
+            ) : result.xp ? (
               <p className="mt-2 text-xs text-gold-300">+{result.xp} XP</p>
             ) : (
               <p className="mt-2 text-xs text-parchment-500">

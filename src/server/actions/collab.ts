@@ -6,7 +6,7 @@ import { requireUserId } from "@/lib/auth";
 import { collabProjectSchema, scoreSchema } from "@/lib/validation";
 import { type Score } from "@/lib/score";
 import { setupForProject } from "@/lib/collab";
-import { awardProgress, syncAchievements } from "@/lib/progression";
+import { awardProgress, syncAchievements, type AwardResult } from "@/lib/progression";
 
 /**
  * Collaborations: a piece the guild writes together, one part each.
@@ -27,6 +27,18 @@ export interface CollabResult {
   ok: boolean;
   error?: string;
   projectId?: string;
+  /**
+   * What the action earned the person who took it, when it earned anything.
+   *
+   * Claiming and releasing a part never pay, so they never set this. Writing a
+   * part and finishing a piece do — 70 and 150 XP — and both used to pay in
+   * silence, which made the most collaborative thing in the app the least
+   * rewarding-looking.
+   *
+   * Finishing pays every writer, but only the caller's own award can be
+   * returned: the others belong to people who are not here to be told.
+   */
+  award?: AwardResult;
 }
 
 async function requireMembership(guildKey: string) {
@@ -205,8 +217,9 @@ export async function submitPart(input: {
 
   // Paid once per part, on the first submission. Revising your own line is
   // what writing is; it should not also be an income.
+  let award: AwardResult | undefined;
   if (first) {
-    await awardProgress({
+    award = await awardProgress({
       userId,
       xp: 70,
       skillXp: { COUNTERPOINT: 20, FORM: 15 },
@@ -214,7 +227,7 @@ export async function submitPart(input: {
     await syncAchievements(userId);
   }
   revalidatePath(`/guild/${part.project.guild.key}`);
-  return { ok: true };
+  return { ok: true, award };
 }
 
 /**
@@ -253,16 +266,21 @@ export async function completeCollabProject(projectId: string): Promise<CollabRe
   const writers = Array.from(
     new Set(project.parts.map((p) => p.claimedById).filter((id): id is string => Boolean(id)))
   );
+  // Only the caller's own award can be shown. The others are real and are
+  // granted, but they belong to composers who are not in front of this screen
+  // — they will meet them as a changed level the next time they look.
+  let award: AwardResult | undefined;
   for (const id of writers) {
-    await awardProgress({
+    const result = await awardProgress({
       userId: id,
       xp: 150,
       skillXp: { FORM: 40, COUNTERPOINT: 30 },
       countsAsActivity: id === userId,
     });
+    if (id === userId) award = result;
     await syncAchievements(id);
   }
 
   revalidatePath(`/guild/${project.guild.key}`);
-  return { ok: true };
+  return { ok: true, award };
 }

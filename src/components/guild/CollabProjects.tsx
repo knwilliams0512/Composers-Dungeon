@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { AwardBanner } from "@/components/ui/AwardBanner";
 import { ScoreEditor } from "@/components/composer/ScoreEditor";
 import { setupForProject, describeSetup } from "@/lib/collab";
 import type { Freedom } from "@/lib/composer-freedom";
@@ -13,7 +14,9 @@ import {
   createCollabProject,
   releasePart,
   submitPart,
+  type CollabResult,
 } from "@/server/actions/collab";
+import type { AwardResult } from "@/lib/progression";
 
 export interface CollabPartView {
   id: string;
@@ -77,16 +80,22 @@ export function CollabProjects({
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** What the last collaborative act earned. Writing a part pays 70, finishing 150. */
+  const [award, setAward] = useState<AwardResult | null>(null);
 
-  async function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
+  async function run(fn: () => Promise<CollabResult>) {
     setBusy(true);
     setError(null);
+    setAward(null);
     const res = await fn();
     setBusy(false);
     if (!res.ok) {
       setError(res.error ?? "That did not work");
       return false;
     }
+    // Claiming a part carries no award, so this stays null for those; writing
+    // one or finishing a piece carries a real one that used to be thrown away.
+    if (res.award) setAward(res.award);
     router.refresh();
     return true;
   }
@@ -107,6 +116,8 @@ export function CollabProjects({
           {creating ? "Cancel" : "Start a piece"}
         </button>
       </header>
+
+      {award && <AwardBanner award={award} />}
 
       {error && (
         <p className="rounded-lg border border-crimson-600/50 bg-crimson-900/20 px-3 py-2 text-sm text-crimson-300">

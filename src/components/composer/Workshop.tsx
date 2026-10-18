@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ScoreEditor } from "@/components/composer/ScoreEditor";
 import { Icon } from "@/components/ui/Icon";
+import { AwardBanner } from "@/components/ui/AwardBanner";
 import { createComposition } from "@/server/actions/profile";
+import type { AwardResult } from "@/lib/progression";
 import { ALL_TIERS, type Freedom } from "@/lib/composer-freedom";
 import { emptyScore, type Check, type CheckId, type Score } from "@/lib/score";
 
@@ -40,6 +42,8 @@ export function Workshop({ freedom }: { freedom: Freedom }) {
   const [visibility, setVisibility] = useState("PRIVATE");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  /** What the piece just saved earned. Saving used to grant 90 XP in silence. */
+  const [award, setAward] = useState<AwardResult | null>(null);
 
   const checks: Check[] = selected.map((id) => ({ id }));
   const locked = !freedom.canEditSetup;
@@ -61,6 +65,7 @@ export function Workshop({ freedom }: { freedom: Freedom }) {
     e.preventDefault();
     setBusy(true);
     setMessage(null);
+    setAward(null);
     const res = await createComposition({ title, visibility, score });
     setBusy(false);
     if (!res.ok) {
@@ -68,6 +73,7 @@ export function Workshop({ freedom }: { freedom: Freedom }) {
       return;
     }
     setMessage({ ok: true, text: "Saved to your Library." });
+    if (res.award) setAward(res.award);
     setTitle("");
     router.refresh();
   }
@@ -245,6 +251,7 @@ export function Workshop({ freedom }: { freedom: Freedom }) {
             {message.text}
           </p>
         )}
+        {award && <AwardBanner award={award} />}
         <button type="submit" disabled={busy} className="btn-primary">
           <Icon name="quill" size={15} />
           {busy ? "Saving…" : "Save to Library"}

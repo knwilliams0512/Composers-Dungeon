@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/auth";
 import { profileUpdateSchema, compositionSchema, scoreSchema } from "@/lib/validation";
+import type { AwardResult } from "@/lib/progression";
 
 export async function updateProfile(input: {
   displayName: string;
@@ -30,7 +31,13 @@ export async function createComposition(input: {
   visibility?: string;
   /** A piece written in the app's own composer, if there is one. */
   score?: unknown;
-}): Promise<{ ok: boolean; error?: string; compositionId?: string }> {
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  compositionId?: string;
+  /** What filing it earned, so saving a piece can say so. */
+  award?: AwardResult;
+}> {
   const userId = await requireUserId();
   const parsed = compositionSchema.safeParse({
     title: input.title,
@@ -58,14 +65,16 @@ export async function createComposition(input: {
   });
   const { awardProgress } = await import("@/lib/progression");
   // Writing something real in the app is worth more than logging a link to it.
-  await awardProgress({
+  const award = await awardProgress({
     userId,
     xp: score ? 90 : 60,
     skillXp: score ? { EXPRESSION: 25, MELODY: 20 } : { EXPRESSION: 20 },
   });
   revalidatePath("/library");
   revalidatePath("/workshop");
-  return { ok: true, compositionId: composition.id };
+  // Returned rather than discarded: 90 XP and two skill levels used to land
+  // behind the words "Saved to your Library."
+  return { ok: true, compositionId: composition.id, award };
 }
 
 export async function setCompositionVisibility(input: {

@@ -67,6 +67,13 @@ export interface QuizGradeResult {
   score?: number;
   passed?: boolean;
   results?: { questionId: string; correct: boolean; explanation: string; correctIndex: number }[];
+  /**
+   * What passing the quiz earned, when it earned anything.
+   *
+   * Present only the first time the quiz is passed, because that is the only
+   * time it awards. Undefined on a retake is not an omission.
+   */
+  award?: AwardResult;
 }
 
 export async function submitLessonQuiz(input: {
@@ -148,18 +155,24 @@ export async function submitLessonQuiz(input: {
     },
   });
 
+  // The award is returned, not swallowed. It used to be awaited and dropped,
+  // so passing a quiz granted a third of the lesson's XP — and any level-up,
+  // achievement or streak milestone that came with it — in total silence. The
+  // only banner in a lesson was at the very end, which is why doing three
+  // rewarded things inside one lesson felt like doing none.
+  let award: AwardResult | undefined;
   if (passed && !progress.quizPassed) {
     // Small XP for the quiz itself; the big award comes at lesson completion.
-    await awardProgress({ userId, xp: Math.round(lesson.xpReward * 0.3) });
+    award = await awardProgress({ userId, xp: Math.round(lesson.xpReward * 0.3) });
   }
 
   revalidatePath(`/academy/${lesson.slug}`);
-  return { ok: true, score, passed, results };
+  return { ok: true, score, passed, results, award };
 }
 
 export async function completePracticeExercise(
   lessonSlug: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; award?: AwardResult }> {
   const userId = await requireUserId();
   const shut = await lessonIsOpen(userId, lessonSlug);
   if (shut) return { ok: false, error: shut };
@@ -177,11 +190,12 @@ export async function completePracticeExercise(
     create: { userId, lessonId: lesson.id, practiceDone: true },
     update: { practiceDone: true },
   });
+  let award: AwardResult | undefined;
   if (!before?.practiceDone) {
-    await awardProgress({ userId, xp: Math.round(lesson.xpReward * 0.2) });
+    award = await awardProgress({ userId, xp: Math.round(lesson.xpReward * 0.2) });
   }
   revalidatePath(`/academy/${lessonSlug}`);
-  return { ok: true };
+  return { ok: true, award };
 }
 
 export interface LessonCompletionResult {

@@ -251,6 +251,11 @@ export async function boostMember(input: {
   // The XP lands on the person boosted, never the giver. countsAsActivity is
   // false deliberately: a streak should be earned by writing music, not by
   // being complimented while you were away from the app.
+  //
+  // award-not-surfaced: the award belongs to the person boosted, who is not the
+  // person on this screen. There is nobody here to show it to — the giver would
+  // be shown someone else's level-up, and the receiver is not in the request.
+  // Returning it would also leak how close another composer is to levelling.
   await awardProgress({
     userId: parsed.data.toUserId,
     xp: BOOST_XP,
