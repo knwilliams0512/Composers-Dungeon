@@ -94,6 +94,31 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Find every C on the instrument in under ten seconds.",
       "Repeat for F, then for B — the two notes with no black key above them.",
     ],
+    extraSections: [
+      {
+        heading: "Which C Is Middle C",
+        body:
+          "Seven letters name seven keys and a piano has eighty-eight of them, so a letter on its own does not identify a key. The letter is paired with an octave number, and the number changes at every C.\n\nMiddle C is C4 \u2014 the fourth C up on a standard keyboard, near the middle, and the note that sits in the gap between the treble and bass staves. The C above it is C5 and the C below is C3. A4, the A above middle C, is the note orchestras tune to at 440 hertz.\n\nThe numbering is worth getting right early, because every pitch written down anywhere \u2014 in a score, in a range chart, in this app \u2014 is named this way, and C3 for C4 is a whole octave of difference.",
+        example: "C3 \u00b7 C4 (middle C) \u00b7 A4 = 440 Hz \u00b7 C5 \u00b7 C6",
+        figure: {
+          kind: "keyboard",
+          caption: "The octave number changes at every C, and middle C is C4",
+          from: 48,
+          to: 84,
+          marks: [
+            { pitch: 48, label: "C3" },
+            { pitch: 60, label: "C4", tone: "root" },
+            { pitch: 69, label: "A4", tone: "target" },
+            { pitch: 72, label: "C5" },
+            { pitch: 84, label: "C6" },
+          ],
+        },
+        callout: {
+          kind: "note",
+          text: "Middle C is C4 in the convention this app and most software use. A few older sources call it C3, so a range chart from one world can read an octave out in the other.",
+        },
+      },
+    ],
   },
 
   "sharps-and-flats": {
@@ -129,6 +154,28 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Find the two places on the keyboard where two white keys sit adjacent with no black key between them.",
     ],
     extraSections: [
+      {
+        heading: "Naturals, and How Long an Accidental Lasts",
+        body:
+          "There is a third accidental. A natural (\u266E) cancels a sharp or a flat and returns the note to its plain letter. You need it to undo an accidental written earlier in the bar, and to undo one the key signature imposed.\n\nAn accidental lasts to the end of the bar it is written in, and applies only to its own octave on its own staff. Write F\u266F on the first beat and every F in that bar is sharp without being marked again; the barline cancels it. An F an octave higher in the same bar is not covered, which is why careful engraving often marks it anyway.\n\nDouble accidentals exist too: a double sharp raises by two half steps, a double flat lowers by two. They look like overkill and they are necessary \u2014 the leading tone of G\u266F minor is F double sharp, and writing G instead would give the scale two Gs and no F at all.",
+        example: "F\u266F then F\u266E \u00b7 the barline cancels \u00b7 F double sharp sounds as G but is spelled F",
+        figure: {
+          kind: "staff",
+          caption: "The natural cancels the sharp; the sharp returns when it is written again",
+          key: "C",
+          hideMeter: true,
+          notes: [
+            { pitch: 66, spell: 1, label: "m2", accent: true },
+            { pitch: 65, spell: 0, accent: true },
+            { pitch: 64 },
+            { pitch: 66, spell: 1 },
+          ],
+        },
+        callout: {
+          kind: "warning",
+          text: "An accidental does not carry across a barline, and does not carry into other octaves. Both are routine sources of wrong notes in rehearsal.",
+        },
+      },
       {
         heading: "Spelling Is a Message to the Performer",
         body: "A performer reads ahead and predicts. When you spell a rising chromatic line with sharps, their eye reads 'this is going up' before their fingers arrive. Spell the same line with flats and you have told them the opposite. On an instrument with no fixed pitch — a violin, a voice — this can even change the intonation a player chooses.",
@@ -176,6 +223,30 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Play a whole step starting from every white key and name where you land.",
       "Find the two natural half steps by ear alone.",
     ],
+    extraSections: [
+      {
+        heading: "The Two Natural Half Steps",
+        body:
+          "Between most pairs of adjacent letters there is a black key, so the distance is a whole step. Two pairs have no black key between them, and those are half steps: E to F, and B to C.\n\nThose two gaps are the whole reason the keyboard looks the way it does \u2014 the black keys fall into groups of two and three because of where the gaps are. They are also why the major scale pattern has its half steps at degrees 3\u20134 and 7\u20138: play the white keys from C to C and the pattern comes out for free.\n\nMemorise the two and you never have to count again. Everything else between adjacent letters is a whole step.",
+        example: "E\u2013F and B\u2013C are half steps \u00b7 C\u2013D, D\u2013E, F\u2013G, G\u2013A and A\u2013B are whole",
+        figure: {
+          kind: "keyboard",
+          caption: "No black key between E and F, or between B and C",
+          from: 60,
+          to: 72,
+          marks: [
+            { pitch: 64, label: "E", tone: "step" },
+            { pitch: 65, label: "F", tone: "step" },
+            { pitch: 71, label: "B", tone: "step" },
+            { pitch: 72, label: "C", tone: "step" },
+          ],
+          brackets: [
+            { from: 64, to: 65, text: "half" },
+            { from: 71, to: 72, text: "half" },
+          ],
+        },
+      },
+    ],
   },
 
   "note-values-and-rests": {
@@ -209,6 +280,31 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Clap a four-beat bar as quarters, then halves, then whole — feel the proportion.",
       "Write four bars of rhythm and check each one adds to exactly four beats.",
       "Take one of those bars and replace a note with a rest. Clap both versions.",
+    ],
+    extraSections: [
+      {
+        heading: "Dots and Ties",
+        body:
+          "Halving is not enough on its own. Every value is half the one before it, so the system can write one beat and half a beat and never three halves of a beat \u2014 and three halves of a beat is one of the commonest rhythms in music.\n\nA dot after a note adds half of that note's value again. A dotted half is three beats rather than two, a dotted quarter is one and a half, a dotted eighth is three quarters of a beat. A second dot adds half of the first: a double-dotted half is three and a half beats. Rests take dots the same way.\n\nA tie joins two notes of the same pitch into one longer sound, which is how a note crosses a barline or reaches a length no single value and dot can write. A tie is not a slur: a slur joins different pitches and asks for phrasing, while a tie joins the same pitch and asks for one sound.",
+        example: "quarter = 1 beat \u00b7 dotted quarter = 1\u00bd \u00b7 half = 2 \u00b7 dotted half = 3 \u00b7 double-dotted half = 3\u00bd",
+        figure: {
+          kind: "rhythm",
+          caption: "A dotted quarter takes one and a half beats, so the eighth after it lands off the beat",
+          meter: { beats: 4, unit: 4 },
+          row: [
+            { duration: 6, label: "dotted", accent: true },
+            { duration: 2 },
+            { duration: 4 },
+            { duration: 4 },
+            { duration: 12, label: "dotted", accent: true },
+            { duration: 4 },
+          ],
+        },
+        callout: {
+          kind: "note",
+          text: "A dot adds half of what it follows, not half a beat. A dot on an eighth note adds a sixteenth.",
+        },
+      },
     ],
   },
 
@@ -250,6 +346,29 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Tap 6/8 in two, then in six, and hear the character change.",
     ],
     extraSections: [
+      {
+        heading: "Simple and Compound",
+        body:
+          "The top number does not always tell you how many beats you will feel. 6/8 has six eighth notes in a bar, and almost nobody counts six \u2014 they count two, each divided into three. That is the difference between simple and compound metre, and it is the one thing the time signature does not say outright.\n\nIn a simple metre the beat divides into two: 2/4, 3/4 and 4/4 all have beats that split into eighths in pairs. In a compound metre the beat divides into three, and the signature counts the divisions rather than the beats \u2014 6/8 is two beats of three, 9/8 is three, 12/8 is four. The beat itself is a dotted quarter, which is exactly why no simple signature can describe it.\n\nSo read 6/8 as two, and 3/4 as three, and notice that both hold six eighth notes. The notes are the same; the grouping is the music.",
+        example: "3/4 = three beats of two \u00b7 6/8 = two beats of three \u00b7 both hold six eighths",
+        figure: {
+          kind: "rhythm",
+          caption: "6/8: six eighths, but the accents fall in two groups of three",
+          meter: { beats: 6, unit: 8 },
+          row: [
+            { duration: 2, label: "1", accent: true },
+            { duration: 2 },
+            { duration: 2 },
+            { duration: 2, label: "2", accent: true },
+            { duration: 2 },
+            { duration: 2 },
+          ],
+        },
+        callout: {
+          kind: "insight",
+          text: "A piece that shifts between 6/8 and 3/4 keeps the same number of eighth notes and changes how many beats they make. That is a hemiola, and it is one of the oldest rhythmic tricks there is.",
+        },
+      },
       {
         heading: "Meter Is a Promise",
         body: "The moment a listener identifies your meter, they begin predicting. Every strong beat they expect is a small bet they place, and your music either pays it or refuses. Syncopation, hemiola and the sudden 5/4 bar are all interesting only because the meter set the expectation first. A composer with no meter has nothing to subvert.",
@@ -297,6 +416,32 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Build the scale on a note you find awkward — E♭ or B — and check every letter appears once.",
       "Sing the scale, stop on the seventh degree, and feel the pull upward.",
     ],
+    extraSections: [
+      {
+        heading: "Key Signatures",
+        body:
+          "Apply the pattern starting on G and the seventh note comes out as F\u266F. That sharp is not an accident of the moment \u2014 it belongs to the key, and every F in a piece in G major is sharp unless something says otherwise. Writing an accidental in front of each one would be exhausting to read and easy to get wrong.\n\nSo the sharps and flats a key needs are collected at the front of every staff, just after the clef, as the key signature. One sharp means G major, two means D; one flat means F major, two means B\u266D. The signature applies for the whole piece, in every octave, until it changes.\n\nWhich accidentals appear, and in which order, is not arbitrary: sharps arrive F C G D A E B, and flats arrive in exactly the reverse, B E A D G C F. That order is the circle of fifths, which is the next lesson.",
+        example: "G major: one sharp (F\u266F) \u00b7 D major: two (F\u266F C\u266F) \u00b7 F major: one flat (B\u266D)",
+        figure: {
+          kind: "staff",
+          caption: "G major \u2014 the F\u266F lives in the key signature, so it is never written as an accidental",
+          key: "G",
+          mode: "major",
+          hideMeter: true,
+          hideBarlines: true,
+          notes: [
+            { pitch: 55 },
+            { pitch: 57 },
+            { pitch: 59 },
+            { pitch: 60 },
+            { pitch: 62 },
+            { pitch: 64 },
+            { pitch: 66, label: "m2", accent: true },
+            { pitch: 67 },
+          ],
+        },
+      },
+    ],
   },
 
   "minor-scales": {
@@ -335,6 +480,37 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write A natural minor, then raise the seventh and play both.",
       "Play melodic minor up and down and notice the descending change.",
       "Find the relative minor of three major keys by counting to the sixth degree.",
+    ],
+    extraSections: [
+      {
+        heading: "Harmonic and Melodic Minor",
+        body:
+          "Natural minor has a problem. Its seventh degree sits a whole step below the tonic, so it does not lean home the way a major scale's seventh does, and the chord built on it is minor rather than a dominant. A minor-key phrase written strictly in natural minor has no cadence with any pull in it.\n\nHarmonic minor fixes that by raising the seventh degree a half step: in A minor the G becomes G\u266F. The leading tone is back, V becomes a major chord, and V\u2013i works. The cost is the gap it leaves between the sixth and seventh degrees \u2014 F to G\u266F is three semitones, an augmented second, which is awkward to sing.\n\nMelodic minor fixes that in turn by raising the sixth as well on the way up, and traditionally lowering both again coming down, so the descent is plain natural minor. Three forms, one key, and composers mix them freely inside a single phrase.",
+        example: "A natural: A B C D E F G \u00b7 A harmonic: A B C D E F G\u266F \u00b7 A melodic rising: A B C D E F\u266F G\u266F",
+        figure: {
+          kind: "staff",
+          caption: "A harmonic minor \u2014 the raised seventh is a half step from home",
+          key: "A",
+          mode: "minor",
+          hideMeter: true,
+          hideBarlines: true,
+          notes: [
+            { pitch: 57 },
+            { pitch: 59 },
+            { pitch: 60 },
+            { pitch: 62 },
+            { pitch: 64 },
+            { pitch: 65 },
+            { pitch: 68, spell: 1, label: "m2", accent: true },
+            { pitch: 69 },
+          ],
+          brackets: [{ from: 5, to: 6, text: "augmented 2nd" }],
+        },
+        callout: {
+          kind: "insight",
+          text: "The raised seventh is not a different key. It is an accidental inside the minor key, which is why minor-key music is full of sharps the key signature never mentions.",
+        },
+      },
     ],
   },
 
@@ -375,6 +551,35 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Name the interval between five random pairs of notes, letters first.",
       "Sing a major third, then a minor third, and label which songs each one reminds you of.",
     ],
+    extraSections: [
+      {
+        heading: "Number and Quality",
+        body:
+          "Counting letters gives you half of an interval's name. C to E and C to E\u266D are both thirds \u2014 three letters either way \u2014 and they are not the same distance or the same sound. The other half is quality.\n\nSeconds, thirds, sixths and sevenths come in major and minor, a half step apart: C to E is a major third at four semitones, C to E\u266D a minor third at three. Unisons, fourths, fifths and octaves are called perfect instead, because each has only one diatonic size. Widen any interval by a half step and it is augmented; narrow it and it is diminished.\n\nThe one worth knowing by name is six semitones \u2014 the tritone, an augmented fourth or a diminished fifth depending on spelling. It is the most unstable interval in tonal music, and it is why the dominant seventh chord pulls home as hard as it does.",
+        example: "C\u2192E major 3rd (4) \u00b7 C\u2192E\u266D minor 3rd (3) \u00b7 C\u2192G perfect 5th (7) \u00b7 C\u2192F\u266F tritone (6)",
+        figure: {
+          kind: "staff",
+          caption: "Same number, different quality \u2014 then the tritone",
+          key: "C",
+          hideMeter: true,
+          hideBarlines: true,
+          notes: [
+            { pitch: 60, label: "M3" },
+            { pitch: 64 },
+            { pitch: 60, label: "m3" },
+            { pitch: 63, spell: -1 },
+            { pitch: 60, label: "P5" },
+            { pitch: 67 },
+            { pitch: 60, label: "TT", accent: true },
+            { pitch: 66, spell: 1, accent: true },
+          ],
+        },
+        callout: {
+          kind: "warning",
+          text: "Counting semitones alone cannot name an interval. Three semitones is a minor third from C to E\u266D and an augmented second from C to D\u266F \u2014 the same sound, a different name, and the difference decides how it is written and resolved.",
+        },
+      },
+    ],
   },
 
   "triads-major-minor": {
@@ -408,6 +613,36 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Build a major triad on every white key and note which ones need accidentals.",
       "Convert each one to minor by lowering the third.",
       "Play major, minor, diminished and augmented in a row and name them with your eyes shut.",
+    ],
+    extraSections: [
+      {
+        heading: "Diminished and Augmented",
+        body:
+          "Two stacked thirds give four possible triads, not two, because each third can be major or minor independently of the other.\n\nMajor is a major third then a minor: C E G. Minor is a minor third then a major: C E\u266D G. Diminished is two minor thirds: C E\u266D G\u266D \u2014 its outer interval is a diminished fifth, which is the tritone, and it sounds unstable because it is. Augmented is two major thirds: C E G\u266F, whose outer interval is an augmented fifth, and which sounds suspended rather than tense.\n\nYou meet the diminished triad immediately: it is the chord on the seventh degree of every major key, the vii\u00b0 in the family above. Augmented triads are rarer in diatonic writing and turn up in minor keys and in chromatic harmony.",
+        example: "C E G major \u00b7 C E\u266D G minor \u00b7 C E\u266D G\u266D diminished \u00b7 C E G\u266F augmented",
+        figure: {
+          kind: "staff",
+          caption: "Four triads on C, in order of shrinking fifth",
+          key: "C",
+          hideMeter: true,
+          hideBarlines: true,
+          notes: [
+            { pitch: 60, duration: 8, label: "major" },
+            { pitch: 64, duration: 8, stack: true },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 60, duration: 8, label: "minor" },
+            { pitch: 63, duration: 8, spell: -1, stack: true },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 60, duration: 8, label: "dim", accent: true },
+            { pitch: 63, duration: 8, spell: -1, stack: true, accent: true },
+            { pitch: 66, duration: 8, spell: -1, stack: true, accent: true },
+            { pitch: 60, duration: 8, label: "aug" },
+            { pitch: 64, duration: 8, stack: true },
+            { pitch: 68, duration: 8, spell: 1, stack: true },
+          ],
+          harmony: [{ at: 0, text: "I" }],
+        },
+      },
     ],
   },
 
@@ -500,6 +735,49 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write eight bars that reach their highest note in bar 6.",
       "Sing what you wrote. If you cannot, it is not yet a melody.",
     ],
+    extraSections: [
+      {
+        heading: "The Harmony Underneath",
+        body:
+          "Contour decides whether a line has shape. What decides whether it has sense is the chord it is sitting on.\n\nPut chord tones on the strong beats and anything in between can be a passing or neighbour note. A melody built this way outlines the harmony while sounding free of it, which is why a good tune can be recognised from the tune alone \u2014 the chords are already implied in it. Put non-chord tones on the strong beats instead and the line will sound like a mistake unless you resolve each one deliberately.\n\nThe other practical constraint is range. Most memorable tunes live inside a ninth or a tenth, because that is what a human voice does comfortably, and a melody that spans two octaves is usually two melodies that have not been separated yet.",
+        example: "Over C: strong beats on C, E or G \u00b7 D and F passing between them",
+        figure: {
+          kind: "staff",
+          caption: "Chord tones on the strong beats, passing notes off them",
+          key: "C",
+          grandStaff: true,
+          notes: [
+            // The chords first, so the harmony claims below can point at them.
+            { pitch: 48, duration: 16, staff: 1, at: 0 },
+            { pitch: 52, duration: 16, staff: 1, at: 0 },
+            { pitch: 55, duration: 16, staff: 1, at: 0 },
+            { pitch: 43, duration: 16, staff: 1, at: 16 },
+            { pitch: 47, duration: 16, staff: 1, at: 16 },
+            { pitch: 50, duration: 16, staff: 1, at: 16 },
+            // The tune: beats one and three carry chord tones, the eighths
+            // between them do not.
+            { pitch: 60, duration: 4, accent: true },
+            { pitch: 62, duration: 2 },
+            { pitch: 64, duration: 2 },
+            { pitch: 67, duration: 4, accent: true },
+            { pitch: 65, duration: 2 },
+            { pitch: 64, duration: 2 },
+            { pitch: 67, duration: 4, accent: true },
+            { pitch: 65, duration: 2 },
+            { pitch: 64, duration: 2 },
+            { pitch: 62, duration: 8, accent: true },
+          ],
+          harmony: [
+            { at: 0, text: "I" },
+            { at: 3, text: "V" },
+          ],
+        },
+        callout: {
+          kind: "insight",
+          text: "If you cannot hear the chords when somebody sings your tune unaccompanied, the strong beats are probably not carrying chord tones.",
+        },
+      },
+    ],
   },
 
   "phrases-question-answer": {
@@ -533,6 +811,27 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write a four-bar phrase ending on the dominant.",
       "Answer it with four bars that begin identically and end on the tonic.",
       "Now rewrite the answer as six bars and hear what the extra space does.",
+    ],
+    extraSections: [
+      {
+        heading: "The Sentence, and Phrases That Are Not Four Bars",
+        body:
+          "The period is one way to build eight bars. The other is the sentence, and it is built from a different logic: a two-bar idea, the same idea repeated or transposed, then four bars of continuation that fragment it and drive to a cadence. Two plus two plus four.\n\nThe difference matters when you are writing. A period answers; a sentence accelerates. A period's two halves are roughly equal, while a sentence gets shorter and busier as it goes, which is why it generates momentum rather than symmetry.\n\nAnd four bars is a default, not a law. Phrases can be extended by repeating a cadence, interrupted by a deceptive one, or compressed by overlapping the end of one with the start of the next \u2014 an elision, where the final bar of a phrase is also the first bar of the one after it.",
+        example: "Period: 4 + 4, question and answer \u00b7 Sentence: 2 + 2 + 4, idea, echo, drive",
+        figure: {
+          kind: "form",
+          caption: "Two ways to fill eight bars",
+          sections: [
+            { label: "idea", bars: 2, tone: "a", note: "the basic idea" },
+            { label: "idea'", bars: 2, tone: "a", note: "repeated or transposed" },
+            { label: "continuation", bars: 4, tone: "b", note: "fragmented, driving to the cadence" },
+          ],
+        },
+        callout: {
+          kind: "note",
+          text: "Beethoven's Fifth opens with a sentence, not a period. The four-note idea is stated, repeated a step lower, and then fragmented \u2014 which is why the opening drives instead of balancing.",
+        },
+      },
     ],
   },
 
@@ -619,6 +918,34 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Take one melody and set it with block chords, then broken chords, then arpeggios.",
       "Play the accompaniment alone. If it is more interesting than the melody, rebalance.",
     ],
+    extraSections: [
+      {
+        heading: "What Makes a Cadence Final",
+        body:
+          "Not every authentic cadence is equally conclusive, and the difference is the one piece of cadence theory that changes how you write.\n\nA perfect authentic cadence needs three things at once: V to I, both chords in root position, and the melody landing on the tonic. Get all three and the music has stopped. Miss any one of them \u2014 an inversion in either chord, or the melody landing on the third or fifth \u2014 and it is an imperfect authentic cadence, which sounds like an ending that is not quite the ending. That is why a piece can cadence six times in its last minute and still be going.\n\nSo the strength of an ending is something you control precisely. Save the perfect authentic cadence for the places where the music really does stop, and use imperfect ones everywhere a phrase needs to breathe without concluding.",
+        example: "PAC: V\u2013I, both root position, melody on the tonic \u00b7 IAC: anything less",
+        figure: {
+          kind: "staff",
+          caption: "A perfect authentic cadence \u2014 root position throughout, melody landing on the tonic",
+          key: "C",
+          grandStaff: true,
+          notes: [
+            { pitch: 71, duration: 8 },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 62, duration: 8, stack: true },
+            { pitch: 55, duration: 8, staff: 1, at: 0 },
+            { pitch: 72, duration: 8, accent: true },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 64, duration: 8, stack: true },
+            { pitch: 48, duration: 8, staff: 1, at: 8 },
+          ],
+          harmony: [
+            { at: 0, text: "V" },
+            { at: 4, text: "I" },
+          ],
+        },
+      },
+    ],
   },
 
   // -------------------------------------------------------------------------
@@ -660,6 +987,24 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Do it anticlockwise with flats.",
       "For three random keys, name their closely related keys in five seconds.",
     ],
+    extraSections: [
+      {
+        heading: "Reading a Key Signature Off the Circle",
+        body:
+          "The circle is not only a map of relationships. It is also the fastest way to name a key signature you are looking at, and to write one you need.\n\nSharps always appear in the same order \u2014 F C G D A E B \u2014 and flats in exactly the reverse, B E A D G C F. Each is the other read backwards, because each is the circle of fifths walked in one direction or the other. So one sharp is F\u266F, two are F\u266F and C\u266F, and so on; you never have to remember which sharps, only how many.\n\nTwo tricks name the key in a second. For sharps, the last sharp is the leading tone, so go up a half step: three sharps ends on G\u266F, and the key is A major. For flats, the second-to-last flat is the key: four flats are B\u266D E\u266D A\u266D D\u266D, and the key is A\u266D major. The relative minor is three half steps below the major in both cases.",
+        example: "3 sharps \u2192 last is G\u266F \u2192 A major \u00b7 4 flats \u2192 second-to-last is A\u266D \u2192 A\u266D major",
+        figure: {
+          kind: "circle",
+          caption: "Clockwise adds a sharp, anticlockwise adds a flat; neighbours share six of seven notes",
+          highlight: ["C", "G", "D", "F"],
+          arrow: { from: "C", to: "G", text: "one sharp" },
+        },
+        callout: {
+          kind: "note",
+          text: "The bottom of the circle is where the two directions meet. F\u266F major and G\u266D major are the same six sounds spelled two ways \u2014 six sharps or six flats \u2014 which is the enharmonic seam.",
+        },
+      },
+    ],
   },
 
   "chord-functions-inversions": {
@@ -693,6 +1038,36 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Take a I–IV–V–I progression and rewrite it so the bass moves only by step.",
       "Label every inversion with figured bass.",
       "Check for parallel fifths between outer voices and fix them.",
+    ],
+    extraSections: [
+      {
+        heading: "Figured Bass: How Inversions Are Written",
+        body:
+          "An inversion needs a name on the page, and the name is a number \u2014 inherited from the seventeenth century, when a keyboard player read a bass line with figures under it and worked the chords out on the spot.\n\nThe numbers are the intervals above the bass. A root-position triad is 5/3 and the figures are left out entirely. First inversion, with the third in the bass, is 6/3 and written just 6. Second inversion, with the fifth in the bass, is 6/4. For seventh chords: root position is 7, first inversion 6/5, second 4/3, third 4/2 or just 2.\n\nIn roman-numeral analysis the figure sits beside the numeral, so V6 is a dominant chord with its third in the bass and I6/4 is a tonic with its fifth there. The one to recognise on sight is the cadential 6/4 \u2014 I6/4 falling to V at a cadence, which sounds like a decorated dominant rather than a tonic, because that is what it is.",
+        example: "I = root \u00b7 I6 = third in the bass \u00b7 I6/4 = fifth in the bass \u00b7 V6/5 = dominant seventh, third in the bass",
+        figure: {
+          kind: "staff",
+          caption: "One chord, three bass notes \u2014 same identity, different weight",
+          key: "C",
+          grandStaff: true,
+          hideMeter: true,
+          notes: [
+            { pitch: 72, duration: 8 },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 64, duration: 8, stack: true },
+            { pitch: 48, duration: 8, staff: 1, at: 0 },
+            { pitch: 72, duration: 8 },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 64, duration: 8, stack: true },
+            { pitch: 52, duration: 8, staff: 1, at: 8 },
+            { pitch: 72, duration: 8 },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 64, duration: 8, stack: true },
+            { pitch: 55, duration: 8, staff: 1, at: 16 },
+          ],
+          harmony: [{ at: 0, text: "I" }],
+        },
+      },
     ],
   },
 
@@ -733,6 +1108,42 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write a phrase using V/V and resolve it properly.",
       "Modulate to the relative minor and cadence there so it sticks.",
     ],
+    extraSections: [
+      {
+        heading: "Tonicisation Is Not Modulation",
+        body:
+          "A secondary dominant points at a chord that is not the tonic and treats it, for one moment, as though it were. In C major, D7 is the dominant of G \u2014 written V/V, said \"five of five\" \u2014 and it makes the G that follows sound briefly like home.\n\nBuilding one is mechanical: take the chord you want to approach, find its own dominant, and play that first. Any major or minor diatonic chord can have one. V/V, V/vi and V/IV are the common three, and each brings exactly one accidental into the key \u2014 the leading tone of the chord being pointed at.\n\nThe distinction worth holding is that this is tonicisation, not modulation. Nothing has changed key: there has been no cadence in the new key and no sustained stay, and the next bar is back in C as though nothing happened. A modulation is what you get when the tonicisation refuses to end.",
+        example: "In C: V/V = D7 \u2192 G \u00b7 V/vi = E7 \u2192 Am \u00b7 V/IV = C7 \u2192 F",
+        figure: {
+          kind: "staff",
+          caption: "D7 is not in C major \u2014 the F\u266F is the leading tone of G, borrowed for one chord",
+          key: "C",
+          grandStaff: true,
+          notes: [
+            { pitch: 72, duration: 4 },
+            { pitch: 67, duration: 4, stack: true },
+            { pitch: 64, duration: 4, stack: true },
+            { pitch: 48, duration: 4, staff: 1, at: 0 },
+            { pitch: 72, duration: 4, accent: true },
+            { pitch: 66, duration: 4, spell: 1, stack: true, accent: true },
+            { pitch: 62, duration: 4, stack: true },
+            { pitch: 50, duration: 4, staff: 1, at: 4 },
+            { pitch: 71, duration: 8 },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 62, duration: 8, stack: true },
+            { pitch: 55, duration: 8, staff: 1, at: 8 },
+          ],
+          harmony: [
+            { at: 0, text: "I" },
+            { at: 8, text: "V" },
+          ],
+        },
+        callout: {
+          kind: "warning",
+          text: "One accidental is not a key change. Nothing has modulated until the new key gets a cadence of its own.",
+        },
+      },
+    ],
   },
 
   "binary-ternary-form": {
@@ -771,6 +1182,23 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write sixteen bars of A that modulate to the dominant.",
       "Write a B section that contrasts in register but keeps the rhythm.",
       "Bring back A, varied — not copied.",
+    ],
+    extraSections: [
+      {
+        heading: "Rounded Binary, and the Da Capo",
+        body:
+          "Between plain binary and full ternary sits the form most minuets and most Baroque dances actually use: rounded binary. The A section goes to the dominant and repeats; the B section develops, and then \u2014 before it ends \u2014 the opening material returns in the tonic.\n\nThat return is what makes it \"rounded\". It is not ternary, because the return is part of the second half rather than a third section of its own, and the repeat signs make the shape ||: A :||: B A :|| rather than A B A. The difference is audible: in ternary the middle section is a genuine departure with its own cadence, while in rounded binary the B material is still on its way back.\n\nThe da capo aria builds ternary at a larger scale. A, then a contrasting B, then the instruction da capo \u2014 from the head \u2014 which sends the performer back to repeat A, traditionally ornamented the second time. The written form is two sections; the heard form is three.",
+        example: "Binary ||: A :||: B :|| \u00b7 Rounded binary ||: A :||: B A :|| \u00b7 Ternary A B A",
+        figure: {
+          kind: "form",
+          caption: "Rounded binary: the opening returns inside the second half, not as a third section",
+          sections: [
+            { label: "A", bars: 8, tone: "a", note: "tonic to dominant" },
+            { label: "B", bars: 8, tone: "b", note: "development" },
+            { label: "A", bars: 4, tone: "a", note: "returns in the tonic" },
+          ],
+        },
+      },
     ],
   },
 
@@ -811,6 +1239,36 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Assign both lines to real instruments and check the ranges.",
       "Swap which instrument has the melody and listen to what changed.",
     ],
+    extraSections: [
+      {
+        heading: "Tessitura, and Where a Line Should Sit",
+        body:
+          "A range is where an instrument can play. A tessitura is where it sounds like itself, and the two are not the same \u2014 which is the gap most orchestration mistakes fall into.\n\nA clarinet's bottom octave is dark and reedy and carries well at any dynamic; its throat register, just above, is pale and weak and will vanish under anything. A violin's lowest string is warm but will not cut; its top octave is brilliant and tiring to play for long. A horn blends with everything and so disappears if nothing else makes room for it. Writing a countermelody inside an instrument's weak register and marking it forte does not fix it.\n\nSo put a countermelody where it can be heard: in a register the melody is not using, with a rhythm that moves when the melody rests. Separation in space or in time \u2014 ideally both.",
+        example: "Melody high and sustained \u2192 countermelody low and moving, or the reverse",
+        figure: {
+          kind: "staff",
+          caption: "The second line moves where the first holds, and sits a register below it",
+          key: "C",
+          grandStaff: true,
+          notes: [
+            { pitch: 72, duration: 8 },
+            { pitch: 74, duration: 8 },
+            { pitch: 76, duration: 16 },
+            { pitch: 55, duration: 4, staff: 1, at: 0 },
+            { pitch: 57, duration: 4, staff: 1, at: 4 },
+            { pitch: 59, duration: 4, staff: 1, at: 8 },
+            { pitch: 60, duration: 4, staff: 1, at: 12 },
+            { pitch: 62, duration: 4, staff: 1, at: 16 },
+            { pitch: 64, duration: 4, staff: 1, at: 20 },
+            { pitch: 62, duration: 8, staff: 1, at: 24 },
+          ],
+        },
+        callout: {
+          kind: "warning",
+          text: "Doubling the melody in parallel octaves is not a countermelody. It is the same line, thicker, and you have spent a player on it.",
+        },
+      },
+    ],
   },
 
   "chromatic-harmony-modal-writing": {
@@ -849,6 +1307,31 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write a major-key phrase and replace IV with borrowed iv.",
       "Approach a dominant with a Neapolitan sixth.",
       "Write eight bars in Dorian over a drone, and resist every urge to cadence V–i.",
+    ],
+    extraSections: [
+      {
+        heading: "The Neapolitan and the Augmented Sixth",
+        body:
+          "Two chromatic chords turn up often enough to be worth knowing by name, and both are predominants \u2014 they exist to deliver the dominant.\n\nThe Neapolitan is a major triad built on the flattened second degree: in C, a D\u266D major chord. It is almost always written in first inversion, where the bass is F, which is why it is usually called the Neapolitan sixth and written \u266DII6. It goes to V, often by way of a cadential 6/4, and it brings a flattened second into a major key \u2014 heavy, dark and old.\n\nThe augmented sixth chords are named after the interval they contain: a minor sixth above the bass raised to an augmented sixth, which is six semitones wide spelled as a sixth rather than as a tritone. Italian, French and German are the three varieties, differing by which note is added in the middle. All three resolve outward \u2014 the two notes of the augmented sixth move apart by half step onto the dominant's root, doubled at the octave.",
+        example: "In C: \u266DII6 = D\u266D/F \u00b7 It+6 = A\u266D C F\u266F \u00b7 both go to G",
+        figure: {
+          kind: "staff",
+          caption: "The Neapolitan sixth in C \u2014 a D\u266D triad with F in the bass, leaning on the dominant",
+          key: "C",
+          grandStaff: true,
+          notes: [
+            { pitch: 73, duration: 8, spell: -1, accent: true },
+            { pitch: 69, duration: 8, stack: true },
+            { pitch: 65, duration: 8, stack: true },
+            { pitch: 53, duration: 8, staff: 1, at: 0 },
+            { pitch: 71, duration: 8 },
+            { pitch: 67, duration: 8, stack: true },
+            { pitch: 62, duration: 8, stack: true },
+            { pitch: 55, duration: 8, staff: 1, at: 8 },
+          ],
+          harmony: [{ at: 4, text: "V" }],
+        },
+      },
     ],
   },
 
@@ -938,6 +1421,31 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write three against two and play both hands until it locks.",
       "Take a dense passage and delete one layer. Decide honestly whether it lost anything.",
     ],
+    extraSections: [
+      {
+        heading: "Syncopation and Hemiola",
+        body:
+          "Irregular metres and polyrhythms are the large-scale tools. Two smaller ones do most of the actual work, and both depend on a pulse the listener is already counting.\n\nSyncopation puts an accent where the metre does not expect one \u2014 on a weak beat, or off the beat entirely, often by tying across the strong beat so it arrives early and then is not there. It only works because the metre is established: syncopate from the first bar and there is nothing to be against, which is why a groove usually states the beat before it starts playing with it.\n\nHemiola regroups the pulse without changing the metre. Six eighth notes can be three groups of two or two groups of three, so a passage in 3/4 can be made to sound like 6/8 for two bars simply by accenting every second eighth. It is everywhere in Baroque cadences and in Bernstein, and it costs nothing but accents.",
+        example: "3/4 as 1 2 3 1 2 3 \u00b7 the same six eighths as 1 2 1 2 1 2",
+        figure: {
+          kind: "rhythm",
+          caption: "Two bars of 3/4 regrouped into three groups of two \u2014 a hemiola",
+          meter: { beats: 3, unit: 4 },
+          row: [
+            { duration: 4, label: "1", accent: true },
+            { duration: 4 },
+            { duration: 4, label: "2", accent: true },
+            { duration: 4 },
+            { duration: 4, label: "3", accent: true },
+            { duration: 4 },
+          ],
+        },
+        callout: {
+          kind: "insight",
+          text: "Both tricks are parasitic on a pulse the listener is counting. Establish the metre first, or there is nothing for the syncopation to be late against.",
+        },
+      },
+    ],
   },
 
   "fugue-large-form": {
@@ -976,6 +1484,26 @@ export const lessonDetail: Record<string, SeedLessonDetail> = {
       "Write a subject of no more than two bars with a clear rhythmic profile.",
       "Write the tonal answer and check every interval you adjusted.",
       "Build a four-bar episode from a fragment of the subject alone.",
+    ],
+    extraSections: [
+      {
+        heading: "Real Answers, Tonal Answers, and Episodes",
+        body:
+          "The second voice of a fugue enters with the answer \u2014 the subject transposed to the dominant. There are two ways to do that, and the choice is not stylistic.\n\nA real answer transposes every interval exactly. A tonal answer alters one or two notes, usually near the start, so that the answer stays inside the key rather than dragging the music into the dominant before the exposition is finished. The usual trigger is a subject that opens by leaping from tonic to dominant: transposed exactly, that leap would land on the supertonic and pull away, so the answer adjusts it back to the tonic. Bach does this constantly, and it looks like a mistake until you know why it is there.\n\nBetween entries come episodes: passages built from fragments of the subject or countersubject, usually sequential, usually modulating, and carrying the music from one entry to the next. A fugue is not a chain of subject statements \u2014 it is subject entries separated by episodes that do the travelling, and the episodes are where most of the composition actually happens.",
+        example: "Subject in the tonic \u2192 answer in the dominant \u2192 episode \u2192 next entry",
+        figure: {
+          kind: "form",
+          caption: "An exposition and what follows: entries separated by episodes that travel",
+          sections: [
+            { label: "subject", bars: 4, tone: "a", note: "tonic" },
+            { label: "answer", bars: 4, tone: "a", note: "dominant" },
+            { label: "episode", bars: 3, tone: "b", note: "sequential, modulating" },
+            { label: "subject", bars: 4, tone: "a", note: "a new voice" },
+            { label: "episode", bars: 3, tone: "b" },
+            { label: "stretto", bars: 4, tone: "c", note: "entries overlapping" },
+          ],
+        },
+      },
     ],
   },
 

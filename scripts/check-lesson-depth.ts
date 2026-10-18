@@ -120,6 +120,47 @@ for (const l of lessons) {
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/* And enough prose to be worth the time it claims                            */
+/* -------------------------------------------------------------------------- */
+// The other half of what the audit found. Twenty-one lessons had around
+// sixty-five words of body across two sections, while claiming twelve to thirty
+// minutes — and several of them never taught the thing they were named after.
+// Basic Intervals explained how to count letters and never mentioned major,
+// minor or perfect; Minor Scales covered natural minor and never harmonic or
+// melodic, which the very next harmony lesson assumes you know.
+{
+  const MIN_WORDS = 100;
+  const MIN_SECTIONS = 3;
+  let total = 0;
+  for (const l of lessons) {
+    const sections = [...l.content, ...(lessonDetail[l.slug]?.extraSections ?? [])];
+    const words = sections.reduce((n, c) => n + c.body.trim().split(/\s+/).length, 0);
+    total += words;
+    if (sections.length < MIN_SECTIONS)
+      fail(`${l.slug}: ${sections.length} sections, where ${MIN_SECTIONS} is the floor`);
+    if (words < MIN_WORDS)
+      fail(
+        `${l.slug}: ${words} words of body for a lesson claiming ` +
+          `${lessonDetail[l.slug]?.estimatedMinutes ?? "?"} minutes`
+      );
+    // A section with nothing in it is worse than no section.
+    for (const c of sections) {
+      if (c.body.trim().split(/\s+/).length < 20)
+        fail(`${l.slug} / ${c.heading}: a section of under twenty words`);
+      if (!c.heading?.trim()) fail(`${l.slug}: a section with no heading`);
+    }
+    // Headings have to be distinct, because the figures are keyed by them —
+    // two sections sharing a heading would silently share one figure.
+    const headings = sections.map((c) => c.heading.trim().toLowerCase());
+    if (new Set(headings).size !== headings.length)
+      fail(`${l.slug}: two sections share a heading, so they would share a figure`);
+  }
+  const mean = Math.round(total / lessons.length);
+  if (mean < 200)
+    fail(`the Academy averages ${mean} words of body a lesson, which is a worksheet`);
+}
+
 // Nothing in the detail table that is not a lesson — a typo that silently
 // does nothing, which is how a lesson ends up looking bare for no reason.
 for (const slug of Object.keys(lessonDetail)) {
@@ -166,14 +207,25 @@ const totals = lessons.reduce(
       minutes: acc.minutes + (d?.estimatedMinutes ?? 0),
     };
   },
-  { terms: 0, mistakes: 0, listening: 0, listeningUnique: 0, steps: 0, minutes: 0 }
+  { terms: 0, mistakes: 0, listening: 0, steps: 0, minutes: 0 }
 );
 
 if (totals.terms < lessons.length * 4)
   fail(`${totals.terms} key terms across ${lessons.length} lessons averages under four each`);
 
+const bodyWords = lessons.reduce(
+  (n, l) =>
+    n +
+    [...l.content, ...(lessonDetail[l.slug]?.extraSections ?? [])].reduce(
+      (m, c) => m + c.body.trim().split(/\s+/).length,
+      0
+    ),
+  0
+);
+
 console.log(
-  `lesson depth: ${lessons.length} lessons, every one carrying a summary, a time estimate and ` +
+  `lesson depth: ${lessons.length} lessons, ${bodyWords} words of body ` +
+    `(mean ${Math.round(bodyWords / lessons.length)}), every one carrying a summary, a time estimate and ` +
     `the four reference sections — ${totals.terms} key terms, ${totals.mistakes} mistakes with ` +
     `fixes, ${totals.listening} recordings with a reason, ${totals.steps} routine steps, ` +
     `${totals.minutes} minutes of stated study`
