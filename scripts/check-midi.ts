@@ -328,15 +328,16 @@ if (parsed) {
   if (!block) fail("could not find DYNAMIC_GAIN in audio.ts to compare against");
   else {
     const gains = new Map<string, number>();
-    for (const m of block[1].matchAll(/([a-z]+):\s*([0-9.]+)/g)) gains.set(m[1], Number(m[2]));
+    for (const m of Array.from(block[1].matchAll(/([a-z]+):\s*([0-9.]+)/g)))
+      gains.set(m[1], Number(m[2]));
     for (const k of Object.keys(DYNAMIC_VELOCITY)) {
       if (!gains.has(k)) fail(`audio.ts has no gain for "${k}", which MIDI export knows about`);
     }
-    for (const k of gains.keys()) {
+    for (const k of Array.from(gains.keys())) {
       if (!(k in DYNAMIC_VELOCITY)) fail(`audio.ts has a gain for "${k}" that MIDI export does not know`);
     }
     // Same ranking in both, or a crescendo in the app is not one in the file.
-    const byGain = [...gains.entries()].sort((a, b) => a[1] - b[1]).map(([k]) => k);
+    const byGain = Array.from(gains.entries()).sort((a, b) => a[1] - b[1]).map(([k]) => k);
     const byVel = Object.entries(DYNAMIC_VELOCITY)
       .filter(([k]) => gains.has(k))
       .sort((a, b) => a[1] - b[1])
