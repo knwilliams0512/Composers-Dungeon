@@ -328,7 +328,17 @@ export function StudioEditor({
         const inst = instrumentById(part?.instrumentId ?? "piano");
         const shift = part ? (score.layout.concertPitch ? 0 : transposeOf(part)) : 0;
         p.voice(
-          { pitch: pitch + shift, at: 0, seconds: 0.45, timbre: inst.timbre, gain: 0.6, pan: part?.pan ?? 0 },
+          {
+            pitch: pitch + shift,
+            at: 0,
+            seconds: 0.45,
+            timbre: inst.timbre,
+            gain: 0.6,
+            // A key pressed to hear a pitch is played at a normal effort, so
+            // it comes out at the brightness of an mf rather than a whisper.
+            velocity: 0.6,
+            pan: part?.pan ?? 0,
+          },
           p.now() + 0.01
         );
       });

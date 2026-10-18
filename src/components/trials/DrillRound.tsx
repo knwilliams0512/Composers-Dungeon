@@ -63,6 +63,9 @@ export function DrillRound({ drill, best }: { drill: DrillKey; best: number }) {
               seconds: n.seconds,
               timbre,
               gain: 0.9,
+              // A drill plays its question at full effort: the point is to
+              // hear it clearly, not to judge its dynamic.
+              velocity: 0.9,
               pan: 0,
               noise: q.drill === "RHYTHM_ECHO",
             },

@@ -155,7 +155,7 @@ before the first deploy produced it.
 - **The README and landing page stated counts that were wrong.**
   `npm run check:claims` now holds every one of them to the seed data.
 
-31 checkers pass, the typecheck is clean, and both the desktop (SQLite) and
+32 checkers pass, the typecheck is clean, and both the desktop (SQLite) and
 hosted (Postgres) builds compile.
 
 ---
