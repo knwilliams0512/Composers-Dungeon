@@ -54,6 +54,7 @@ import { Inspector } from "./Inspector";
 import { Mixer } from "./Mixer";
 import { NotationToolbar, type ToolTab } from "./NotationToolbar";
 import { NotationPanel } from "./NotationPanel";
+import { scoreToMidi } from "@/lib/studio/midi";
 import { scoreToMusicXml } from "@/lib/studio/musicxml";
 import { clampPitch } from "@/lib/studio/range";
 import { DrumPad, Fretboard, PianoKeyboard } from "./PianoKeyboard";
@@ -1180,103 +1181,5 @@ function downloadMusicXml(score: StudioScore) {
 }
 
 function downloadMidi(score: StudioScore) {
-  const PPQ = 480;
-  const ticksToMidi = (t: number) => Math.round((t / 4) * PPQ);
-
-  const bytes: number[] = [];
-  const push = (...b: number[]) => bytes.push(...b);
-  const pushStr = (s: string) => { for (let i = 0; i < s.length; i++) bytes.push(s.charCodeAt(i)); };
-  const push32 = (n: number) => push((n >> 24) & 255, (n >> 16) & 255, (n >> 8) & 255, n & 255);
-  const push16 = (n: number) => push((n >> 8) & 255, n & 255);
-
-  const varLen = (n: number): number[] => {
-    const out = [n & 0x7f];
-    let v = n >> 7;
-    while (v > 0) {
-      out.unshift((v & 0x7f) | 0x80);
-      v >>= 7;
-    }
-    return out;
-  };
-
-  const buildTrack = (events: { at: number; data: number[] }[]): number[] => {
-    // At a shared tick a note-off must precede a note-on, or repeating the
-    // same pitch silences the note that just began. Sorting on time alone left
-    // that to the order the notes happened to be stored in.
-    const rank = (d: number[]) => ((d[0] & 0xf0) === 0x80 ? 0 : (d[0] & 0xf0) === 0x90 ? 2 : 1);
-    events.sort((a, b) => a.at - b.at || rank(a.data) - rank(b.data));
-    const out: number[] = [];
-    let last = 0;
-    for (const e of events) {
-      out.push(...varLen(e.at - last), ...e.data);
-      last = e.at;
-    }
-    out.push(...varLen(0), 0xff, 0x2f, 0x00);
-    return out;
-  };
-
-  // Meta text is bytes, so anything outside ASCII (the ♭ in "Clarinet in B♭",
-  // a title someone typed) has to be folded down rather than truncated into a
-  // byte that no longer means the same character.
-  const metaText = (text: string): number[] => {
-    const ascii = text
-      .replace(/♭/g, "b").replace(/♯/g, "#")
-      .normalize("NFKD").replace(/[^\x20-\x7e]/g, "");
-    return Array.from(ascii.slice(0, 127), (c) => c.charCodeAt(0));
-  };
-
-  pushStr("MThd");
-  push32(6);
-  push16(1);
-  push16(score.parts.length + 1);
-  push16(PPQ);
-
-  // Tempo track
-  const usPerQuarter = Math.round(60000000 / score.tempo);
-  const tempoTrack = buildTrack([
-    { at: 0, data: [0xff, 0x51, 0x03, (usPerQuarter >> 16) & 255, (usPerQuarter >> 8) & 255, usPerQuarter & 255] },
-  ]);
-  pushStr("MTrk");
-  push32(tempoTrack.length);
-  push(...tempoTrack);
-
-  // Channel 10 (index 9) is General MIDI's drum channel: a pitched part placed
-  // there plays as percussion. Kits are sent to it deliberately; everything
-  // else steps over it.
-  let nextChannel = 0;
-  const takeChannel = () => {
-    if (nextChannel === 9) nextChannel++;
-    const c = nextChannel % 16;
-    nextChannel++;
-    return c === 9 ? 10 : c;
-  };
-
-  score.parts.forEach((part) => {
-    const drums = isDrumKit(part.instrumentId);
-    const channel = drums ? 9 : takeChannel();
-    const shift = score.layout.concertPitch ? 0 : transposeOf(part);
-    const events: { at: number; data: number[] }[] = [];
-    const name = part.name ?? instrumentById(part.instrumentId).name;
-    const nameBytes = metaText(name);
-    events.push({ at: 0, data: [0xff, 0x03, nameBytes.length, ...nameBytes] });
-    // Without a program change every track opens as piano, whatever it says.
-    if (!drums) events.push({ at: 0, data: [0xc0 | channel, gmProgram(part.instrumentId)] });
-
-    for (const staff of part.staves) {
-      for (const v of staff.voices) {
-        for (const n of v.notes) {
-          const pitch = Math.max(0, Math.min(127, n.pitch + shift));
-          const vel = Math.max(1, Math.min(127, n.velocity ?? Math.round(part.volume * 100)));
-          events.push({ at: ticksToMidi(n.start), data: [0x90 | channel, pitch, vel] });
-          events.push({ at: ticksToMidi(n.start + n.duration), data: [0x80 | channel, pitch, 0] });
-        }
-      }
-    }
-    const track = buildTrack(events);
-    pushStr("MTrk");
-    push32(track.length);
-    push(...track);
-  });
-
-  download(`${score.info.title || "score"}.mid`, "audio/midi", new Uint8Array(bytes));
+  download(`${score.info.title || "score"}.mid`, "audio/midi", scoreToMidi(score));
 }
