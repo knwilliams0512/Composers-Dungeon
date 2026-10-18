@@ -18,12 +18,19 @@ import {
   uid,
   type Articulation,
   type BarlineStyle,
+  type ChordQuality,
+  type ChordSymbol,
   type Dynamic,
+  type Fermata,
   type Measure,
   type Ornament,
   type Part,
+  type PedalLine,
+  type RepeatDirective,
+  type RepeatSign,
   type Staff,
   type StudioNote,
+  type StudioRest,
   type StudioScore,
 } from "./model";
 
@@ -184,6 +191,54 @@ export function toggleOrnament(
   });
 }
 
+/** Hold a note, or let go of it again. */
+export function toggleFermata(
+  score: StudioScore,
+  noteId: string,
+  fermata: Fermata = "normal"
+): StudioScore {
+  const found = findNote(score, noteId);
+  if (!found) return score;
+  // Clicking the same shape twice takes it off; clicking a different one
+  // changes the shape rather than removing and re-adding it.
+  const next = found.note.fermata === fermata ? undefined : fermata;
+  return updateNote(score, noteId, { fermata: next });
+}
+
+/**
+ * Write a fingering over a note, or clear it.
+ *
+ * Four characters, because that is what fits above a notehead and because
+ * anything longer is a technique instruction rather than a fingering. Blank
+ * clears it rather than printing an empty string, which would still reserve
+ * the space above the staff.
+ */
+export function setFingering(score: StudioScore, noteId: string, text: string): StudioScore {
+  const found = findNote(score, noteId);
+  if (!found) return score;
+  const clean = text.trim().slice(0, 4);
+  return updateNote(score, noteId, { fingering: clean.length > 0 ? clean : undefined });
+}
+
+/** Hold a rest — the pause before a chorale's last chord. */
+export function toggleRestFermata(
+  score: StudioScore,
+  partId: string,
+  staffId: string,
+  restId: string,
+  fermata: Fermata = "normal"
+): StudioScore {
+  return mapStaff(score, partId, staffId, (st) => ({
+    ...st,
+    voices: st.voices.map((v) => ({
+      ...v,
+      rests: v.rests.map((r: StudioRest) =>
+        r.id !== restId ? r : { ...r, fermata: r.fermata === fermata ? undefined : fermata }
+      ),
+    })),
+  }));
+}
+
 /**
  * Respell a note as its enharmonic twin: D♯ becomes E♭ and back. The sounding
  * pitch never moves — only the line it is written on.
@@ -253,6 +308,139 @@ export function addOctaveLine(
   return mapStaff(score, partId, staffId, (s) => ({
     ...s,
     octaveLines: [...s.octaveLines, { id: uid("o"), start, duration, shift }],
+  }));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pedal lines                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Lay a pedal line down.
+ *
+ * Overlapping lines of the same kind are merged rather than stacked: a piano
+ * has one sustain pedal and it is either down or up, so two overlapping sustain
+ * lines are not a richer marking, they are a contradiction. Different kinds do
+ * overlap freely — sustain and sostenuto held together is ordinary Debussy.
+ */
+export function addPedal(
+  score: StudioScore,
+  partId: string,
+  staffId: string,
+  start: number,
+  duration: number,
+  kind: PedalLine["kind"] = "sustain"
+): StudioScore {
+  return mapStaff(score, partId, staffId, (s) => {
+    const existing = s.pedals ?? [];
+    const end = start + duration;
+    const sameKind = existing.filter((p) => p.kind === kind);
+    const touching = sameKind.filter((p) => p.start <= end && p.start + p.duration >= start);
+    const from = Math.min(start, ...touching.map((p) => p.start));
+    const to = Math.max(end, ...touching.map((p) => p.start + p.duration));
+    // A merged line keeps the retakes of everything it swallowed, which is
+    // what a pianist means: the notches stay where the harmony changes.
+    const retakes = Array.from(
+      new Set(touching.flatMap((p) => p.retakes ?? []).filter((t) => t > from && t < to))
+    ).sort((a, b) => a - b);
+    const kept = existing.filter((p) => !touching.includes(p));
+    return {
+      ...s,
+      pedals: [
+        ...kept,
+        { id: uid("ped"), start: from, duration: to - from, kind, ...(retakes.length ? { retakes } : {}) },
+      ].sort((a, b) => a.start - b.start),
+    };
+  });
+}
+
+export function removePedal(
+  score: StudioScore,
+  partId: string,
+  staffId: string,
+  pedalId: string
+): StudioScore {
+  return mapStaff(score, partId, staffId, (s) => ({
+    ...s,
+    pedals: (s.pedals ?? []).filter((p) => p.id !== pedalId),
+  }));
+}
+
+/** Put a lift-and-retake notch in a pedal line, or take one out. */
+export function togglePedalRetake(
+  score: StudioScore,
+  partId: string,
+  staffId: string,
+  pedalId: string,
+  tick: number
+): StudioScore {
+  return mapStaff(score, partId, staffId, (s) => ({
+    ...s,
+    pedals: (s.pedals ?? []).map((p) => {
+      if (p.id !== pedalId) return p;
+      // A notch outside the line would be invisible, so it is refused here
+      // rather than being stored and ignored at draw time.
+      if (tick <= p.start || tick >= p.start + p.duration) return p;
+      const have = p.retakes ?? [];
+      const near = have.find((t) => Math.abs(t - tick) < 1e-9);
+      const retakes =
+        near !== undefined ? have.filter((t) => t !== near) : [...have, tick].sort((a, b) => a - b);
+      return { ...p, retakes: retakes.length > 0 ? retakes : undefined };
+    }),
+  }));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Chord symbols                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Write a chord symbol above the staff.
+ *
+ * One per tick, replacing whatever was there — two chord symbols on the same
+ * beat is not a richer harmony, it is an unreadable page. Same rule as
+ * `addDynamic`, for the same reason.
+ */
+export function addChordSymbol(
+  score: StudioScore,
+  partId: string,
+  staffId: string,
+  start: number,
+  root: string,
+  quality: ChordQuality,
+  bass?: string
+): StudioScore {
+  return mapStaff(score, partId, staffId, (s) => ({
+    ...s,
+    chordSymbols: [
+      ...(s.chordSymbols ?? []).filter((c) => c.start !== start),
+      { id: uid("ch"), start, root, quality, ...(bass ? { bass } : {}) },
+    ].sort((a, b) => a.start - b.start),
+  }));
+}
+
+export function removeChordSymbol(
+  score: StudioScore,
+  partId: string,
+  staffId: string,
+  chordId: string
+): StudioScore {
+  return mapStaff(score, partId, staffId, (s) => ({
+    ...s,
+    chordSymbols: (s.chordSymbols ?? []).filter((c) => c.id !== chordId),
+  }));
+}
+
+export function updateChordSymbol(
+  score: StudioScore,
+  partId: string,
+  staffId: string,
+  chordId: string,
+  patch: Partial<Omit<ChordSymbol, "id">>
+): StudioScore {
+  return mapStaff(score, partId, staffId, (s) => ({
+    ...s,
+    chordSymbols: (s.chordSymbols ?? []).map((c) => (c.id === chordId ? { ...c, ...patch } : c)),
   }));
 }
 
@@ -352,6 +540,65 @@ export function setBarline(
   barline: BarlineStyle
 ): StudioScore {
   return updateMeasure(score, index, { barline });
+}
+
+/**
+ * Put a segno or a coda at a measure, or take it away.
+ *
+ * Only one of each may exist in a score. Two segni make "D.S." ambiguous —
+ * there is no way to say which one it means — so setting a second one moves the
+ * first rather than adding to it. That is a real constraint of the notation,
+ * not a simplification.
+ */
+export function setRepeatSign(
+  score: StudioScore,
+  index: number,
+  sign: RepeatSign | null
+): StudioScore {
+  return {
+    ...score,
+    measures: score.measures.map((m, i) => {
+      if (i === index) {
+        const next = sign === null || m.sign === sign ? undefined : sign;
+        return { ...m, sign: next };
+      }
+      // Clear the same sign anywhere else it sits.
+      return sign !== null && m.sign === sign ? { ...m, sign: undefined } : m;
+    }),
+  };
+}
+
+/** Print an instruction at the end of a measure: D.S. al Coda, Fine, To Coda. */
+export function setRepeatDirective(
+  score: StudioScore,
+  index: number,
+  directive: RepeatDirective | null
+): StudioScore {
+  const current = score.measures[index]?.directive;
+  return updateMeasure(score, index, {
+    directive: directive === null || current === directive ? undefined : directive,
+  });
+}
+
+/**
+ * Bracket a measure as a first-time (or nth-time) bar.
+ *
+ * An empty or nonsensical pass list clears the bracket instead of printing an
+ * empty one. Passes are de-duplicated and sorted because "2.2.3." is a typo
+ * every time, and the printed order of a volta is always ascending.
+ */
+export function setVolta(score: StudioScore, index: number, passes: number[]): StudioScore {
+  const clean = Array.from(new Set(passes.filter((n) => Number.isInteger(n) && n >= 1 && n <= 16)))
+    .sort((a, b) => a - b);
+  return updateMeasure(score, index, { volta: clean.length > 0 ? clean : undefined });
+}
+
+/** How many times a repeated section is played in total. 2 is the plain sign. */
+export function setRepeatTimes(score: StudioScore, index: number, times: number): StudioScore {
+  const n = Math.round(times);
+  return updateMeasure(score, index, {
+    repeatTimes: n >= 3 && n <= 32 ? n : undefined,
+  });
 }
 
 /* -------------------------------------------------------------------------- */

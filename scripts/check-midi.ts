@@ -20,12 +20,14 @@
 import { scoreToMidi, mergeTies, DYNAMIC_VELOCITY, PPQ } from "../src/lib/studio/midi";
 import {
   DEFAULT_LAYOUT,
+  type Dynamic,
   type Measure,
   type Part,
   type StudioNote,
   type StudioScore,
   STUDIO_VERSION,
 } from "../src/lib/studio/model";
+import { DYNAMIC_GAIN, DYNAMIC_LADDER } from "../src/lib/studio/timing";
 import { readFileSync } from "node:fs";
 
 const problems: string[] = [];
@@ -317,41 +319,47 @@ if (parsed) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* The two dynamic tables must not drift apart                                */
+/* Loudness: one table, and it has to stay one table                          */
 /* -------------------------------------------------------------------------- */
 
-// audio.ts keeps its own gains for playback. If the orders disagree, the app
-// sounds different from its export, which is the drift this file exists over.
+/*
+ * There used to be two tables of dynamics — gains in audio.ts for playback,
+ * velocities here for export — and this block compared their rankings, because
+ * the gains could not be imported into a Node script without dragging the Web
+ * Audio API along. The gains now live in lib/studio/timing.ts, which has no
+ * AudioContext in it, so the export derives its velocities from them and the
+ * two cannot disagree.
+ *
+ * What is left to check is that it stays that way: that nothing re-introduces a
+ * second table, and that the derivation is actually monotonic — a ladder whose
+ * velocities repeat would make two different dynamics identical in the file.
+ */
 {
-  const audio = readFileSync("src/lib/studio/audio.ts", "utf8");
-  const block = /const DYNAMIC_GAIN[^{]*\{([\s\S]*?)\}/.exec(audio);
-  if (!block) fail("could not find DYNAMIC_GAIN in audio.ts to compare against");
-  else {
-    const gains = new Map<string, number>();
-    for (const m of Array.from(block[1].matchAll(/([a-z]+):\s*([0-9.]+)/g)))
-      gains.set(m[1], Number(m[2]));
-    for (const k of Object.keys(DYNAMIC_VELOCITY)) {
-      if (!gains.has(k)) fail(`audio.ts has no gain for "${k}", which MIDI export knows about`);
-    }
-    for (const k of Array.from(gains.keys())) {
-      if (!(k in DYNAMIC_VELOCITY)) fail(`audio.ts has a gain for "${k}" that MIDI export does not know`);
-    }
-    // Same ranking in both, or a crescendo in the app is not one in the file.
-    const byGain = Array.from(gains.entries()).sort((a, b) => a[1] - b[1]).map(([k]) => k);
-    const byVel = Object.entries(DYNAMIC_VELOCITY)
-      .filter(([k]) => gains.has(k))
-      .sort((a, b) => a[1] - b[1])
-      .map(([k]) => k);
-    const rank = (arr: string[], k: string) => arr.indexOf(k);
-    for (const a of byGain) {
-      for (const b of byGain) {
-        const gaOrder = Math.sign(rank(byGain, a) - rank(byGain, b));
-        const veOrder = Math.sign(rank(byVel, a) - rank(byVel, b));
-        if (gaOrder !== veOrder && gains.get(a) !== gains.get(b)) {
-          fail(`"${a}" and "${b}" rank differently for playback than for export`);
-        }
-      }
-    }
+  const src = readFileSync("src/lib/studio/midi.ts", "utf8");
+  if (/const DYNAMIC_VELOCITY[^=]*=\s*\{/.test(src))
+    fail("midi.ts declares its own velocity table again instead of deriving it from the gains");
+  if (!/DYNAMIC_GAIN/.test(src))
+    fail("midi.ts no longer reads the playback gains, so the app and its export can drift again");
+
+  for (const d of DYNAMIC_LADDER) {
+    const v = DYNAMIC_VELOCITY[d];
+    if (!Number.isInteger(v) || v < 1 || v > 127)
+      fail(`${d} exports as velocity ${v}, which is not a MIDI velocity`);
+  }
+  for (let i = 1; i < DYNAMIC_LADDER.length; i++) {
+    const lower = DYNAMIC_VELOCITY[DYNAMIC_LADDER[i - 1]];
+    const higher = DYNAMIC_VELOCITY[DYNAMIC_LADDER[i]];
+    if (!(higher > lower))
+      fail(
+        `${DYNAMIC_LADDER[i]} (${higher}) is not louder than ${DYNAMIC_LADDER[i - 1]} (${lower}), ` +
+          `so a crescendo between them is silent in the file`
+      );
+    if (!(DYNAMIC_GAIN[DYNAMIC_LADDER[i]] > DYNAMIC_GAIN[DYNAMIC_LADDER[i - 1]]))
+      fail(`${DYNAMIC_LADDER[i]} is not louder than ${DYNAMIC_LADDER[i - 1]} for playback either`);
+  }
+  // Every dynamic the model has must have a gain, or it falls back silently.
+  for (const d of Object.keys(DYNAMIC_VELOCITY) as Dynamic[]) {
+    if (DYNAMIC_GAIN[d] === undefined) fail(`"${d}" has a velocity but no playback gain`);
   }
 }
 

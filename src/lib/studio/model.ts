@@ -56,6 +56,20 @@ export type Dynamic =
   | "ppp" | "pp" | "p" | "mp" | "mf" | "f" | "ff" | "fff"
   | "sfz" | "fp";
 
+/**
+ * A hold over a note, a rest or a barline.
+ *
+ * Until now a fermata could only be faked as a technique text reading
+ * "fermata" sitting on the right beat, which the MusicXML export then had to
+ * sniff for — see the comment this replaces in musicxml.ts. It is the single
+ * most common mark in the repertoire after a slur, so it gets a field.
+ *
+ * The four shapes are the ones engraving actually distinguishes: the normal
+ * arch, Henze's angled wedge for a short hold, the square bracket for a long
+ * one, and the double-arch "very long" used in choral music.
+ */
+export type Fermata = "normal" | "angled" | "square" | "very-long";
+
 export type NoteheadStyle = "normal" | "cross" | "diamond" | "triangle" | "slash";
 
 export type StemDirection = "auto" | "up" | "down";
@@ -85,6 +99,17 @@ export interface StudioNote {
   tuplet?: { id: string; ratio: [number, number] };
   /** Fret and string for tablature staves. */
   tab?: { string: number; fret: number };
+  /** Hold this note beyond its written length. */
+  fermata?: Fermata;
+  /**
+   * Which finger plays it, printed above or below the notehead.
+   *
+   * Free text rather than 1-5, because the real notations are wider than that:
+   * a pianist writes "3" but also "4-3" for a substitution, an organist writes
+   * "t" for a thumb glissando, and a string player writes "0" for an open
+   * string. Capped at four characters, which is all that fits over a notehead.
+   */
+  fingering?: string;
 }
 
 /** A rest the writer placed deliberately, as opposed to an implied silence. */
@@ -93,6 +118,8 @@ export interface StudioRest {
   start: number;
   duration: number;
   dots?: 0 | 1 | 2;
+  /** A held silence — the pause before the last chord of a chorale. */
+  fermata?: Fermata;
 }
 
 /** One rhythmic layer on a staff. Voice 1 stems up, voice 2 stems down. */
@@ -145,6 +172,84 @@ export interface OctaveLine {
   shift: 1 | -1 | 2 | -2;
 }
 
+/**
+ * A pedal line under a keyboard staff.
+ *
+ * Three pedals, and they are not interchangeable. The sustain pedal lifts the
+ * dampers off every string; the sostenuto pedal holds only the notes already
+ * down when it was pressed, which is how a pedal point survives a passage
+ * played above it; una corda shifts the action so the hammers strike fewer
+ * strings, which changes the colour rather than the length.
+ *
+ * `retakes` are the notches — the places the line dips to the floor and back
+ * without the pedal fully releasing, which is how a pianist clears the harmony
+ * on a bar line while keeping the bass. They are absolute ticks, and any that
+ * fall outside the line are ignored rather than being an error: trimming the
+ * line should not have to tidy up after itself.
+ */
+export interface PedalLine {
+  id: string;
+  start: number;
+  duration: number;
+  kind: "sustain" | "sostenuto" | "una-corda";
+  retakes?: number[];
+}
+
+/**
+ * A chord symbol printed above the staff.
+ *
+ * Stored as root, quality and optional slash bass rather than as the text
+ * "Cmaj7", so the same chord can be printed as C△7 or CM7 or Cmaj7 to taste,
+ * read back by anything that wants to know what the harmony is, and exported
+ * as a real MusicXML <harmony> element instead of a floating word. A lead
+ * sheet typed as free text is a picture of a chord; this is a chord.
+ */
+export type ChordQuality =
+  // Triads
+  | "maj"
+  | "min"
+  | "dim"
+  | "aug"
+  | "sus2"
+  | "sus4"
+  | "five"
+  // Sevenths
+  | "maj7"
+  | "min7"
+  | "dom7"
+  | "min-maj7"
+  | "dim7"
+  | "half-dim7"
+  | "aug7"
+  | "dom7sus4"
+  // Sixths
+  | "maj6"
+  | "min6"
+  // Extensions
+  | "maj9"
+  | "min9"
+  | "dom9"
+  | "dom11"
+  | "dom13"
+  | "add9"
+  // Altered dominants
+  | "dom7b5"
+  | "dom7sharp5"
+  | "dom7b9"
+  | "dom7sharp9"
+  | "dom7sharp11"
+  | "dom7b13";
+
+export interface ChordSymbol {
+  id: string;
+  start: number;
+  /** A letter with an optional accidental: "C", "Bb", "F#", "Ebb". */
+  root: string;
+  quality: ChordQuality;
+  /** The bass of a slash chord — the "G" of C/G. A letter, like `root`. */
+  bass?: string;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Staves and parts                                                            */
 /* -------------------------------------------------------------------------- */
@@ -160,6 +265,68 @@ export interface Staff {
   hairpins: Hairpin[];
   texts: TextMark[];
   octaveLines: OctaveLine[];
+  /**
+   * Pedal lines and chord symbols.
+   *
+   * Optional, unlike the four lists above, and deliberately so: scores written
+   * before these existed are already saved as JSON in the database with no such
+   * key, and `readableStudioScore` casts rather than migrating. A required
+   * array would make every one of them crash on the first render. Read them
+   * through `pedalsOf` and `chordSymbolsOf` rather than touching them directly.
+   */
+  pedals?: PedalLine[];
+  chordSymbols?: ChordSymbol[];
+}
+
+/**
+ * The volta bracket covering a measure, if any.
+ *
+ * A bracket is a run of consecutive measures carrying the *same* pass list.
+ * Marking every measure in the bracket rather than only its first is the
+ * explicit choice: the alternative — a bracket that starts somewhere and runs
+ * until something else happens to stop it — made the engraver and the MusicXML
+ * exporter disagree about how far it reached, because each had its own idea of
+ * what counted as a stopping point. A run is the same length wherever it is
+ * read from.
+ *
+ * `open` says the bracket does not close with a downward leg: the last-time
+ * bar, which carries on into the rest of the piece rather than sending the
+ * player back. A leg printed there tells a reader to stop where the music does
+ * not.
+ */
+export function voltaRun(
+  measures: Measure[],
+  index: number
+): { passes: number[]; from: number; to: number; starts: boolean; ends: boolean; open: boolean } | null {
+  const passes = measures[index]?.volta;
+  if (!passes || passes.length === 0) return null;
+  const same = (other: number[] | undefined) =>
+    !!other && other.length === passes.length && other.every((n, i) => n === passes[i]);
+
+  let from = index;
+  while (from > 0 && same(measures[from - 1].volta)) from--;
+  let to = index;
+  while (to + 1 < measures.length && same(measures[to + 1].volta)) to++;
+
+  const endBar = measures[to].barline;
+  return {
+    passes,
+    from,
+    to,
+    starts: index === from,
+    ends: index === to,
+    open: !(endBar === "repeat-end" || endBar === "repeat-both"),
+  };
+}
+
+/** A staff's pedal lines, whether or not the stored score has the field. */
+export function pedalsOf(staff: Staff): PedalLine[] {
+  return staff.pedals ?? [];
+}
+
+/** A staff's chord symbols, whether or not the stored score has the field. */
+export function chordSymbolsOf(staff: Staff): ChordSymbol[] {
+  return staff.chordSymbols ?? [];
 }
 
 export interface Part {
@@ -207,6 +374,31 @@ export type BarlineStyle =
   | "repeat-both"
   | "dashed";
 
+/**
+ * A symbol printed at a measure that playback jumps to or from.
+ *
+ * Two kinds, and conflating them is the usual mistake. A *sign* is a target:
+ * the segno and the coda are places, printed at the measure they mark, and on
+ * their own they change nothing. A *directive* is the instruction that sends
+ * you to one, printed at the end of the measure where the jump happens.
+ *
+ * "To Coda" is the odd one out — it is a directive (leave here) that is
+ * printed above the staff like a sign, and it only fires on the pass after the
+ * D.S. or D.C. has been taken, which is why it needs its own entry rather than
+ * being a coda sign.
+ */
+export type RepeatSign = "segno" | "coda";
+
+export type RepeatDirective =
+  | "fine"
+  | "to-coda"
+  | "d.c."
+  | "d.s."
+  | "d.c.-al-fine"
+  | "d.s.-al-fine"
+  | "d.c.-al-coda"
+  | "d.s.-al-coda";
+
 export interface Measure {
   id: string;
   /** Meter change taking effect at this measure, if any. */
@@ -223,6 +415,22 @@ export interface Measure {
   systemBreak?: boolean;
   /** Force a page break after this measure. */
   pageBreak?: boolean;
+  /** A segno or coda printed at the head of this measure. */
+  sign?: RepeatSign;
+  /** An instruction printed at the end of this measure. */
+  directive?: RepeatDirective;
+  /**
+   * How many times a repeated section is played in total, where 2 is the plain
+   * ":|" and 3 prints "Play 3 times". Only meaningful on a measure whose
+   * barline closes a repeat.
+   */
+  repeatTimes?: number;
+  /**
+   * Which passes this volta bracket covers — [1] for the first-time bar, [2,3]
+   * for a bracket marked "2.3.". The bracket runs from this measure to the
+   * next repeat end or the next volta, whichever comes first.
+   */
+  volta?: number[];
 }
 
 /* -------------------------------------------------------------------------- */

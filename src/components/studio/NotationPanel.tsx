@@ -4,12 +4,16 @@ import { useState } from "react";
 import type {
   Articulation,
   BarlineStyle,
+  ChordQuality,
   Dynamic,
+  Fermata,
   NoteheadStyle,
   Ornament,
+  RepeatDirective,
   StemDirection,
 } from "@/lib/studio/model";
 import type { Clef } from "@/lib/studio/instruments";
+import { CHORD_LETTERS, CHORD_QUALITIES, prettyRoot } from "@/lib/studio/chords";
 import type { ToolbarActions, ToolTab } from "./NotationToolbar";
 import { Icon } from "@/components/ui/Icon";
 
@@ -28,8 +32,9 @@ const CATEGORIES: { id: ToolTab; label: string; icon: string; blurb: string }[] 
   { id: "articulation", label: "Articulation", icon: "feather", blurb: "How each note is struck" },
   { id: "ornament", label: "Ornaments", icon: "sparkle", blurb: "Trills, turns, slides" },
   { id: "dynamics", label: "Dynamics", icon: "bolt", blurb: "Loudness and hairpins" },
-  { id: "expression", label: "Expression", icon: "quill", blurb: "Slurs, phrasing, text" },
-  { id: "measure", label: "Measures", icon: "column", blurb: "Bars, repeats, signatures" },
+  { id: "expression", label: "Expression", icon: "quill", blurb: "Slurs, phrasing, pedals, text" },
+  { id: "harmony", label: "Harmony", icon: "chord", blurb: "Chord symbols over the staff" },
+  { id: "measure", label: "Measures", icon: "column", blurb: "Bars, repeats, navigation" },
   { id: "text", label: "Text", icon: "scroll", blurb: "Tempo, lyrics, notes to players" },
   { id: "advanced", label: "Advanced", icon: "layers", blurb: "Clefs, octaves, noteheads" },
 ];
@@ -133,7 +138,11 @@ export function NotationPanel({
       )}
 
       <div className="flex-1 overflow-y-auto p-2">
-        <ToolList tab={tab} actions={actions} hasSelection={hasSelection} />
+        {tab === "harmony" ? (
+          <ChordPicker actions={actions} />
+        ) : (
+          <ToolList tab={tab} actions={actions} hasSelection={hasSelection} />
+        )}
       </div>
     </div>
   );
@@ -197,6 +206,137 @@ function ToolList({
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Building a chord symbol: a root, a quality, and sometimes a bass.
+ *
+ * Not a tool list, because a chord is three choices rather than one. Twenty-nine
+ * qualities across seven roots and twelve basses is over two thousand buttons;
+ * three small pickers and a preview is the same vocabulary in a panel somebody
+ * can actually read.
+ *
+ * The preview matters more than it looks. A writer choosing "half-diminished"
+ * from a list has to know that it prints as "m7♭5"; seeing "Bm7♭5" appear as
+ * they choose means they never have to.
+ */
+function ChordPicker({ actions }: { actions: ToolbarActions }) {
+  const [root, setRoot] = useState("C");
+  const [accidental, setAccidental] = useState<"" | "#" | "b">("");
+  const [quality, setQuality] = useState<ChordQuality>("maj");
+  const [bass, setBass] = useState("");
+
+  const fullRoot = root + accidental;
+  const spec = CHORD_QUALITIES[quality];
+  const preview = prettyRoot(fullRoot) + spec.suffix + (bass ? `/${prettyRoot(bass)}` : "");
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="mb-1 px-1 text-[9px] uppercase tracking-[0.2em] text-parchment-600">Root</p>
+        <div className="flex flex-wrap gap-1">
+          {CHORD_LETTERS.map((l) => (
+            <button
+              key={l}
+              onClick={() => setRoot(l)}
+              className={`h-7 w-7 rounded border text-[11px] transition-colors ${
+                root === l
+                  ? "border-gold-500 bg-gold-600 text-abyss-950"
+                  : "border-abyss-700 bg-abyss-950/70 text-parchment-200 hover:bg-abyss-700"
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 flex gap-1">
+          {(["", "#", "b"] as const).map((acc) => (
+            <button
+              key={acc || "natural"}
+              onClick={() => setAccidental(acc)}
+              className={`h-6 w-9 rounded border text-[11px] transition-colors ${
+                accidental === acc
+                  ? "border-gold-500 bg-gold-600 text-abyss-950"
+                  : "border-abyss-700 bg-abyss-950/70 text-parchment-300 hover:bg-abyss-700"
+              }`}
+            >
+              {acc === "" ? "♮" : acc === "#" ? "♯" : "♭"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1 px-1 text-[9px] uppercase tracking-[0.2em] text-parchment-600">
+          Quality
+        </p>
+        <select
+          value={quality}
+          onChange={(e) => setQuality(e.target.value as ChordQuality)}
+          className="w-full rounded border border-abyss-700 bg-abyss-950 px-2 py-1.5 text-[11px] text-parchment-200"
+        >
+          {(Object.keys(CHORD_QUALITIES) as ChordQuality[]).map((q) => (
+            <option key={q} value={q}>
+              {CHORD_QUALITIES[q].suffix || "(plain)"} — {CHORD_QUALITIES[q].label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <p className="mb-1 px-1 text-[9px] uppercase tracking-[0.2em] text-parchment-600">
+          Bass, for a slash chord
+        </p>
+        <div className="flex flex-wrap gap-1">
+          <button
+            onClick={() => setBass("")}
+            className={`h-7 rounded border px-2 text-[11px] transition-colors ${
+              bass === ""
+                ? "border-gold-500 bg-gold-600 text-abyss-950"
+                : "border-abyss-700 bg-abyss-950/70 text-parchment-300 hover:bg-abyss-700"
+            }`}
+          >
+            none
+          </button>
+          {CHORD_LETTERS.map((l) => (
+            <button
+              key={l}
+              onClick={() => setBass(bass === l ? "" : l)}
+              className={`h-7 w-7 rounded border text-[11px] transition-colors ${
+                bass === l
+                  ? "border-gold-500 bg-gold-600 text-abyss-950"
+                  : "border-abyss-700 bg-abyss-950/70 text-parchment-300 hover:bg-abyss-700"
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded border border-abyss-700 bg-abyss-950/70 px-3 py-2 text-center">
+        <p className="font-display text-xl text-gold-300">{preview}</p>
+        <p className="mt-0.5 text-[9px] text-parchment-600">
+          {spec.intervals.length} notes · exports as {spec.kind}
+        </p>
+      </div>
+
+      <button
+        onClick={() => actions.onChordSymbol(fullRoot, quality, bass || undefined)}
+        className="w-full rounded bg-gold-600 px-2 py-1.5 text-[11px] font-semibold text-abyss-950 transition-colors hover:bg-gold-500"
+      >
+        Write {preview} at the cursor
+      </button>
+      <button
+        onClick={actions.onClearChordSymbol}
+        className="w-full rounded border border-abyss-700 px-2 py-1 text-[10px] text-parchment-400 transition-colors hover:bg-abyss-700"
+      >
+        Clear the symbol at the cursor
+      </button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
 function toolsFor(tab: ToolTab, a: ToolbarActions): { title: string; tools: Tool[] }[] {
   switch (tab) {
     case "notes":
@@ -235,6 +375,35 @@ function toolsFor(tab: ToolTab, a: ToolbarActions): { title: string; tools: Tool
           ).map(([k, glyph, label, hint]) => ({
             glyph, label, hint, needsSelection: true, run: () => a.onArticulation(k),
           })),
+        },
+        {
+          // A fermata is the performer's decision about how long to hold, and
+          // the four shapes are four different sizes of that decision. They
+          // sound different as well as printing differently — see
+          // FERMATA_HOLD in lib/studio/timing.ts.
+          title: "Holds",
+          tools: (
+            [
+              ["normal", "𝄐", "Fermata", "Hold it — about twice its length"],
+              ["angled", "⌃", "Short fermata", "A brief lean on the note"],
+              ["square", "⌐", "Long fermata", "Held well past its value"],
+              ["very-long", "⌒", "Very long fermata", "As long as the hall will take"],
+            ] as [Fermata, string, string, string][]
+          ).map(([k, glyph, label, hint]) => ({
+            glyph, label, hint, needsSelection: true, run: () => a.onFermata(k),
+          })),
+        },
+        {
+          title: "Which finger",
+          tools: [
+            {
+              glyph: "1",
+              label: "Fingering",
+              hint: "A number over the notehead",
+              run: a.onFingering,
+              needsSelection: true,
+            },
+          ],
         },
       ];
 
@@ -354,6 +523,33 @@ function toolsFor(tab: ToolTab, a: ToolbarActions): { title: string; tools: Tool
           ],
         },
         {
+          // Three pedals, and they do different things. Sostenuto holds only
+          // what was already down, which is how a bass note survives a
+          // passage played above it; una corda changes the colour, not the
+          // length. Offering only "Ped." would hide two of the three.
+          title: "Pedalling",
+          tools: [
+            {
+              glyph: "𝆮",
+              label: "Sustain pedal",
+              hint: "Ped. — lifts the dampers off every string",
+              run: () => a.onPedal("sustain"),
+            },
+            {
+              glyph: "S",
+              label: "Sostenuto pedal",
+              hint: "Holds only the notes already down",
+              run: () => a.onPedal("sostenuto"),
+            },
+            {
+              glyph: "u",
+              label: "Una corda",
+              hint: "Softer colour, same length",
+              run: () => a.onPedal("una-corda"),
+            },
+          ],
+        },
+        {
           title: "Words to the player",
           tools: [
             { glyph: "e", label: "Expression text", hint: "dolce, cantabile…", run: () => a.onText("expression") },
@@ -396,7 +592,96 @@ function toolsFor(tab: ToolTab, a: ToolbarActions): { title: string; tools: Tool
             { glyph: "𝄴", label: "Time change", run: a.onMeterChange, needsSelection: true },
           ],
         },
+        {
+          // A sign is a place you jump to; a directive is the instruction that
+          // sends you there. Both are needed or neither does anything: a segno
+          // with no D.S. is decoration, and a D.S. with no segno is a question
+          // with no answer.
+          title: "Jump to",
+          tools: [
+            {
+              glyph: "𝄋",
+              label: "Segno",
+              hint: "The place a D.S. sends you back to",
+              run: () => a.onRepeatSign("segno"),
+              needsSelection: true,
+            },
+            {
+              glyph: "𝄌",
+              label: "Coda",
+              hint: "Where the ending begins",
+              run: () => a.onRepeatSign("coda"),
+              needsSelection: true,
+            },
+          ],
+        },
+        {
+          title: "Jump from",
+          tools: (
+            [
+              ["d.c.", "D.C.", "Back to the very beginning"],
+              ["d.s.", "D.S.", "Back to the segno"],
+              ["d.c.-al-fine", "D.C. al Fine", "From the top, stop at Fine"],
+              ["d.s.-al-fine", "D.S. al Fine", "From the segno, stop at Fine"],
+              ["d.c.-al-coda", "D.C. al Coda", "From the top, then take the coda"],
+              ["d.s.-al-coda", "D.S. al Coda", "From the segno, then take the coda"],
+              ["to-coda", "To Coda", "Leave here for the coda"],
+              ["fine", "Fine", "The piece ends here"],
+            ] as [RepeatDirective, string, string][]
+          ).map(([k, label, hint]) => ({
+            glyph: label.length > 4 ? label.slice(0, 4) : label,
+            label,
+            hint,
+            needsSelection: true,
+            run: () => a.onRepeatDirective(k),
+          })),
+        },
+        {
+          title: "Repeat endings",
+          tools: [
+            {
+              glyph: "1.",
+              label: "First-time bar",
+              hint: "Played only on the first pass",
+              run: () => a.onVolta([1]),
+              needsSelection: true,
+            },
+            {
+              glyph: "2.",
+              label: "Second-time bar",
+              hint: "Played instead, on the way out",
+              run: () => a.onVolta([2]),
+              needsSelection: true,
+            },
+            {
+              glyph: "3.",
+              label: "Third-time bar",
+              run: () => a.onVolta([3]),
+              needsSelection: true,
+            },
+            {
+              glyph: "—",
+              label: "No bracket",
+              hint: "Clear the volta on this measure",
+              run: () => a.onVolta([]),
+              needsSelection: true,
+            },
+            {
+              glyph: "×n",
+              label: "Play n times",
+              hint: "More than the usual twice",
+              run: a.onRepeatTimes,
+              needsSelection: true,
+            },
+          ],
+        },
       ];
+
+    case "harmony":
+      // Rendered as its own picker rather than a tool list — a chord is a root
+      // and a quality and sometimes a bass, which is three choices, and
+      // 29 qualities times 7 roots is not a grid anybody reads.
+      return [];
 
     case "text":
       return [

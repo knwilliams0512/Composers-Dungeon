@@ -28,6 +28,8 @@ import {
 } from "@/lib/studio/model";
 import { keySignatureCount } from "@/lib/score";
 import { clampPitch } from "@/lib/studio/range";
+import { pedalsOf } from "@/lib/studio/model";
+import { DYNAMIC_GAIN, buildTimeMap, gainCurve } from "@/lib/studio/timing";
 
 /** Pulses per quarter note. One score tick is a sixteenth of a whole note. */
 export const PPQ = 480;
@@ -36,15 +38,24 @@ const ticksToMidi = (t: number) => Math.round((t / 4) * PPQ);
 /**
  * How loud each printed dynamic plays, as a MIDI velocity.
  *
- * These are the gains audio.ts uses for playback, scaled to 1..127. Keeping
- * one table in two places is how the app and its export drift apart, but
- * audio.ts holds its copy privately and exporting it from a module that
- * constructs an AudioContext would drag the Web Audio API into a Node script.
- * check-midi.ts holds the two to each other instead.
+ * Derived from the gains playback uses, rather than typed out again. There used
+ * to be two tables — one here, one in audio.ts — held together only by a
+ * checker comparing their rankings, because audio.ts could not be imported by
+ * a Node script without dragging the Web Audio API in with it. The gains now
+ * live in ./timing.ts, which has no AudioContext in it, so the second table is
+ * not merely redundant, it is impossible to make wrong.
+ *
+ * A velocity of 0 is a note-off in MIDI, so the floor is 1.
  */
-const DYNAMIC_VELOCITY: Record<Dynamic, number> = {
-  ppp: 15, pp: 25, p: 41, mp: 57, mf: 76, f: 95, ff: 114, fff: 127,
-  sfz: 127, fp: 95,
+const DYNAMIC_VELOCITY = Object.fromEntries(
+  Object.entries(DYNAMIC_GAIN).map(([k, g]) => [k, Math.max(1, Math.min(127, Math.round(g * 127)))])
+) as Record<Dynamic, number>;
+
+/** Controller numbers for the three pedals, as General MIDI defines them. */
+const PEDAL_CC: Record<"sustain" | "sostenuto" | "una-corda", number> = {
+  sustain: 64,
+  sostenuto: 66,
+  "una-corda": 67,
 };
 
 /* -------------------------------------------------------------------------- */
@@ -139,19 +150,6 @@ export function mergeTies(notes: StudioNote[]): { pitch: number; start: number; 
   return out;
 }
 
-/** The dynamic in force at a tick on this staff, if any. */
-function dynamicAt(marks: { start: number; value: Dynamic }[], tick: number): Dynamic | null {
-  let found: Dynamic | null = null;
-  let bestStart = -Infinity;
-  for (const m of marks) {
-    if (m.start <= tick && m.start >= bestStart) {
-      bestStart = m.start;
-      found = m.value;
-    }
-  }
-  return found;
-}
-
 /* -------------------------------------------------------------------------- */
 /* The file                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -173,11 +171,32 @@ export function scoreToMidi(score: StudioScore): Uint8Array<ArrayBuffer> {
 
   /* ---- Track 0: tempo, metre, key ------------------------------------- */
   const meta: Event[] = [];
-  const usPerQuarter = Math.round(60000000 / score.tempo);
-  meta.push({
-    at: 0,
-    data: [0xff, 0x51, 0x03, (usPerQuarter >> 16) & 255, (usPerQuarter >> 8) & 255, usPerQuarter & 255],
-  });
+  const time = buildTimeMap(score);
+
+  /*
+   * One tempo event per stretch of the time map.
+   *
+   * This is how a fermata survives the export: a hold is a stretch of the
+   * piece played slower, so it goes out as a tempo change and a change back,
+   * and every part holds together exactly as it does in the app. There is no
+   * other way to say "hold this" in a standard MIDI file.
+   *
+   * It also fixes a plain bug. The single event this replaces was
+   * `60000000 / tempo`, which reads the score's tempo as a quarter note — but
+   * the model means it as one beat of the written metre. In 6/8 a beat is an
+   * eighth, so every 6/8 export ran at exactly double speed, and the same for
+   * any metre whose unit is not 4. Deriving the microseconds from the map's own
+   * seconds-per-tick cannot make that mistake: four ticks are a quarter note by
+   * definition here, whatever the metre is doing.
+   */
+  for (const span of time.spans) {
+    const usPerQuarter = Math.round(span.secondsPerTick * 4 * 1_000_000);
+    const safe = Math.max(1, Math.min(0xffffff, usPerQuarter));
+    meta.push({
+      at: ticksToMidi(span.from),
+      data: [0xff, 0x51, 0x03, (safe >> 16) & 255, (safe >> 8) & 255, safe & 255],
+    });
+  }
   const titleBytes = metaText(score.info.title || "Untitled");
   meta.push({ at: 0, data: [0xff, 0x03, titleBytes.length, ...titleBytes] });
 
@@ -249,16 +268,39 @@ export function scoreToMidi(score: StudioScore): Uint8Array<ArrayBuffer> {
     });
 
     for (const staff of part.staves) {
+      // Hairpins are part of the loudness, so the curve decides rather than the
+      // last printed mark: a crescendo exported as a flat level is a crescendo
+      // that does not happen, which is the same bug the app itself had.
+      const curve = gainCurve(staff);
+
+      /*
+       * Pedalling, as the controller messages it really is.
+       *
+       * Down at the start, and at every retake a lift and an immediate press —
+       * which is exactly what the notch in the printed line means, and what a
+       * pianist's foot does. Up at the end. Without the final 0 the pedal stays
+       * down for the rest of the file.
+       */
+      for (const ped of pedalsOf(staff)) {
+        const cc = PEDAL_CC[ped.kind];
+        events.push({ at: ticksToMidi(ped.start), data: [0xb0 | channel, cc, 127] });
+        for (const r of ped.retakes ?? []) {
+          if (r <= ped.start || r >= ped.start + ped.duration) continue;
+          events.push({ at: ticksToMidi(r), data: [0xb0 | channel, cc, 0] });
+          events.push({ at: ticksToMidi(r) + 1, data: [0xb0 | channel, cc, 127] });
+        }
+        events.push({
+          at: ticksToMidi(ped.start + ped.duration),
+          data: [0xb0 | channel, cc, 0],
+        });
+      }
+
       for (const v of staff.voices) {
         for (const note of mergeTies(v.notes)) {
           const pitch = clampPitch(note.pitch + shift);
-          // An explicit velocity on the note wins; otherwise the printed
-          // dynamic decides, and only if there is neither does the part's
-          // volume stand in.
-          const dyn = dynamicAt(staff.dynamics, note.start);
-          const vel =
-            note.velocity ??
-            (dyn ? DYNAMIC_VELOCITY[dyn] : Math.round(part.volume * 100));
+          // An explicit velocity on the note wins; otherwise the loudness
+          // curve decides, which accounts for hairpins as well as marks.
+          const vel = note.velocity ?? Math.round(curve(note.start) * 127);
           const velocity = Math.max(1, Math.min(127, vel));
           events.push({ at: ticksToMidi(note.start), data: [0x90 | channel, pitch, velocity] });
           events.push({

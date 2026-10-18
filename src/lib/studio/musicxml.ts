@@ -18,13 +18,20 @@ import { type Clef, instrumentById } from "@/lib/studio/instruments";
 import {
   type Articulation,
   type Dynamic,
+  type Fermata,
+  type Measure,
   type Ornament,
+  type RepeatDirective,
   type StudioNote,
   type StudioScore,
+  chordSymbolsOf,
   keyAt,
   measureOffsets,
   meterAt,
+  pedalsOf,
+  voltaRun,
 } from "@/lib/studio/model";
+import { CHORD_QUALITIES } from "@/lib/studio/chords";
 
 /* -------------------------------------------------------------------------- */
 /* Small pieces                                                               */
@@ -147,9 +154,24 @@ function spelling(
  * with no stop, and no `<tied>` element at all, so even the start was sound
  * without notation.
  */
+/**
+ * The <fermata> shape for each of the model's four holds.
+ *
+ * MusicXML keeps the shape in the element's text and which way up it is in the
+ * `type` attribute, so a fermata above the staff is `type="upright"` with the
+ * shape as content. "normal" is the default shape and is written as an empty
+ * element, which is what every reader expects to see.
+ */
+const FERMATA_SHAPE: Record<Fermata, string> = {
+  normal: "",
+  angled: "angled",
+  square: "square",
+  "very-long": "double-angled",
+};
+
 function notationsXml(
   n: StudioNote,
-  opts: { tieStop: boolean; tupletStart: boolean; tupletStop: boolean; fermata: boolean }
+  opts: { tieStop: boolean; tupletStart: boolean; tupletStop: boolean }
 ): string {
   const notations: string[] = [];
 
@@ -165,7 +187,13 @@ function notationsXml(
 
   const arts = (n.articulations ?? []).map((a) => `<${ARTICULATION_EL[a]}/>`).join("");
   if (arts) notations.push(`<articulations>${arts}</articulations>`);
-  if (opts.fermata) notations.push(`<fermata type="upright"/>`);
+  // The note's own field, now that it has one. This used to be sniffed out of
+  // a technique text reading the word "fermata", because the model had nowhere
+  // to put one — see the comment that used to sit at the bottom of this file.
+  if (n.fermata) {
+    const shape = FERMATA_SHAPE[n.fermata];
+    notations.push(`<fermata type="upright">${shape}</fermata>`);
+  }
 
   const orns: string[] = [];
   for (const o of n.ornaments ?? []) {
@@ -195,11 +223,12 @@ function notationsXml(
     if (o === "arpeggio-down") notations.push(`<arpeggiate direction="down"/>`);
   }
 
-  if (n.tab) {
-    notations.push(
-      `<technical><string>${n.tab.string}</string><fret>${n.tab.fret}</fret></technical>`
-    );
-  }
+  // Fingering and tablature are both <technical>, and a note can carry both:
+  // a guitarist's fretting hand is a fingering on a string at a fret.
+  const technical: string[] = [];
+  if (n.fingering) technical.push(`<fingering>${escapeXml(n.fingering)}</fingering>`);
+  if (n.tab) technical.push(`<string>${n.tab.string}</string><fret>${n.tab.fret}</fret>`);
+  if (technical.length) notations.push(`<technical>${technical.join("")}</technical>`);
 
   if (!notations.length) return "";
   return `<notations>${notations.join("")}</notations>`;
@@ -212,7 +241,7 @@ function noteXml(
   voice: number,
   staffNo: number,
   chord: boolean,
-  opts: { tieStop: boolean; tupletStart: boolean; tupletStop: boolean; fermata: boolean; lyrics: string[] }
+  opts: { tieStop: boolean; tupletStart: boolean; tupletStop: boolean; lyrics: string[] }
 ): string {
   const { step, alter, octave } = spelling(n, key, mode);
   const isGrace = (n.ornaments ?? []).some((o) => o === "grace" || o === "appoggiatura");
@@ -256,11 +285,16 @@ function noteXml(
   );
 }
 
-function restXml(ticks: number, voice: number, staffNo: number): string {
+function restXml(ticks: number, voice: number, staffNo: number, fermata?: Fermata): string {
   return (
     `      <note><rest/><duration>${div(ticks)}</duration>` +
     `<voice>${voice}</voice><type>${xmlType(ticks)}</type>` +
     (staffNo ? `<staff>${staffNo}</staff>` : "") +
+    // A held silence. The arch goes over the rest exactly as it goes over a
+    // note, and MusicXML spells it the same way.
+    (fermata
+      ? `<notations><fermata type="upright">${FERMATA_SHAPE[fermata]}</fermata></notations>`
+      : "") +
     `</note>\n`
   );
 }
@@ -309,6 +343,76 @@ function directionsXml(
       place(`<direction-type><octave-shift type="${type}" size="${size}"/></direction-type>`, "above")
     );
   }
+  /*
+   * Pedal lines.
+   *
+   * Three <pedal> elements per line, not one: start, a change at every retake,
+   * and stop. MusicXML has no "duration" on a pedal — the line is defined by
+   * where it starts and where it stops — so a line whose stop is never written
+   * runs to the end of the part in every reader. `line="yes"` asks for the
+   * modern bracket rather than the bare "Ped." word.
+   *
+   * Sostenuto is its own element. Una corda has none at all, so it goes out as
+   * the words a pianist actually reads, which is what it looks like on paper.
+   */
+  for (const ped of pedalsOf(staff)) {
+    const end = ped.start + ped.duration;
+    if (ped.kind === "una-corda") {
+      if (at(ped)) {
+        out.push(place(`<direction-type><words>una corda</words></direction-type>`));
+      }
+      if (end >= from && end < to) {
+        out.push(place(`<direction-type><words>tre corde</words></direction-type>`));
+      }
+      continue;
+    }
+    const el = ped.kind === "sostenuto" ? "sostenuto" : "pedal";
+    if (at(ped)) {
+      out.push(place(`<direction-type><${el} type="start" line="yes"/></direction-type>`));
+    }
+    for (const r of ped.retakes ?? []) {
+      if (r > ped.start && r < end && r >= from && r < to) {
+        out.push(place(`<direction-type><${el} type="change" line="yes"/></direction-type>`));
+      }
+    }
+    if (end >= from && end < to) {
+      out.push(place(`<direction-type><${el} type="stop" line="yes"/></direction-type>`));
+    }
+  }
+
+  /*
+   * Chord symbols, as <harmony> rather than as floating words.
+   *
+   * <harmony> is not a <direction>, so it is emitted at this level but without
+   * the wrapper. The root is given as a step plus an alter, the quality as a
+   * <kind> from MusicXML's fixed vocabulary — see lib/studio/chords.ts, which
+   * is the one place that knows the mapping — and anything the vocabulary
+   * cannot say comes out as <degree> elements after it. The `text` attribute
+   * carries what we would print, so a reader that recognises the kind can
+   * engrave it its own way and one that does not can still show the symbol.
+   */
+  for (const c of chordSymbolsOf(staff).filter(at)) {
+    const spec = CHORD_QUALITIES[c.quality];
+    if (!spec) continue;
+    const degrees = (spec.degrees ?? [])
+      .map(
+        (d) =>
+          `<degree><degree-value>${d.value}</degree-value>` +
+          `<degree-alter>${d.alter}</degree-alter>` +
+          `<degree-type>${d.type}</degree-type></degree>`
+      )
+      .join("");
+    out.push(
+      `      <harmony>` +
+        rootXml("root", c.root) +
+        `<kind text="${escapeXml(spec.suffix)}">${spec.kind}</kind>` +
+        (c.bass ? rootXml("bass", c.bass) : "") +
+        degrees +
+        (staffNo ? `<staff>${staffNo}</staff>` : "") +
+        `</harmony>\n`
+    );
+  }
+
   for (const t of staff.texts.filter(at)) {
     if (t.kind === "lyric") continue; // lyrics attach to notes, not directions
     if (t.kind === "tempo") {
@@ -327,36 +431,152 @@ function directionsXml(
   return out.join("");
 }
 
+/**
+ * A chord root or slash bass, as MusicXML spells one.
+ *
+ * The element names differ between the two ("root-step" against "bass-step")
+ * but the shape is identical, so the caller passes which it wants. An alter of
+ * zero is left out: writing `<root-alter>0</root-alter>` is legal but some
+ * readers print a redundant natural beside the letter.
+ */
+function rootXml(which: "root" | "bass", note: string): string {
+  const m = /^([A-G])(#{1,2}|b{1,2}|)$/.exec(note.trim());
+  if (!m) return "";
+  const alter = m[2].startsWith("#") ? m[2].length : m[2].startsWith("b") ? -m[2].length : 0;
+  return (
+    `<${which}><${which}-step>${m[1]}</${which}-step>` +
+    (alter !== 0 ? `<${which}-alter>${alter}</${which}-alter>` : "") +
+    `</${which}>`
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Navigation: segno, coda and the words that send you to them                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The words printed for each directive, and the playback attributes that make
+ * them do something rather than merely say something.
+ *
+ * MusicXML splits a jump into two halves. The <words> or <segno>/<coda> element
+ * is what gets *printed*; the attributes on <sound> are what a playing program
+ * obeys. Emitting only the first gives a score that looks right and plays
+ * straight through, which is the mistake this table exists to avoid.
+ *
+ * `dacapo`, `dalsegno`, `tocoda` and `fine` are the four attributes MusicXML
+ * defines. "al Fine" is a `dalsegno`/`dacapo` jump plus a `fine` on the last
+ * bar, so the directive itself carries only the jump — the Fine is its own
+ * measure's directive, which is how it is printed too.
+ */
+const DIRECTIVE_XML: Record<RepeatDirective, { words: string; sound: string }> = {
+  fine: { words: "Fine", sound: `fine="yes"` },
+  "to-coda": { words: "To Coda", sound: `tocoda="coda"` },
+  "d.c.": { words: "D.C.", sound: `dacapo="yes"` },
+  "d.s.": { words: "D.S.", sound: `dalsegno="segno"` },
+  "d.c.-al-fine": { words: "D.C. al Fine", sound: `dacapo="yes"` },
+  "d.s.-al-fine": { words: "D.S. al Fine", sound: `dalsegno="segno"` },
+  "d.c.-al-coda": { words: "D.C. al Coda", sound: `dacapo="yes"` },
+  "d.s.-al-coda": { words: "D.S. al Coda", sound: `dalsegno="segno"` },
+};
+
+/** The sign at a measure's head, printed and obeyable. */
+function signXml(measure: Measure): string {
+  if (!measure.sign) return "";
+  const el = measure.sign === "segno" ? "segno" : "coda";
+  return (
+    `      <direction placement="above">` +
+    `<direction-type><${el}/></direction-type>` +
+    `<sound ${el}="${el}"/>` +
+    `</direction>\n`
+  );
+}
+
+/** The instruction at a measure's end. */
+function directiveXml(measure: Measure): string {
+  if (!measure.directive) return "";
+  const d = DIRECTIVE_XML[measure.directive];
+  if (!d) return "";
+  return (
+    `      <direction placement="above">` +
+    `<direction-type><words>${escapeXml(d.words)}</words></direction-type>` +
+    `<sound ${d.sound}/>` +
+    `</direction>\n`
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* Barlines and repeats                                                       */
 /* -------------------------------------------------------------------------- */
 
-function barlineXml(style: string | undefined): { left: string; right: string } {
-  switch (style) {
-    case "double":
-      return { left: "", right: `      <barline location="right"><bar-style>light-light</bar-style></barline>\n` };
-    case "final":
-      return { left: "", right: `      <barline location="right"><bar-style>light-heavy</bar-style></barline>\n` };
-    case "dashed":
-      return { left: "", right: `      <barline location="right"><bar-style>dashed</bar-style></barline>\n` };
-    case "repeat-start":
-      return {
-        left: `      <barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>\n`,
-        right: "",
-      };
-    case "repeat-end":
-      return {
-        left: "",
-        right: `      <barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>\n`,
-      };
-    case "repeat-both":
-      return {
-        left: `      <barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>\n`,
-        right: `      <barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>\n`,
-      };
-    default:
-      return { left: "", right: "" };
-  }
+/**
+ * The barlines at a measure's two ends, including the volta bracket.
+ *
+ * MusicXML puts a volta inside the <barline> elements rather than anywhere
+ * near the measure it covers: `<ending type="start" number="1">` on the left
+ * barline, `type="stop"` or `"discontinue"` on the right. "stop" draws a
+ * closing leg and "discontinue" leaves the bracket open, which is the
+ * difference between a first-time bar and a second-time bar that runs on into
+ * the rest of the piece — and getting it wrong prints a leg that tells a
+ * player to stop where the music does not.
+ *
+ * `times` on a backward repeat is how "Play 3 times" is said. Without it every
+ * repeat is taken exactly twice, whatever the words above the staff say.
+ */
+function barlineXml(
+  measure: Measure,
+  /** The bracket this measure is inside, from `voltaRun`. */
+  volta: ReturnType<typeof voltaRun>
+): { left: string; right: string } {
+  const style = measure.barline;
+  const times =
+    measure.repeatTimes && measure.repeatTimes >= 3 ? ` times="${measure.repeatTimes}"` : "";
+
+  const endingStart = volta?.starts
+    ? `<ending type="start" number="${volta.passes.join(",")}"/>`
+    : "";
+  const endingStop = volta?.ends
+    ? `<ending type="${volta.open ? "discontinue" : "stop"}" number="${volta.passes.join(",")}"/>`
+    : "";
+
+  const wrap = (location: "left" | "right", bar: string, extra: string) =>
+    bar || extra
+      ? `      <barline location="${location}">${bar}${extra}</barline>\n`
+      : "";
+
+  const bars = (() => {
+    switch (style) {
+      case "double":
+        return { left: "", right: `<bar-style>light-light</bar-style>` };
+      case "final":
+        return { left: "", right: `<bar-style>light-heavy</bar-style>` };
+      case "dashed":
+        return { left: "", right: `<bar-style>dashed</bar-style>` };
+      case "repeat-start":
+        return {
+          left: `<bar-style>heavy-light</bar-style><repeat direction="forward"/>`,
+          right: "",
+        };
+      case "repeat-end":
+        return {
+          left: "",
+          right: `<bar-style>light-heavy</bar-style><repeat direction="backward"${times}/>`,
+        };
+      case "repeat-both":
+        return {
+          left: `<bar-style>heavy-light</bar-style><repeat direction="forward"/>`,
+          right: `<bar-style>light-heavy</bar-style><repeat direction="backward"${times}/>`,
+        };
+      default:
+        return { left: "", right: "" };
+    }
+  })();
+
+  // The bracket opens before the repeat sign and closes after it, which is the
+  // order MusicXML requires inside a <barline>.
+  return {
+    left: wrap("left", bars.left, endingStart),
+    right: wrap("right", bars.right, endingStop),
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -418,7 +638,7 @@ export function scoreToMusicXml(score: StudioScore): string {
           });
           const attrs = bits.length ? `      <attributes>${bits.join("")}</attributes>\n` : "";
 
-          const bars = barlineXml(measure.barline);
+          const bars = barlineXml(measure, voltaRun(score.measures, mi));
           const rehearsal = measure.rehearsal
             ? `      <direction placement="above"><direction-type>` +
               `<rehearsal>${escapeXml(measure.rehearsal)}</rehearsal></direction-type></direction>\n`
@@ -452,13 +672,19 @@ export function scoreToMusicXml(score: StudioScore): string {
                     tieStop: tiedInto(v.notes, n),
                     tupletStart: isTupletEdge(v.notes, n, "start"),
                     tupletStop: isTupletEdge(v.notes, n, "stop"),
-                    fermata: hasFermata(st.texts, n),
                     lyrics: lyricsFor(st.texts, n),
                   });
                 });
                 cursor = group.at + len;
               }
-              if (cursor < to) out += restXml(to - cursor, voiceNo, staffNo);
+              if (cursor < to) {
+                // A rest the writer placed on this beat may be held; an implied
+                // silence never is, so only a real StudioRest contributes one.
+                const held = v.rests.find(
+                  (r) => r.fermata && Math.abs(r.start - cursor) < 1e-9
+                );
+                out += restXml(to - cursor, voiceNo, staffNo, held?.fermata);
+              }
               used = to - from;
             });
             if (used === 0) out += restXml(barTicks, si * 4 + 1, staffNo);
@@ -470,7 +696,13 @@ export function scoreToMusicXml(score: StudioScore): string {
             attrs +
             bars.left +
             rehearsal +
+            // The sign is a place, so it is printed before the music of the bar
+            // it marks; the directive is an instruction to leave, so it comes
+            // after. Writing them the other way round would send a reader back
+            // from the wrong bar.
+            signXml(measure) +
             streams.join(`      <backup><duration>${div(barTicks)}</duration></backup>\n`) +
+            directiveXml(measure) +
             bars.right +
             `    </measure>`
           );
@@ -515,17 +747,6 @@ function isTupletEdge(notes: StudioNote[], n: StudioNote, which: "start" | "stop
     .sort((a, b) => a.start - b.start);
   if (!members.length) return false;
   return which === "start" ? members[0].id === n.id : members[members.length - 1].id === n.id;
-}
-
-/**
- * A fermata is stored as a technique text sitting on the note's beat. The
- * model has no fermata field, so until it gains one this is where one comes
- * from; writing it as plain words would print the literal string "fermata".
- */
-function hasFermata(texts: { start: number; kind: string; text: string }[], n: StudioNote): boolean {
-  return texts.some(
-    (t) => t.kind === "technique" && /^fermata$/i.test(t.text.trim()) && Math.abs(t.start - n.start) < 1e-9
-  );
 }
 
 /** Lyric syllables landing on this note, in verse order. */

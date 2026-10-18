@@ -96,8 +96,13 @@ function fixture(): StudioScore {
               note({ start: 24, pitch: 71, duration: 1, ornaments: ["grace"] }),
               note({ start: 25, pitch: 72, duration: 3, ornaments: ["tremolo-2"] }),
               note({ start: 28, pitch: 67, duration: 4, ornaments: ["glissando"] }),
+              // Measure 3: a held final chord with a fingering on it, which is
+              // what the two newest fields on a note are for.
+              note({ start: 32, pitch: 60, duration: 8, fermata: "square", fingering: "1" }),
+              note({ start: 32, pitch: 67, duration: 8, fingering: "5" }),
             ],
-            rests: [],
+            // A held rest, which carries a fermata of its own.
+            rests: [{ id: id(), start: 40, duration: 8, fermata: "normal" }],
           },
         ],
         dynamics: [{ id: id(), start: 0, value: "pp" }],
@@ -106,19 +111,48 @@ function fixture(): StudioScore {
           { id: id(), start: 0, kind: "tempo", text: "Andante" },
           { id: id(), start: 0, kind: "lyric", text: "Sing", verse: 1 },
           { id: id(), start: 4, kind: "lyric", text: "low", verse: 1 },
-          { id: id(), start: 12, kind: "technique", text: "fermata" },
+          // This used to be how a fermata was written, because the model had no
+          // field for one. It stays in the fixture as an ordinary technique
+          // text, which is all it ever really was.
+          { id: id(), start: 12, kind: "technique", text: "sul tasto" },
           { id: id(), start: 8, kind: "expression", text: "dolce" },
         ],
         octaveLines: [{ id: id(), start: 24, duration: 8, shift: 1 }],
+        // Sustain across two bars with a retake in the middle, plus a
+        // sostenuto line, which is a different pedal and a different element.
+        pedals: [
+          { id: id(), start: 0, duration: 16, kind: "sustain", retakes: [8] },
+          { id: id(), start: 16, duration: 8, kind: "sostenuto" },
+        ],
+        // One plain chord, one with a slash bass, and one whose quality
+        // MusicXML's <kind> list cannot say without <degree> elements.
+        chordSymbols: [
+          { id: id(), start: 0, root: "C", quality: "maj7" },
+          { id: id(), start: 8, root: "A", quality: "min7", bass: "E" },
+          { id: id(), start: 16, root: "G", quality: "dom7b9" },
+        ],
       },
     ],
   };
 
   const measures: Measure[] = [
-    { id: "m1", barline: "repeat-start", rehearsal: "A" },
-    // A meter AND key change at measure 2, which the old exporter lost.
-    { id: "m2", meter: { beats: 3, unit: 4 }, key: "G", mode: "major", barline: "repeat-end" },
-    { id: "m3", barline: "final" },
+    { id: "m1", barline: "repeat-start", rehearsal: "A", sign: "segno" },
+    // A meter AND key change at measure 2, which the old exporter lost. Also a
+    // first-time bar closing on the repeat, played three times.
+    {
+      id: "m2",
+      meter: { beats: 3, unit: 4 },
+      key: "G",
+      mode: "major",
+      barline: "repeat-end",
+      volta: [1],
+      repeatTimes: 3,
+    },
+    // A second-time bar: a bracket that does NOT close, because the music runs
+    // on into the rest of the piece.
+    { id: "m3", volta: [2], directive: "to-coda" },
+    { id: "m4", sign: "coda" },
+    { id: "m5", barline: "final", directive: "d.s.-al-coda" },
   ];
 
   return {
@@ -193,10 +227,9 @@ const must: [string, string | RegExp][] = [
   ["a tempo word", "Andante"],
   ["an expression word", "dolce"],
   ["a lyric", "<lyric number=\"1\"><syllabic>single</syllabic><text>Sing</text></lyric>"],
-  ["a fermata", "<fermata"],
   ["a rehearsal mark", "<rehearsal>A</rehearsal>"],
   ["a forward repeat", '<repeat direction="forward"/>'],
-  ["a backward repeat", '<repeat direction="backward"/>'],
+  ["a backward repeat", /<repeat direction="backward"( times="\d+")?\/>/],
   ["a final barline", "<bar-style>light-heavy</bar-style>"],
   ["a mid-score meter change", "<beats>3</beats><beat-type>4</beat-type>"],
   ["a mid-score key change", "<fifths>1</fifths>"],
@@ -208,6 +241,44 @@ const must: [string, string | RegExp][] = [
   ["an accidental spelling", "<alter>1</alter>"],
   ["divisions", "<divisions>16</divisions>"],
   ["three measures", /<measure number="3"/],
+
+  /* ---- The gaps a composer reaches for ---------------------------------- */
+  // Fermatas, from the note's own field rather than sniffed out of a text.
+  ["a fermata on a note", /<fermata type="upright">square<\/fermata>/],
+  ["a plain fermata on a held rest", /<rest\/>[\s\S]*?<fermata type="upright"><\/fermata>/],
+  // Fingering, as <technical> beside the tablature it shares an element with.
+  ["a fingering", "<technical><fingering>1</fingering></technical>"],
+  ["a second fingering", "<fingering>5</fingering>"],
+  // Pedalling: a sustain line with a retake in the middle, and a sostenuto
+  // line, which is a different pedal and must not be written as a sustain.
+  ["a pedal down", '<pedal type="start" line="yes"/>'],
+  ["a pedal retake", '<pedal type="change" line="yes"/>'],
+  ["a pedal up", '<pedal type="stop" line="yes"/>'],
+  ["a sostenuto pedal", '<sostenuto type="start" line="yes"/>'],
+  ["the sostenuto released", '<sostenuto type="stop" line="yes"/>'],
+  // Chord symbols as harmony, not as floating words.
+  ["a chord symbol", "<harmony>"],
+  ["its root", "<root><root-step>C</root-step></root>"],
+  ["its quality from MusicXML's vocabulary", "<kind text=\"maj7\">major-seventh</kind>"],
+  ["a slash bass", "<bass><bass-step>E</bass-step></bass>"],
+  ["an altered dominant as degrees", "<degree-value>9</degree-value>"],
+  ["its alteration", "<degree-alter>-1</degree-alter>"],
+  // Navigation. Each jump needs the printed words AND the <sound> attribute,
+  // or the score looks right and plays straight through.
+  ["a segno", "<segno/>"],
+  ["a coda", "<coda/>"],
+  ["the segno as something playback obeys", '<sound segno="segno"/>'],
+  ["a To Coda", "<words>To Coda</words>"],
+  ["To Coda as something playback obeys", '<sound tocoda="coda"/>'],
+  ["a D.S. al Coda", "<words>D.S. al Coda</words>"],
+  ["the D.S. as something playback obeys", '<sound dalsegno="segno"/>'],
+  // Voltas, which live inside the barlines rather than near their measures.
+  ["a volta bracket", '<ending type="start" number="1"/>'],
+  ["the bracket closing on the repeat", '<ending type="stop" number="1"/>'],
+  // A second-time bar that runs on has an OPEN end, which is a different
+  // element value and the difference between right and wrong on the page.
+  ["a second-time bar left open", '<ending type="discontinue" number="2"/>'],
+  ["a repeat played three times", '<repeat direction="backward" times="3"/>'],
 ];
 
 for (const [what, needle] of must) {

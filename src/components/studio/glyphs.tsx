@@ -13,7 +13,18 @@
 
 import { INK, INK_FAINT, INK_SOFT, PLAYING, SELECT } from "@/lib/studio/ink";
 import type { Clef } from "@/lib/studio/instruments";
-import type { Articulation, Dynamic, NoteheadStyle, Ornament } from "@/lib/studio/model";
+import type {
+  Articulation,
+  ChordSymbol,
+  Dynamic,
+  Fermata,
+  NoteheadStyle,
+  Ornament,
+  PedalLine,
+  RepeatDirective,
+  RepeatSign,
+} from "@/lib/studio/model";
+import { chordSymbolText } from "@/lib/studio/chords";
 
 // Re-exported so everything drawing a page still reads its palette from one
 // place; the values themselves live in a module a server component can read.
@@ -574,6 +585,343 @@ export function HairpinGlyph({
       ? `M ${x1} ${y} L ${x2} ${y - h} M ${x1} ${y} L ${x2} ${y + h}`
       : `M ${x1} ${y - h} L ${x2} ${y} M ${x1} ${y + h} L ${x2} ${y}`;
   return <path d={d} stroke={color} strokeWidth={sp * 0.12} fill="none" strokeLinecap="round" />;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Fermatas                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A hold, drawn above the note or inverted below it.
+ *
+ * Four shapes, each a different length of hold rather than a different house
+ * style: the arch is the ordinary one, the wedge asks for a short hold, the
+ * square bracket for a long one, and the double arch — two nested curves — for
+ * the very long holds that choral writing marks.
+ *
+ * `y` is the line the dot sits above, and `below` flips the whole thing, which
+ * is what a fermata does when the stems go up.
+ */
+export function FermataGlyph({
+  shape = "normal",
+  x,
+  y,
+  sp,
+  below = false,
+  color = INK,
+}: { shape?: Fermata; below?: boolean } & G) {
+  const w = sp * 1.5;
+  const h = sp * 0.95;
+  // Drawn as if above the staff, then mirrored vertically for `below`.
+  const flip = below ? -1 : 1;
+  const Y = (dy: number) => y + dy * flip;
+
+  const arch = (scale: number) =>
+    `M ${x - w * scale} ${Y(0)} Q ${x} ${Y(-h * 2 * scale)} ${x + w * scale} ${Y(0)}`;
+
+  let body: React.ReactNode;
+  if (shape === "angled") {
+    // Henze's wedge: two straight strokes meeting over the dot.
+    body = (
+      <path
+        d={`M ${x - w} ${Y(0)} L ${x} ${Y(-h * 1.9)} L ${x + w} ${Y(0)}`}
+        stroke={color}
+        strokeWidth={sp * 0.14}
+        fill="none"
+        strokeLinejoin="round"
+      />
+    );
+  } else if (shape === "square") {
+    body = (
+      <path
+        d={`M ${x - w} ${Y(0)} L ${x - w} ${Y(-h * 1.7)} L ${x + w} ${Y(-h * 1.7)} L ${x + w} ${Y(0)}`}
+        stroke={color}
+        strokeWidth={sp * 0.14}
+        fill="none"
+        strokeLinejoin="miter"
+      />
+    );
+  } else if (shape === "very-long") {
+    body = (
+      <g stroke={color} strokeWidth={sp * 0.13} fill="none" strokeLinecap="round">
+        <path d={arch(1)} />
+        <path d={arch(0.62)} />
+      </g>
+    );
+  } else {
+    body = (
+      <path d={arch(1)} stroke={color} strokeWidth={sp * 0.15} fill="none" strokeLinecap="round" />
+    );
+  }
+
+  return (
+    <g>
+      {body}
+      <circle cx={x} cy={Y(-h * 0.55)} r={sp * 0.17} fill={color} />
+    </g>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pedal lines                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A pedal line under a keyboard staff.
+ *
+ * The modern form: the word, then a bracket line at the level of the word's
+ * baseline, with a notch dropping and rising at each retake and a hook turning
+ * up at the end. The older "Ped. ... ✱" is still what a pianist reads first, so
+ * the word opens the line rather than being replaced by a bracket alone.
+ *
+ * `clipLeft` and `clipRight` say the line was cut by a system break — a cut
+ * end gets no hook and no word, because the line continues elsewhere.
+ */
+export function PedalGlyph({
+  kind = "sustain",
+  x1,
+  x2,
+  y,
+  sp,
+  retakes = [],
+  clipLeft = false,
+  clipRight = false,
+  color = INK_SOFT,
+}: {
+  kind?: PedalLine["kind"];
+  x1: number;
+  x2: number;
+  y: number;
+  sp: number;
+  /** Page x of each retake notch, already inside [x1, x2]. */
+  retakes?: number[];
+  clipLeft?: boolean;
+  clipRight?: boolean;
+  color?: string;
+}) {
+  const label = kind === "sustain" ? "Ped." : kind === "sostenuto" ? "Sost." : "una corda";
+  const labelW = clipLeft ? 0 : label.length * sp * 0.52 + sp * 0.3;
+  const lineFrom = x1 + labelW;
+  const notch = sp * 0.9;
+  const stroke = sp * 0.11;
+
+  // The bracket, interrupted by a V at every retake.
+  const segments: string[] = [];
+  let cursor = lineFrom;
+  for (const r of retakes) {
+    if (r <= cursor || r >= x2) continue;
+    segments.push(`M ${cursor} ${y} L ${r - sp * 0.45} ${y} L ${r} ${y - notch} L ${r + sp * 0.45} ${y}`);
+    cursor = r + sp * 0.45;
+  }
+  segments.push(`M ${cursor} ${y} L ${x2} ${y}`);
+  // The closing hook, unless the line runs off the end of the system.
+  if (!clipRight) segments.push(`M ${x2} ${y} L ${x2} ${y - notch}`);
+  if (!clipLeft) segments.push(`M ${lineFrom} ${y} L ${lineFrom} ${y - notch * 0.7}`);
+
+  return (
+    <g>
+      {!clipLeft && (
+        <text
+          x={x1}
+          y={y}
+          fill={color}
+          fontSize={sp * 1.5}
+          fontFamily="Georgia, 'Times New Roman', serif"
+          fontStyle="italic"
+        >
+          {label}
+        </text>
+      )}
+      {lineFrom < x2 && (
+        <path
+          d={segments.join(" ")}
+          stroke={color}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+    </g>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Navigation: segno, coda, voltas and the words that send you to them         */
+/* -------------------------------------------------------------------------- */
+
+/** The S-and-slash segno, or the crossed circle of a coda. */
+export function RepeatSignGlyph({
+  sign,
+  x,
+  y,
+  sp,
+  color = INK,
+}: { sign: RepeatSign } & G) {
+  if (sign === "coda") {
+    const r = sp * 0.95;
+    return (
+      <g stroke={color} strokeWidth={sp * 0.14} fill="none">
+        <circle cx={x} cy={y} r={r} />
+        <line x1={x - r * 1.5} y1={y} x2={x + r * 1.5} y2={y} />
+        <line x1={x} y1={y - r * 1.5} x2={x} y2={y + r * 1.5} />
+      </g>
+    );
+  }
+  // The segno: an S laid across a diagonal, with a dot either side of it.
+  const r = sp * 0.85;
+  return (
+    <g stroke={color} strokeWidth={sp * 0.16} fill="none" strokeLinecap="round">
+      <path
+        d={`M ${x + r * 0.9} ${y - r * 0.95} Q ${x - r * 0.35} ${y - r * 1.45} ${x - r * 0.35} ${y - r * 0.3}
+            Q ${x - r * 0.35} ${y + r * 0.3} ${x + r * 0.35} ${y + r * 0.3}
+            Q ${x + r * 0.35} ${y + r * 0.3} ${x + r * 0.35} ${y + r * 0.95}
+            Q ${x + r * 0.35} ${y + r * 1.45} ${x - r * 0.9} ${y + r * 0.95}`}
+      />
+      <line x1={x - r * 1.05} y1={y + r * 1.25} x2={x + r * 1.05} y2={y - r * 1.25} />
+      <circle cx={x - r * 0.95} cy={y - r * 0.8} r={sp * 0.14} fill={color} stroke="none" />
+      <circle cx={x + r * 0.95} cy={y + r * 0.8} r={sp * 0.14} fill={color} stroke="none" />
+    </g>
+  );
+}
+
+/** How a navigation instruction is printed. */
+export const DIRECTIVE_TEXT: Record<RepeatDirective, string> = {
+  fine: "Fine",
+  "to-coda": "To Coda",
+  "d.c.": "D.C.",
+  "d.s.": "D.S.",
+  "d.c.-al-fine": "D.C. al Fine",
+  "d.s.-al-fine": "D.S. al Fine",
+  "d.c.-al-coda": "D.C. al Coda",
+  "d.s.-al-coda": "D.S. al Coda",
+};
+
+export function DirectiveGlyph({
+  directive,
+  x,
+  y,
+  sp,
+  color = INK,
+}: { directive: RepeatDirective } & G) {
+  return (
+    <text
+      x={x}
+      y={y}
+      fill={color}
+      fontSize={sp * 1.5}
+      fontFamily="Georgia, 'Times New Roman', serif"
+      fontStyle="italic"
+      fontWeight={600}
+      textAnchor="end"
+    >
+      {DIRECTIVE_TEXT[directive]}
+    </text>
+  );
+}
+
+/**
+ * A volta bracket — the first-time bar.
+ *
+ * The bracket drops a leg at its start always, and at its end only when the
+ * passage closes there. A second-time bar that runs on into the rest of the
+ * piece has an open right end, which is how a reader knows it does not stop.
+ */
+export function VoltaGlyph({
+  passes,
+  x1,
+  x2,
+  y,
+  sp,
+  closed = true,
+  color = INK,
+}: {
+  passes: number[];
+  x1: number;
+  x2: number;
+  y: number;
+  sp: number;
+  closed?: boolean;
+  color?: string;
+}) {
+  const leg = sp * 1.5;
+  const d =
+    `M ${x1} ${y + leg} L ${x1} ${y} L ${x2} ${y}` + (closed ? ` L ${x2} ${y + leg}` : "");
+  return (
+    <g>
+      <path d={d} stroke={color} strokeWidth={sp * 0.12} fill="none" strokeLinejoin="miter" />
+      <text
+        x={x1 + sp * 0.45}
+        y={y + sp * 1.15}
+        fill={color}
+        fontSize={sp * 1.15}
+        fontFamily="Georgia, serif"
+      >
+        {passes.join(".") + "."}
+      </text>
+    </g>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Chord symbols and fingering                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A chord symbol above the staff.
+ *
+ * The root is set upright and the suffix smaller and raised, which is how a
+ * printed lead sheet reads and what makes "Am7" scan as A-minor-seven rather
+ * than as a four-letter word. The split is on the root's own characters, so a
+ * double-flat root still keeps its accidental at full size.
+ */
+export function ChordSymbolGlyph({
+  chord,
+  x,
+  y,
+  sp,
+  color = INK,
+}: { chord: ChordSymbol } & G) {
+  const full = chordSymbolText(chord);
+  // Everything up to the end of the root (letter plus any accidentals).
+  const m = /^[A-G][♯♭#b]*/.exec(full);
+  const head = m ? m[0] : full;
+  const tail = full.slice(head.length);
+  return (
+    <text x={x} y={y} fill={color} fontFamily="Georgia, 'Times New Roman', serif">
+      <tspan fontSize={sp * 1.75} fontWeight={600}>
+        {head}
+      </tspan>
+      {tail && (
+        <tspan fontSize={sp * 1.3} fontWeight={500} dy={-sp * 0.25}>
+          {tail}
+        </tspan>
+      )}
+    </text>
+  );
+}
+
+/** The finger that plays a note, set small and upright beside the notehead. */
+export function FingeringGlyph({
+  text,
+  x,
+  y,
+  sp,
+  color = INK_SOFT,
+}: { text: string } & G) {
+  return (
+    <text
+      x={x}
+      y={y}
+      fill={color}
+      fontSize={sp * 1.2}
+      fontFamily="Georgia, serif"
+      fontWeight={600}
+      textAnchor="middle"
+    >
+      {text}
+    </text>
+  );
 }
 
 /* -------------------------------------------------------------------------- */

@@ -13,9 +13,11 @@ import {
   audibleParts,
   measureOffsets,
   meterAt,
+  pedalsOf,
   transposeOf,
   type StudioScore,
 } from "./model";
+import { buildTimeMap, gainCurve, type TimeMap } from "./timing";
 
 const midiToHz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -241,24 +243,25 @@ export class StudioPlayer {
   }
 }
 
-/** How loud a printed dynamic should sound. */
-const DYNAMIC_GAIN: Record<string, number> = {
-  ppp: 0.12, pp: 0.2, p: 0.32, mp: 0.45, mf: 0.6, f: 0.75, ff: 0.9, fff: 1,
-  sfz: 1, fp: 0.75,
-};
-
 /**
  * Turn a score into a flat list of notes with absolute times, honouring mutes,
- * solos, transposition, dynamics, articulations and per-part volume and pan.
+ * solos, transposition, dynamics, hairpins, fermatas, pedalling, articulations
+ * and per-part volume and pan.
+ *
+ * Times come from the score's time map rather than from one multiplier, which
+ * is what lets a fermata hold. Loudness comes from the staff's gain curve
+ * rather than from the last printed dynamic, which is what lets a crescendo
+ * grow. Both live in ./timing.ts; the reasons they have to are written there.
  */
 export function scheduleScore(
   score: StudioScore,
   opts: { from?: number; to?: number } = {}
-): { notes: ScheduledNote[]; secondsPerTick: number; totalTicks: number } {
-  const secondsPerTick = 60 / score.tempo / ticksPerBeat(score.meter);
+): { notes: ScheduledNote[]; time: TimeMap; totalTicks: number } {
+  const time = buildTimeMap(score);
   const { total } = measureOffsets(score);
   const from = opts.from ?? 0;
   const to = opts.to ?? total;
+  const base = time.secondsAt(from);
 
   const notes: ScheduledNote[] = [];
 
@@ -268,27 +271,43 @@ export function scheduleScore(
     const isDrum = inst.timbre === "drum";
 
     for (const staff of part.staves) {
-      // A dynamic stays in force until the next one replaces it.
-      const marks = [...staff.dynamics].sort((a, b) => a.start - b.start);
-      const gainAt = (tick: number) => {
-        let g = DYNAMIC_GAIN.mf;
-        for (const m of marks) {
-          if (m.start > tick) break;
-          g = DYNAMIC_GAIN[m.value] ?? g;
+      const gainAt = gainCurve(staff);
+      // Sustain and sostenuto both stop a note being damped when its written
+      // length runs out; una corda changes the colour, not the length, so it
+      // is not consulted here.
+      const holding = pedalsOf(staff).filter((p) => p.kind !== "una-corda");
+      const pedalEnd = (tick: number): number | null => {
+        for (const p of holding) {
+          if (tick < p.start || tick >= p.start + p.duration) continue;
+          // A retake lifts the dampers, so the note survives only until the
+          // next notch rather than to the end of the whole line.
+          const next = (p.retakes ?? []).filter((r) => r > tick).sort((a, b) => a - b)[0];
+          return next ?? p.start + p.duration;
         }
-        return g;
+        return null;
       };
 
       for (const voice of staff.voices) {
         for (const n of voice.notes) {
           if (n.start + n.duration <= from || n.start >= to) continue;
 
-          let seconds = n.duration * secondsPerTick;
+          // The written length in real time, which under a fermata is longer
+          // than the same number of ticks anywhere else in the piece.
+          let seconds = time.secondsAt(n.start + n.duration) - time.secondsAt(n.start);
           const arts = n.articulations ?? [];
           if (arts.includes("staccato")) seconds *= 0.5;
           if (arts.includes("staccatissimo")) seconds *= 0.3;
           if (arts.includes("tenuto")) seconds *= 1.0;
           if (arts.includes("portato")) seconds *= 0.75;
+
+          // Under the pedal a note rings on past its notehead, which is the
+          // whole reason a pianist uses one. A staccato note under the pedal
+          // still rings: the foot wins over the finger, as it does in the room.
+          const held = pedalEnd(n.start);
+          if (held !== null) {
+            const ring = time.secondsAt(Math.min(held, to)) - time.secondsAt(n.start);
+            seconds = Math.max(seconds, ring);
+          }
 
           let gain = (n.velocity !== undefined ? n.velocity / 127 : gainAt(n.start)) * part.volume;
           if (arts.includes("accent")) gain = Math.min(1, gain * 1.35);
@@ -296,7 +315,7 @@ export function scheduleScore(
 
           notes.push({
             pitch: n.pitch + shift,
-            at: (n.start - from) * secondsPerTick,
+            at: time.secondsAt(n.start) - base,
             seconds: Math.max(0.04, seconds),
             timbre: inst.timbre,
             gain,
@@ -309,18 +328,25 @@ export function scheduleScore(
   }
 
   notes.sort((a, b) => a.at - b.at);
-  return { notes, secondsPerTick, totalTicks: total };
+  return { notes, time, totalTicks: total };
 }
 
-/** Metronome click times, in seconds from the start of a range. */
+/**
+ * Metronome click times, in seconds from the start of a range.
+ *
+ * Driven by the same time map as the notes. A click track computed from a flat
+ * multiplier would walk away from the music at the first fermata and never
+ * come back, which makes the metronome worse than no metronome.
+ */
 export function metronomeTicks(
   score: StudioScore,
   from: number,
   to: number,
-  secondsPerTick: number
+  time: TimeMap
 ): { at: number; strong: boolean }[] {
   const out: { at: number; strong: boolean }[] = [];
   const { starts } = measureOffsets(score);
+  const base = time.secondsAt(from);
   for (let i = 0; i < score.measures.length; i++) {
     const meter = meterAt(score, i);
     const beat = ticksPerBeat(meter);
@@ -328,7 +354,7 @@ export function metronomeTicks(
     const barTicks = score.measures[i].pickupTicks ?? beat * meter.beats;
     for (let t = barStart; t < barStart + barTicks; t += beat) {
       if (t < from || t >= to) continue;
-      out.push({ at: (t - from) * secondsPerTick, strong: t === barStart });
+      out.push({ at: time.secondsAt(t) - base, strong: t === barStart });
     }
   }
   return out;

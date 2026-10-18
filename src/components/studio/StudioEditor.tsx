@@ -17,15 +17,18 @@ import {
   type Dynamic,
   type Layout,
   type Ornament,
+  type Fermata,
   type Part,
   type ScoreInfo,
   type StudioNote,
   type StudioScore,
 } from "@/lib/studio/model";
 import {
+  addChordSymbol,
   addDynamic,
   addHairpin,
   addOctaveLine,
+  addPedal,
   addText,
   addVoice,
   applyEnsemble,
@@ -33,15 +36,23 @@ import {
   deleteMeasure,
   findNote,
   insertMeasure,
+  removeChordSymbol,
   removeNote,
   removePart,
   reorderParts,
   respell,
   setBarline,
   setClef,
+  setFingering,
+  setRepeatDirective,
+  setRepeatSign,
+  setRepeatTimes,
+  setVolta,
   toggleArticulation,
+  toggleFermata,
   toggleNote,
   toggleOrnament,
+  toggleRestFermata,
   updateMeasure,
   updateNote,
   updatePart,
@@ -52,7 +63,7 @@ import { ScoreCanvas, type Selection } from "./ScoreCanvas";
 import { InstrumentPanel } from "./InstrumentPanel";
 import { Inspector } from "./Inspector";
 import { Mixer } from "./Mixer";
-import { NotationToolbar, type ToolTab } from "./NotationToolbar";
+import { NotationToolbar, type ToolbarActions, type ToolTab } from "./NotationToolbar";
 import { NotationPanel } from "./NotationPanel";
 import { scoreToMidi } from "@/lib/studio/midi";
 import { scoreToMusicXml } from "@/lib/studio/musicxml";
@@ -347,17 +358,20 @@ export function StudioEditor({
       p.setMasterVolume(score.masterVolume);
 
       const start = from ?? cursor?.tick ?? 0;
-      const { notes, secondsPerTick } = scheduleScore(score, { from: start, to: total });
-      const lengthSeconds = (total - start) * secondsPerTick;
+      const { notes, time } = scheduleScore(score, { from: start, to: total });
+      // Real elapsed time, which is longer than tempo alone implies wherever a
+      // fermata holds. Multiplying ticks by one rate would cut a held ending
+      // off and, on loop, start the next pass early.
+      const lengthSeconds = time.secondsAt(total) - time.secondsAt(start);
 
-      const countInSeconds = countIn
-        ? ticksPerBeat(score.meter) * score.meter.beats * secondsPerTick
-        : 0;
+      // The count-in is not part of the piece, so it runs at the written tempo
+      // whatever the first bar does.
+      const beat = ticksPerBeat(score.meter) * time.baseSecondsPerTick;
+      const countInSeconds = countIn ? beat * score.meter.beats : 0;
 
       let base = p.now() + 0.1;
 
       if (countIn) {
-        const beat = ticksPerBeat(score.meter) * secondsPerTick;
         for (let i = 0; i < score.meter.beats; i++) p.tick(base + i * beat, i === 0);
         base += countInSeconds;
       }
@@ -365,7 +379,7 @@ export function StudioEditor({
       const schedule = (at: number) => {
         for (const n of notes) p.voice(n, at);
         if (metronome) {
-          for (const t of metronomeTicks(score, start, total, secondsPerTick)) {
+          for (const t of metronomeTicks(score, start, total, time)) {
             p.tick(at + t.at, t.strong);
           }
         }
@@ -386,7 +400,9 @@ export function StudioEditor({
             return;
           }
         }
-        setPlayhead(start + Math.max(0, (now - passStart) / secondsPerTick));
+        // Back through the map, not a division: with a bending map the
+        // playhead would otherwise run ahead of the sound through every hold.
+        setPlayhead(Math.max(start, time.tickAt(time.secondsAt(start) + (now - passStart))));
         rafRef.current = requestAnimationFrame(frame);
       };
       rafRef.current = requestAnimationFrame(frame);
@@ -556,7 +572,9 @@ export function StudioEditor({
 
   /* ---- Toolbar actions -------------------------------------------------- */
 
-  const actions = useMemo(
+  // Typed against the contract, so a handler whose parameters do not match the
+  // toolbar's declaration is a compile error rather than an implicit `any`.
+  const actions = useMemo<ToolbarActions>(
     () => ({
       onSetDuration: setDuration,
       onSetDots: setDots,
@@ -607,6 +625,92 @@ export function StudioEditor({
           );
         }),
       onSlur: () => forEachSelectedNote((s, id) => updateNote(s, id, { slur: "begin" })),
+
+      /*
+       * A fermata goes on the selected notes, and failing that on whatever rest
+       * sits under the cursor — because the commonest fermata in the repertoire
+       * is over the rest before a final chord, and a hold that could only be
+       * written over a note would not be able to say that.
+       */
+      onFermata: (shape: Fermata) => {
+        const ids = selection.noteIds ?? [];
+        if (ids.length > 0) {
+          forEachSelectedNote((s, id) => toggleFermata(s, id, shape));
+          return;
+        }
+        const tick = cursor?.tick ?? 0;
+        apply((s) => {
+          const staff = s.parts
+            .find((pp) => pp.id === target.part.id)
+            ?.staves.find((st) => st.id === target.staff.id);
+          const rest = staff?.voices
+            .flatMap((v) => v.rests)
+            .find((r) => Math.abs(r.start - tick) < 1e-9);
+          if (!rest) return s;
+          return toggleRestFermata(s, target.part.id, target.staff.id, rest.id, shape);
+        });
+      },
+
+      // A pedal line spans the selection, like a hairpin. With nothing
+      // selected it covers the bar the cursor is in, which is the length a
+      // pianist reaches for far more often than two beats.
+      onPedal: (kind) =>
+        apply((s) => {
+          const span = selectionSpan(s);
+          const bar = ticksPerBeat(s.meter) * s.meter.beats;
+          return addPedal(
+            s,
+            target.part.id,
+            target.staff.id,
+            span?.start ?? cursor?.tick ?? 0,
+            span && span.duration > 0 ? span.duration : bar,
+            kind
+          );
+        }),
+
+      onFingering: () => {
+        const ids = selection.noteIds ?? [];
+        if (ids.length === 0) return;
+        const current = findNote(score, ids[0])?.note.fingering ?? "";
+        const text = window.prompt("Fingering (blank to clear)", current);
+        if (text === null) return;
+        forEachSelectedNote((s, id) => setFingering(s, id, text));
+      },
+
+      onChordSymbol: (root, quality, bass) =>
+        apply((s) =>
+          addChordSymbol(
+            s,
+            target.part.id,
+            target.staff.id,
+            selectionStart(s) ?? cursor?.tick ?? 0,
+            root,
+            quality,
+            bass
+          )
+        ),
+
+      onClearChordSymbol: () =>
+        apply((s) => {
+          const tick = selectionStart(s) ?? cursor?.tick ?? 0;
+          const staff = s.parts
+            .find((pp) => pp.id === target.part.id)
+            ?.staves.find((st) => st.id === target.staff.id);
+          const here = (staff?.chordSymbols ?? []).find((c) => Math.abs(c.start - tick) < 1e-9);
+          return here ? removeChordSymbol(s, target.part.id, target.staff.id, here.id) : s;
+        }),
+
+      onRepeatSign: (sign) => apply((s) => setRepeatSign(s, selectedMeasure, sign)),
+      onRepeatDirective: (directive) =>
+        apply((s) => setRepeatDirective(s, selectedMeasure, directive)),
+      onVolta: (passes) => apply((s) => setVolta(s, selectedMeasure, passes)),
+      onRepeatTimes: () => {
+        const n = window.prompt("Play this repeat how many times in total?", "3");
+        if (!n) return;
+        const times = Number(n);
+        if (!Number.isFinite(times)) return;
+        apply((s) => setRepeatTimes(s, selectedMeasure, times));
+      },
       onAddMeasure: (where: "before" | "after" | "end") =>
         apply((s) =>
           insertMeasure(

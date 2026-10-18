@@ -4,9 +4,14 @@ import { DURATION_PALETTE } from "@/lib/studio/staff";
 import type {
   Articulation,
   BarlineStyle,
+  ChordQuality,
   Dynamic,
+  Fermata,
   NoteheadStyle,
   Ornament,
+  PedalLine,
+  RepeatDirective,
+  RepeatSign,
   StemDirection,
 } from "@/lib/studio/model";
 import type { Clef } from "@/lib/studio/instruments";
@@ -26,20 +31,15 @@ export type ToolTab =
   | "ornament"
   | "dynamics"
   | "expression"
+  | "harmony"
   | "measure"
   | "text"
   | "advanced";
 
-const TABS: { id: ToolTab; label: string }[] = [
-  { id: "notes", label: "Notes" },
-  { id: "articulation", label: "Articulation" },
-  { id: "ornament", label: "Ornament" },
-  { id: "dynamics", label: "Dynamics" },
-  { id: "expression", label: "Expression" },
-  { id: "measure", label: "Measure" },
-  { id: "text", label: "Text" },
-  { id: "advanced", label: "Advanced" },
-];
+// The labelled list of these lives in NotationPanel, which is what actually
+// draws the palette. A second copy here was never rendered and only ever went
+// stale — it was still eight tabs long after the ninth was added.
+
 
 export interface ToolbarActions {
   onSetDuration: (base: number) => void;
@@ -55,6 +55,19 @@ export interface ToolbarActions {
   onDynamic: (d: Dynamic) => void;
   onHairpin: (k: "crescendo" | "diminuendo") => void;
   onSlur: () => void;
+  /** Hold the selected notes, or the rest under the cursor. */
+  onFermata: (shape: Fermata) => void;
+  /** Lay a pedal line under the selection. */
+  onPedal: (kind: PedalLine["kind"]) => void;
+  /** Write a fingering over the selected notes. */
+  onFingering: () => void;
+  /** Write a chord symbol at the cursor. */
+  onChordSymbol: (root: string, quality: ChordQuality, bass?: string) => void;
+  onClearChordSymbol: () => void;
+  onRepeatSign: (sign: RepeatSign) => void;
+  onRepeatDirective: (directive: RepeatDirective) => void;
+  onVolta: (passes: number[]) => void;
+  onRepeatTimes: () => void;
   onAddMeasure: (where: "before" | "after" | "end") => void;
   onDeleteMeasure: () => void;
   onBarline: (b: BarlineStyle) => void;
@@ -225,14 +238,4 @@ function Tool({
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="ml-1 text-[9px] uppercase tracking-[0.18em] text-parchment-600">
-      {children}
-    </span>
-  );
-}
 
-function Hint({ children }: { children: React.ReactNode }) {
-  return <span className="ml-2 text-[10px] italic text-parchment-600">{children}</span>;
-}

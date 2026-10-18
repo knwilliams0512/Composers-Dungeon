@@ -11,10 +11,13 @@ import {
 } from "@/lib/studio/engrave";
 import { instrumentById } from "@/lib/studio/instruments";
 import {
+  chordSymbolsOf,
   keyAt,
   meterAt,
   partName,
   partShortName,
+  pedalsOf,
+  voltaRun,
   type Part,
   type Staff,
   type StudioNote,
@@ -34,8 +37,12 @@ import {
   Barline,
   Brace,
   Bracket,
+  ChordSymbolGlyph,
   ClefGlyph,
+  DirectiveGlyph,
   DynamicGlyph,
+  FermataGlyph,
+  FingeringGlyph,
   Flag,
   HairpinGlyph,
   INK,
@@ -44,9 +51,12 @@ import {
   Notehead,
   OrnamentGlyph,
   PLAYING,
+  PedalGlyph,
+  RepeatSignGlyph,
   Rest,
   SELECT,
   TimeSignature,
+  VoltaGlyph,
   clefWidth,
 } from "./glyphs";
 
@@ -489,6 +499,82 @@ function SystemView({
         );
       })}
 
+      {/*
+        Navigation marks: the segno and coda you jump to, the words that send
+        you there, and the volta brackets over first- and second-time bars.
+
+        Signs sit at the head of their measure because that is the place they
+        name. Directives sit at the measure's right edge, right-aligned, because
+        a D.S. means "from here, go back" — printing it at the start of the bar
+        would send a reader back one bar too early. The volta bracket closes
+        where the repeat closes and stays open where the music runs on, which is
+        how a reader knows a second-time bar continues into the piece.
+      */}
+      {system.measures.map((m) => {
+        const model = score.measures[m.index];
+        if (!model) return null;
+        const barline = model.barline ?? "single";
+        const closesRepeat = barline === "repeat-end" || barline === "repeat-both";
+        // The same run the MusicXML exporter reads, so the bracket on the page
+        // and the bracket in the file are the same bracket.
+        const volta = voltaRun(score.measures, m.index);
+        return (
+          <g key={`nav${m.index}`}>
+            {model.sign && (
+              <RepeatSignGlyph
+                sign={model.sign}
+                x={m.x + m.headWidth + sp * 0.8}
+                y={top - sp * 2.6}
+                sp={sp}
+              />
+            )}
+            {model.directive && (
+              <DirectiveGlyph
+                directive={model.directive}
+                x={m.x + m.width - sp * 0.4}
+                y={top - sp * 2.2}
+                sp={sp}
+              />
+            )}
+            {/*
+              One bracket per run, drawn by its first measure and reaching to
+              the last measure of the run that is on this system. A run split
+              across a system break draws the part of itself that is here,
+              which is what an engraver does with it.
+            */}
+            {volta?.starts && (
+              <VoltaGlyph
+                passes={volta.passes}
+                x1={m.x + sp * 0.2}
+                x2={
+                  (system.measures.find((mm) => mm.index === volta.to) ??
+                    system.measures[system.measures.length - 1]).x +
+                  (system.measures.find((mm) => mm.index === volta.to) ??
+                    system.measures[system.measures.length - 1]).width -
+                  sp * 0.2
+                }
+                y={top - sp * 4.4}
+                sp={sp}
+                closed={volta.open ? false : system.measures.some((mm) => mm.index === volta.to)}
+              />
+            )}
+            {model.repeatTimes && model.repeatTimes >= 3 && closesRepeat && (
+              <text
+                x={m.x + m.width - sp * 0.4}
+                y={top - sp * 4.6}
+                fontSize={sp * 1.25}
+                fontFamily="Georgia, serif"
+                fontStyle="italic"
+                textAnchor="end"
+                fill={INK}
+              >
+                Play {model.repeatTimes} times
+              </text>
+            )}
+          </g>
+        );
+      })}
+
       {/* Tempo, at the very start of the piece */}
       {system.measures[0].index === 0 && (
         <text
@@ -888,6 +974,62 @@ function StaffMeasure({
       <HairpinGlyph key={h.id} kind={h.kind} x1={x1} x2={x2} y={bottomLine + gap * 2.6} sp={gap} />
     );
   }
+  /*
+   * Pedal lines sit under everything, below the dynamics, because that is the
+   * order a pianist's eye reads: notes, then how loud, then the feet.
+   *
+   * A line crossing a system break is drawn as the piece of it that falls in
+   * this measure, with the cut ends flagged so neither gets a closing hook or a
+   * repeated "Ped." — a hook at a system break would read as the pedal coming
+   * up, which is the opposite of what it means.
+   */
+  for (const ped of pedalsOf(staffModel)) {
+    const end = ped.start + ped.duration;
+    if (ped.start >= to || end <= from) continue;
+    const x1 = tickX(measure, Math.max(from, ped.start));
+    const x2 = tickX(measure, Math.min(to - 0.01, end));
+    marks.push(
+      <PedalGlyph
+        key={ped.id}
+        kind={ped.kind}
+        x1={x1}
+        x2={x2}
+        y={bottomLine + gap * 5.4}
+        sp={gap}
+        retakes={(ped.retakes ?? [])
+          .filter((t) => t > Math.max(from, ped.start) && t < Math.min(to, end))
+          .map((t) => tickX(measure, t))}
+        clipLeft={ped.start < from}
+        clipRight={end > to}
+      />
+    );
+  }
+
+  // Chord symbols go above the staff, above where text sits, so a lead sheet's
+  // harmony and its words do not fight for the same line.
+  for (const c of chordSymbolsOf(staffModel)) {
+    if (c.start < from || c.start >= to) continue;
+    marks.push(
+      <ChordSymbolGlyph key={c.id} chord={c} x={tickX(measure, c.start)} y={staff.y - gap * 3.2} sp={gap} />
+    );
+  }
+
+  // A held rest: the arch goes above the staff, same as over a note.
+  for (const voice of staffModel.voices) {
+    for (const r of voice.rests) {
+      if (!r.fermata || r.start < from || r.start >= to) continue;
+      marks.push(
+        <FermataGlyph
+          key={`rf-${r.id}`}
+          shape={r.fermata}
+          x={tickX(measure, r.start)}
+          y={staff.y - gap * 1.4}
+          sp={gap}
+        />
+      );
+    }
+  }
+
   for (const t of staffModel.texts) {
     if (t.start < from || t.start >= to) continue;
     const isLyric = t.kind === "lyric";
@@ -964,6 +1106,18 @@ function ChordGroup({
   const selectedIds = new Set(selection.noteIds ?? []);
   const highest = Math.max(...steps);
   const lowest = Math.min(...steps);
+
+  /**
+   * A fermata belongs to the chord, not to each note in it.
+   *
+   * The model stores it per note, because that is where a player clicks, but
+   * printing one arch per notehead would stack three of them over a triad. So
+   * the first one found speaks for the whole chord, and it sits above the staff
+   * whichever way the stems go — which is where a fermata always goes, the
+   * single exception being a lower voice, which this editor does not yet
+   * distinguish.
+   */
+  const fermata = chord.find((n) => n.fermata)?.fermata;
 
   // A beamed stem runs to the beam rather than to its own default length, and
   // carries no flag — the beam is the flag.
@@ -1062,6 +1216,21 @@ function ChordGroup({
               />
             ))}
 
+            {/* Fingering, outside any articulation on the same side */}
+            {n.fingering && (
+              <FingeringGlyph
+                text={n.fingering}
+                x={x}
+                y={
+                  up
+                    ? y + gap * (1.9 + (n.articulations?.length ?? 0) * 0.7)
+                    : y - gap * (1.4 + (n.articulations?.length ?? 0) * 0.7)
+                }
+                sp={gap}
+                color={color}
+              />
+            )}
+
             {/* Ornaments always sit above the staff */}
             {(n.ornaments ?? []).map((o, oi) => (
               <OrnamentGlyph
@@ -1085,6 +1254,15 @@ function ChordGroup({
           </g>
         );
       })}
+
+      {fermata && (
+        <FermataGlyph
+          shape={fermata}
+          x={x}
+          y={Math.min(staffTop, yForStep(highest)) - gap * 1.8}
+          sp={gap}
+        />
+      )}
     </g>
   );
 }
