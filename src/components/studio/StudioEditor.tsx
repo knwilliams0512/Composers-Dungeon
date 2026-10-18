@@ -54,6 +54,7 @@ import { Inspector } from "./Inspector";
 import { Mixer } from "./Mixer";
 import { NotationToolbar, type ToolTab } from "./NotationToolbar";
 import { NotationPanel } from "./NotationPanel";
+import { scoreToMusicXml } from "@/lib/studio/musicxml";
 import { clampPitch } from "@/lib/studio/range";
 import { DrumPad, Fretboard, PianoKeyboard } from "./PianoKeyboard";
 import { TopBar, type SaveState } from "./TopBar";
@@ -1170,187 +1171,14 @@ function downloadJson(score: StudioScore, scoreId: string) {
   download(`${score.info.title || scoreId}.json`, "application/json", JSON.stringify(score, null, 2));
 }
 
-/** MusicXML, in the partwise flavour every notation program reads. */
 function downloadMusicXml(score: StudioScore) {
-  const { starts } = measureOffsets(score);
-  // One tick is a sixteenth of a whole note, so sixteen divisions per quarter
-  // lets even a sixty-fourth (a quarter tick) come out as a whole number.
-  const divisions = 16;
-  const div = (ticks: number) => Math.max(1, Math.round(ticks * 4));
-
-  const partList = score.parts
-    .map(
-      (p, i) =>
-        `    <score-part id="P${i + 1}"><part-name>${escapeXml(
-          p.name ?? instrumentById(p.instrumentId).name
-        )}</part-name></score-part>`
-    )
-    .join("\n");
-
-  const parts = score.parts
-    .map((p, pi) => {
-      const measures = score.measures
-        .map((_, mi) => {
-          const from = starts[mi];
-          const meter = meterAt(score, mi);
-          const barTicks = score.measures[mi].pickupTicks ?? (16 / meter.unit) * meter.beats;
-          const to = from + barTicks;
-          const { key, mode } = keyAt(score, mi);
-
-          const attrs =
-            mi === 0
-              ? `      <attributes><divisions>${divisions}</divisions>` +
-                `<key><fifths>${keySignatureCount(key, mode)}</fifths></key>` +
-                `<time><beats>${meter.beats}</beats><beat-type>${meter.unit}</beat-type></time>` +
-                (p.staves.length > 1 ? `<staves>${p.staves.length}</staves>` : "") +
-                p.staves.map((st, si) => clefXml(st.clef, p.staves.length > 1 ? si + 1 : 0)).join("") +
-                `</attributes>\n`
-              : "";
-
-          // Each staff is written as its own stream and the streams are joined
-          // by <backup>, which is how MusicXML expresses a grand staff. Within
-          // a stream, notes sharing an onset are one chord, and every gap is a
-          // rest — without either, a chord came out as consecutive notes and
-          // the measure ran past its own length.
-          const streams = p.staves.map((st, si) => {
-            const staffNo = p.staves.length > 1 ? si + 1 : 0;
-            let out = "";
-            let used = 0;
-            st.voices.forEach((v, vi) => {
-              const voiceNo = si * 4 + vi + 1;
-              if (used > 0) out += `      <backup><duration>${div(used)}</duration></backup>\n`;
-              let cursor = from;
-              const inBar = v.notes
-                .filter((n) => n.start >= from && n.start < to)
-                .sort((a, b) => a.start - b.start || a.pitch - b.pitch);
-              const onsets: { at: number; notes: typeof inBar }[] = [];
-              for (const n of inBar) {
-                const last = onsets[onsets.length - 1];
-                if (last && last.at === n.start) last.notes.push(n);
-                else onsets.push({ at: n.start, notes: [n] });
-              }
-              for (const group of onsets) {
-                if (group.at > cursor) {
-                  out += restXml(group.at - cursor, div, voiceNo, staffNo);
-                  cursor = group.at;
-                }
-                const len = Math.max(...group.notes.map((n) => n.duration));
-                group.notes.forEach((n, ni) => {
-                  out += noteXml(n, key, mode, div, voiceNo, staffNo, ni > 0);
-                });
-                cursor = group.at + len;
-              }
-              if (cursor < to) out += restXml(to - cursor, div, voiceNo, staffNo);
-              used = to - from;
-            });
-            if (used === 0) out += restXml(barTicks, div, si * 4 + 1, staffNo);
-            return out;
-          });
-
-          return `    <measure number="${mi + 1}">\n${attrs}${streams.join(
-            `      <backup><duration>${div(barTicks)}</duration></backup>\n`
-          )}    </measure>`;
-        })
-        .join("\n");
-
-      return `  <part id="P${pi + 1}">\n${measures}\n  </part>`;
-    })
-    .join("\n");
-
-  const xml =
-    `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">\n` +
-    `<score-partwise version="4.0">\n` +
-    `  <work><work-title>${escapeXml(score.info.title)}</work-title></work>\n` +
-    `  <identification><creator type="composer">${escapeXml(score.info.composer)}</creator></identification>\n` +
-    `  <part-list>\n${partList}\n  </part-list>\n${parts}\n</score-partwise>\n`;
-
-  download(`${score.info.title || "score"}.musicxml`, "application/vnd.recordare.musicxml+xml", xml);
-}
-
-function clefXml(clef: Clef, staffNo: number): string {
-  const n = staffNo ? ` number="${staffNo}"` : "";
-  if (clef === "percussion") return `<clef${n}><sign>percussion</sign></clef>`;
-  if (clef === "tab") return `<clef${n}><sign>TAB</sign><line>5</line></clef>`;
-  const sign = clef === "bass" ? "F" : clef === "alto" || clef === "tenor" ? "C" : "G";
-  const line = clef === "bass" ? 4 : clef === "alto" ? 3 : clef === "tenor" ? 4 : 2;
-  return `<clef${n}><sign>${sign}</sign><line>${line}</line></clef>`;
-}
-
-function restXml(
-  ticks: number,
-  div: (t: number) => number,
-  voice: number,
-  staffNo: number
-): string {
-  return (
-    `      <note><rest/><duration>${div(ticks)}</duration>` +
-    `<voice>${voice}</voice><type>${xmlType(ticks)}</type>` +
-    (staffNo ? `<staff>${staffNo}</staff>` : "") +
-    `</note>\n`
+  download(
+    `${score.info.title || "score"}.musicxml`,
+    "application/vnd.recordare.musicxml+xml",
+    scoreToMusicXml(score)
   );
 }
 
-/**
- * One note. The letter comes from how the note is spelled, not from its pitch
- * class: reading the letter off the pitch alone put every accidental except
- * C sharp on the wrong line, because a pitch class that is not a natural has
- * no entry in the natural table at all.
- */
-function noteXml(
-  n: StudioNote,
-  key: string,
-  mode: "major" | "minor",
-  div: (t: number) => number,
-  voice: number,
-  staffNo: number,
-  chord: boolean
-): string {
-  const NATURAL: Record<number, string> = { 0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B" };
-  let step: string;
-  let alter: number;
-  let octave: number;
-  if (n.spell !== undefined && NATURAL[(((n.pitch - n.spell) % 12) + 12) % 12]) {
-    const natural = n.pitch - n.spell;
-    step = NATURAL[((natural % 12) + 12) % 12];
-    alter = n.spell;
-    octave = Math.floor(natural / 12) - 1;
-  } else {
-    const name = pitchName(n.pitch, key, mode);
-    step = name[0];
-    alter = name.includes("#") ? 1 : name.includes("b") ? -1 : 0;
-    octave = parseInt(name.replace(/[^-\d]/g, ""), 10);
-  }
-  return (
-    `      <note>${chord ? "<chord/>" : ""}<pitch><step>${step}</step>` +
-    (alter ? `<alter>${alter}</alter>` : "") +
-    `<octave>${octave}</octave></pitch>` +
-    `<duration>${div(n.duration)}</duration><voice>${voice}</voice>` +
-    `<type>${xmlType(n.duration)}</type>` +
-    (n.dots ? "<dot/>".repeat(n.dots) : "") +
-    (n.tie ? `<tie type="start"/>` : "") +
-    (staffNo ? `<staff>${staffNo}</staff>` : "") +
-    `</note>\n`
-  );
-}
-
-function xmlType(ticks: number): string {
-  if (ticks >= 16) return "whole";
-  if (ticks >= 8) return "half";
-  if (ticks >= 4) return "quarter";
-  if (ticks >= 2) return "eighth";
-  if (ticks >= 1) return "16th";
-  if (ticks >= 0.5) return "32nd";
-  return "64th";
-}
-
-function escapeXml(s: string): string {
-  return s.replace(/[<>&'"]/g, (c) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[c] ?? c
-  );
-}
-
-/** A type 1 MIDI file: one track per part, plus a tempo track. */
 function downloadMidi(score: StudioScore) {
   const PPQ = 480;
   const ticksToMidi = (t: number) => Math.round((t / 4) * PPQ);
