@@ -27,6 +27,7 @@ import {
   expansionArtifacts,
   expansionBosses,
   expansionAreas,
+  secretRoomsByArea,
 } from "../prisma/seed-data/world-expansion";
 import {
   orchestralArtifacts,
@@ -38,6 +39,7 @@ import { beginnerLessons } from "../prisma/seed-data/lessons-beginner";
 import { advancedLessons } from "../prisma/seed-data/lessons-advanced";
 import { curriculumLessons } from "../prisma/seed-data/lessons-curriculum";
 import { orchestralLessons } from "../prisma/seed-data/lessons-orchestral";
+import { lessonDetail } from "../prisma/seed-data/lesson-detail";
 import { INSTRUMENTS, ENSEMBLES } from "../src/lib/studio/instruments";
 import { DRILL_KEYS } from "../src/lib/drills";
 
@@ -59,8 +61,31 @@ const allLessons = [
   ...orchestralLessons,
 ];
 
+/**
+ * The two counts below were claimed in user-facing copy and checked by nothing.
+ *
+ * The landing page and the download page both said "133 sections", which was
+ * true until twenty more were written, and this script passed the whole time
+ * because sections were not in the table. A claim nobody checks is a claim
+ * that goes stale the first time the thing it counts changes.
+ *
+ * Sections include the ones layered on in lesson-detail.ts, because a reader
+ * cannot tell which file a section came from — and check:figures counts them
+ * the same way, so the two numbers agree by construction.
+ */
+const sectionCount = allLessons.reduce(
+  (n, l) => n + l.content.length + (lessonDetail[l.slug]?.extraSections?.length ?? 0),
+  0
+);
+
+const roomCount =
+  allAreas.reduce((n, a) => n + ((a as { rooms?: unknown[] }).rooms?.length ?? 0), 0) +
+  Object.values(secretRoomsByArea).reduce((n, rooms) => n + rooms.length, 0);
+
 const TRUTH: Record<string, number> = {
   lessons: allLessons.length,
+  sections: sectionCount,
+  rooms: roomCount,
   areas: allAreas.length,
   bosses: allBosses.length,
   soloBosses: soloBosses.length,
@@ -76,6 +101,8 @@ const TRUTH: Record<string, number> = {
 /** The words each count is allowed to be written next to. */
 const NOUNS: Record<string, string> = {
   lessons: "lessons?",
+  sections: "sections?",
+  rooms: "rooms?",
   areas: "(dungeon )?areas?",
   bosses: "bosses|boss",
   soloBosses: "bosses|boss",
@@ -92,13 +119,16 @@ const WORDS: Record<number, string[]> = {
   3: ["three"], 5: ["five"], 6: ["six"], 9: ["nine"], 10: ["ten"],
   12: ["twelve"], 16: ["sixteen"], 21: ["twenty-one"], 46: ["forty-six"],
   58: ["fifty-eight"], 73: ["seventy-three"], 93: ["ninety-three"],
+  // 133 is here only so that a page still claiming it gets named in the error
+  // rather than reported as merely "does not say 153".
+  133: ["a hundred and thirty-three"], 153: ["a hundred and fifty-three"],
 };
 
 /** Every number a file is required to state, and never to state wrongly. */
 const CLAIMS: { file: string; needs: (keyof typeof TRUTH)[] }[] = [
   { file: "README.md", needs: ["areas", "bosses", "achievements", "artifacts", "specializations"] },
-  { file: "src/app/page.tsx", needs: ["areas", "bosses", "artifacts", "achievements", "instruments", "ensembles", "drills"] },
-  { file: "site/index.html", needs: ["lessons", "areas", "bosses", "instruments", "ensembles", "guildBosses"] },
+  { file: "src/app/page.tsx", needs: ["areas", "bosses", "artifacts", "achievements", "instruments", "ensembles", "drills", "sections", "rooms"] },
+  { file: "site/index.html", needs: ["lessons", "areas", "bosses", "instruments", "ensembles", "guildBosses", "sections", "rooms"] },
 ];
 
 const problems: string[] = [];
@@ -150,7 +180,8 @@ if (problems.length) {
 }
 
 console.log(
-  `claims: ${allLessons.length} lessons, ${allAreas.length} areas, ` +
+  `claims: ${allLessons.length} lessons in ${sectionCount} sections, ` +
+    `${allAreas.length} areas of ${roomCount} rooms, ` +
     `${allBosses.length} bosses (${soloBosses.length} solo, ${guildBosses.length} fought by a guild), ` +
     `${allArtifacts.length} artifacts, ${achievements.length} achievements, ` +
     `${INSTRUMENTS.length} instruments, ${ENSEMBLES.length} ensembles, ${DRILL_KEYS.length} drills`

@@ -160,6 +160,42 @@ hosted (Postgres) builds compile.
 
 ---
 
+## What is live, as of 26 October
+
+**The website is live and verified** at https://composers-dungeon.vercel.app —
+deployed from this branch, serving, and passing the two-player guild test: two
+accounts, one shared guild, a post written by one and read by the other with
+the right name on it, no updater on a hosted instance, and the email panel
+asking for a sender.
+
+**The hosted database holds this build** — 46 lessons, 37 unit exams, 16
+dungeon areas, 10 bosses, 6 guilds.
+
+**The Windows app is released as v1.19.0**, with the installer, the update
+zip, `latest.json` and `SHA256SUMS.txt`.
+
+### Two things still need you, and they are the same switch
+
+The repository is **private**, and that blocks both remaining pieces:
+
+1. **Nobody can download the installer.** GitHub serves release assets on a
+   private repository only to people signed in with access, so
+   `releases/latest/download/ComposersDungeonSetup.exe` — the button on the
+   download page — returns 404 to everybody else. Verified, not assumed. The
+   same is true of `latest.json`, so no existing v1.18.1 install can see
+   v1.19.0 either; the in-app updater and `installer/apply-update.ps1` both
+   read that URL.
+
+2. **The download page cannot publish.** GitHub Pages on a free plan needs a
+   public repository, and Pages has never been switched on. The workflow fails
+   at `configure-pages` and writes the remedy into its own job summary.
+
+So: **Settings → General → Change visibility → Public**, then **Settings →
+Pages → Source: GitHub Actions**, then re-run **Download site**. The web
+version needs neither and is already live.
+
+---
+
 ## Getting the work on this branch in front of players
 
 Both workflows are `workflow_dispatch` — they only run when you start them —

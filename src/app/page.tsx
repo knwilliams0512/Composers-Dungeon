@@ -32,7 +32,7 @@ const JOURNEY: { icon: IconName; title: string; body: string }[] = [
   {
     icon: "book",
     title: "Learn",
-    body: "Forty-six Academy lessons, from the musical alphabet to full orchestration — 133 sections, every one of them with a figure you can hear and play with, plus vocabulary, the mistakes everyone makes first, recordings worth hearing and a quiz at the end.",
+    body: "Forty-six Academy lessons, from the musical alphabet to full orchestration — 153 sections, every one of them with a figure you can hear and play with, plus vocabulary, the mistakes everyone makes first, recordings worth hearing and a quiz at the end.",
   },
   {
     icon: "candle",
