@@ -82,6 +82,42 @@
   }
   .cta:hover { transform: translateY(-2px); box-shadow: 0 0 48px rgba(201,168,76,.45); }
   .cta small { display:block; font-size:.72rem; font-weight:600; opacity:.75; margin-top:.15rem; }
+  /* The browser version: the same shape, read as the alternative rather than
+     the main action, so the page offers two ways in without competing. */
+  .cta-alt {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: .85rem 2.2rem;
+    border-radius: .65rem;
+    background: rgba(17,14,28,.7);
+    border: 1px solid var(--gold-600, #8a6f2f);
+    color: var(--gold-300);
+    font-size: 1.02rem;
+    font-weight: 650;
+    text-decoration: none;
+    letter-spacing: .02em;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  }
+  .cta-alt:hover {
+    transform: translateY(-2px);
+    background: rgba(32,26,52,.85);
+    border-color: var(--gold-400);
+  }
+  .cta-alt small { display:block; font-size:.72rem; font-weight:600; opacity:.72; margin-top:.15rem; }
+  .ctas { display:flex; flex-direction:column; align-items:center; gap:0; }
+  /* The PowerShell line is wider than a phone, and its own overflow-x:auto was
+     not containing it: the <pre> had no max-width, so it pushed the whole page
+     to 417px inside a 390px viewport and every panel scrolled sideways. */
+  pre { max-width: 100%; box-sizing: border-box; }
+  pre code { white-space: pre; }
+  /* And one bold run in the install steps — "⋯ → Keep → Keep anyway" — had no
+     break opportunity the browser would take, so a line reaching it pushed past
+     the edge. `anywhere` is the only value that lets it break; `break-word`
+     declines, because the run does fit on a line of its own. */
+  body { overflow-wrap: anywhere; }
+  /* Except the command, which has to stay copy-pasteable on one line and
+     scrolls inside its own box instead. */
+  pre, pre code { overflow-wrap: normal; }
   .meta { margin-top: .9rem; font-size:.85rem; color: var(--parchment-500); }
   .meta a { color: var(--gold-500); text-decoration: none; }
   .meta a:hover { text-decoration: underline; }
@@ -128,12 +164,24 @@
   <h1>Composer's Dungeon</h1>
   <p class="tag">The Academy teaches you. The Dungeon tests you.</p>
 
-  <a class="cta" href="https://github.com/knwilliams0512/Composers-Dungeon/releases/latest/download/ComposersDungeonSetup.exe">
-    ⬇ Download for Windows
-    <small id="version-line">free · ~30 MB · no other installs needed</small>
-  </a>
+  <div class="ctas">
+    <a class="cta" href="https://github.com/knwilliams0512/Composers-Dungeon/releases/latest/download/ComposersDungeonSetup.exe">
+      ⬇ Download for Windows
+      <small id="version-line">free · ~30 MB · no other installs needed</small>
+    </a>
+    <!--
+      The game has run online for a while and this page never said so, which
+      left a visitor on anything but Windows with nothing to click. Both ways
+      in play the same world: the same guilds, the same lessons, the same
+      account.
+    -->
+    <a class="cta-alt" href="https://composers-dungeon.vercel.app">
+      ▶ Play in your browser
+      <small>no install · same world, same account</small>
+    </a>
+  </div>
   <p class="meta">
-    This link always serves the newest version ·
+    Both play the same world ·
     <a href="https://github.com/knwilliams0512/Composers-Dungeon/releases/latest">release notes</a> ·
     <a href="https://github.com/knwilliams0512/Composers-Dungeon/blob/HEAD/INSTALL.md">full install guide</a>
   </p>
@@ -176,9 +224,12 @@
   <div class="panel">
     <h2>New lessons arrive on their own</h2>
     <p style="font-size:.95rem; color:var(--parchment-300)">
-      The installed app plays against the same world as the web version, so new lessons,
-      new dungeon areas and fixes are simply there the next time you open it — there is
-      nothing to download and no version to chase. Offline it falls back to a copy kept on
+      The installed app plays against the same world as
+      <a href="https://composers-dungeon.vercel.app" style="color:var(--gold-500)">the browser
+      version</a>, so new lessons, new dungeon areas and fixes are simply there the next
+      time you open it — there is nothing to download and no version to chase. Your
+      account is the same in both; sign in on either and your level, compositions and
+      guild come with you. Offline it falls back to a copy kept on
       your own machine and starts anyway, and that copy is whatever shipped with the app.
       Either way your compositions, levels and streaks are never touched.
     </p>
