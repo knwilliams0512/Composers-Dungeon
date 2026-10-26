@@ -9,6 +9,19 @@ export const level4Exams: UnitExamSpec[] = [
     questions: [
       {
         slug: "modulation-secondary-dominants",
+        heading: "Tonicisation Is Not Modulation",
+        prompt: "A piece in C major plays D7 before its G chord. Has it modulated?",
+        choices: [
+          "No \u2014 that is tonicisation: V/V points at G for one chord and the key is still C",
+          "Yes, because D7 contains an F sharp, which is not in C major",
+          "Yes, because any dominant seventh establishes the key of its own tonic",
+          "Only if the G chord lasts longer than the D7",
+        ],
+        answer: 0,
+        why: "A secondary dominant borrows one accidental to lean on a chord that is not the tonic. Nothing has modulated: there has been no cadence in the new key and no sustained stay, and the next bar is back in C. A modulation is what you get when the tonicisation refuses to end.",
+      },
+      {
+        slug: "modulation-secondary-dominants",
         heading: "The Pivot",
         prompt: "What is a pivot chord?",
         choices: [
@@ -320,6 +333,19 @@ export const level4Exams: UnitExamSpec[] = [
     questions: [
       {
         slug: "chromatic-harmony-modal-writing",
+        heading: "The Neapolitan and the Augmented Sixth",
+        prompt: "What is the Neapolitan sixth in C major, and what does it lead to?",
+        choices: [
+          "A D flat major triad with F in the bass, leading to the dominant",
+          "A D minor triad in first inversion, leading to the tonic",
+          "A chord built on the sixth degree of the parallel minor, leading to IV",
+          "A dominant seventh with a flattened fifth, leading anywhere",
+        ],
+        answer: 0,
+        why: "The Neapolitan is a major triad on the flattened second degree \u2014 D flat in C \u2014 almost always in first inversion, which puts F in the bass and is why it is called a sixth. It is a predominant: it exists to deliver the dominant, often by way of a cadential 6/4. The augmented sixth chords do the same job by a different route.",
+      },
+      {
+        slug: "chromatic-harmony-modal-writing",
         heading: "Borrowing from the Shadow Key",
         prompt: "What is the Neapolitan chord?",
         choices: [
@@ -539,6 +565,19 @@ export const level4Exams: UnitExamSpec[] = [
     questions: [
       {
         slug: "binary-ternary-form",
+        heading: "Rounded Binary, and the Da Capo",
+        prompt: "What makes a form rounded binary rather than ternary?",
+        choices: [
+          "The opening material returns inside the second half rather than as a third section of its own",
+          "The second section is shorter than the first",
+          "There is no repeat sign at the end of the first section",
+          "The return is in the dominant rather than the tonic",
+        ],
+        answer: 0,
+        why: "Rounded binary is two halves \u2014 A, then B with the opening returning before it ends, so the repeats read ||: A :||: B A :||. In ternary the middle section is a genuine departure with its own cadence and the return is a third section. The difference is audible: in rounded binary the B material is still on its way back.",
+      },
+      {
+        slug: "binary-ternary-form",
         heading: "Two Rooms, Three Rooms",
         prompt: "What is binary form?",
         choices: [
@@ -649,6 +688,19 @@ export const level4Exams: UnitExamSpec[] = [
     title: "Counterpoint",
     blurb: "Species counterpoint, fugue, and lines that work against each other.",
     questions: [
+      {
+        slug: "fugue-large-form",
+        heading: "Real Answers, Tonal Answers, and Episodes",
+        prompt: "What is a tonal answer, and why would a composer use one?",
+        choices: [
+          "An answer with one or two notes altered, so it does not drag the music into the dominant too early",
+          "An answer transposed exactly, which is the normal case",
+          "An answer in the relative minor rather than the dominant",
+          "An answer stated by the lowest voice rather than the second to enter",
+        ],
+        answer: 0,
+        why: "A real answer transposes every interval exactly. A tonal answer adjusts a note or two \u2014 usually when the subject opens by leaping from tonic to dominant, which transposed exactly would land on the supertonic and pull away from the key before the exposition is finished. It looks like a mistake until you know why it is there.",
+      },
       {
         slug: "counterpoint-species",
         heading: "First Species: Note Against Note",

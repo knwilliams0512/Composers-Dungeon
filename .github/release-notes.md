@@ -1028,3 +1028,117 @@ claiming the unit is shut. The credit step cannot fail an update and trigger a
 rollback. The updater no longer holds a second handle on the database while
 the seed writes to it. And a swallowed error that had been hiding a real
 failure now says what went wrong.
+
+## What's new in v1.19.0
+
+The largest release so far, and the one that changes what the app is: it now
+plays in a shared world rather than on your own machine.
+
+**Your guild can hold people who are not at your computer.** The game runs
+online at a hosted address, and the installed app joins that same world instead
+of keeping a private copy of everything. Guilds, posts, boosts, collaborative
+pieces and raid bosses are shared with whoever else is playing. Every release
+before this one shipped a local database, which is why a guild could only ever
+contain you.
+
+**Offline play is a choice you make, not one made for you.** When the server
+cannot be reached the app says so and offers to retry, play offline, or quit,
+instead of silently falling back and leaving you wondering where everybody
+went.
+
+### The Studio
+
+**The keyboard has its whole range.** It was three octaves fixed around middle
+C; it now reaches a real piano's A0 to C8, and it can no longer write pitches
+outside what MIDI has room for — which it previously could, silently producing
+a file no other program would open.
+
+**Export carries the score now, not a sketch of it.** MusicXML was losing
+almost everything above the notes: ties went out with a start and no stop,
+articulations, ornaments, tuplets, grace notes, dynamics, hairpins, octave
+lines, lyrics, clef changes and mid-score key and time changes were all
+dropped. Thirty-nine notation features now survive the trip. MIDI was going
+out as bare pitches — no time signature, no key signature, every tie
+retriggering as two notes, printed dynamics ignored, and the mix thrown away.
+
+**A score prints as sheets of music.** Printing used to produce the app's
+interface with the page furniture still attached.
+
+**Fermatas, pedal lines, fingering, chord symbols and repeat navigation.**
+Fermatas come in four shapes and hold for four different lengths. Pedal lines
+cover all three pedals with retake notches. Chord symbols are real harmony —
+29 qualities, picked by root, quality and slash bass, with a preview as you
+build one — rather than text that happens to look like a chord. And segno,
+coda, D.C., D.S., To Coda, Fine, volta brackets and "play n times" all print
+and all export with the instruction a playing program obeys, not only the words
+a reader sees.
+
+**Dynamics work.** Clicking pp then ff left only ff: a dynamic was written at
+the cursor, clicking one does not move the cursor, and two on the same beat
+replace each other. However many you clicked, the score held exactly one. A
+dynamic now goes on the notes you have selected.
+
+**Holds hold and crescendos grow.** Playback was tick times a constant, which
+is right for a score with one tempo and no fermatas and wrong for everything
+else. A fermata printed and did not hold; a hairpin printed and the sound
+stayed exactly where the last dynamic left it. Both sound now, in the app and
+in exported MIDI. An unresolved crescendo also stays at the level it reached
+rather than dropping back to where it started.
+
+**Every MIDI export in 6/8, 3/8, 2/2 or 12/8 played at the wrong speed.** The
+tempo was written as though the score's marking were a quarter note, when it
+means one beat of the written metre. A 6/8 export ran at double speed.
+
+**Notes sound like notes.** Each instrument was a fixed stack of oscillators,
+so every note had one unchanging tone and playing harder only made it louder.
+There is a filter now that opens at the attack and closes across the note,
+velocity changes the brightness rather than just the volume, there is a breath
+or bow or hammer sound at the onset, high struck notes die faster than low
+ones, and the sections are very slightly detuned the way a real section is.
+
+### The Academy
+
+**Every lesson points at the drill that trains it.** The Proving Grounds is
+the only place in the app that asks you to recognise anything by ear, and
+nothing ever pointed there at the moment it would have helped. Twenty-eight
+lessons now offer one, and none offers a drill whose vocabulary it has not yet
+taught.
+
+**Passing a quiz, finishing the practice and passing a unit exam all say so.**
+Each awards XP and each granted it in complete silence, so your level could
+change without a word. Passing a unit — the largest single moment on the
+roadmap — announced itself with one grey line.
+
+**The lessons teach what they were testing.** Basic Intervals explained how to
+count letter names and never used the words major, minor or perfect. Minor
+Scales covered natural minor and never harmonic or melodic, which the next
+harmony lesson assumes you know. Triads named the diminished chord in the key's
+family without saying what one is. Note Values never mentioned the dot. Twenty
+new sections, each with a figure you can play.
+
+**Twenty-one lessons had no key terms, no common mistakes, no listening and no
+practice routine** — including the first lesson in the Academy and every
+orchestration lesson — while the lessons either side of them did. All 46 now
+carry the same depth: 210 key terms, 115 mistakes with fixes, 99 recordings
+with a reason to hear each one.
+
+**All 463 questions read and checked by hand.** Two real defects: a question
+asked word for word in two lessons at two different difficulties, and an exam
+pool whose answers all sat at the same position — safe only because the sitting
+shuffles them, which is now asserted rather than assumed.
+
+### The Dungeon
+
+**The six deepest areas were rated as the least dangerous in the game.** They
+had no danger rating at all, and a missing rating defaulted to 1 — the same as
+the first room. They now have real ratings, lore and survival tips, and so do
+the six bosses that had no tactics, which were the hardest fights in the game.
+
+### Elsewhere
+
+**Signed out, you now land on this app's login screen** rather than a generic
+page, on all twelve protected routes.
+
+**The app no longer claims things about itself that stopped being true** —
+including that your work never leaves your computer, which is no longer the
+case when you are playing online.

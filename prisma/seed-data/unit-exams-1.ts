@@ -127,6 +127,32 @@ export const level1Exams: UnitExamSpec[] = [
     blurb: "A to G, sharps and flats, and the steps between them.",
     questions: [
       {
+        slug: "sharps-and-flats",
+        heading: "Naturals, and How Long an Accidental Lasts",
+        prompt: "An F sharp is written on the first beat of a bar. What happens to the other F naturals written in that same bar, in the same octave?",
+        choices: [
+          "They are sharp too \u2014 an accidental lasts to the end of its bar",
+          "They are natural, because the accidental applies only to the note it is written on",
+          "They are sharp for the rest of the piece",
+          "They are natural, because the barline has not been reached yet",
+        ],
+        answer: 0,
+        why: "An accidental holds until the end of the bar it appears in, for its own octave on its own staff. The barline cancels it. It does not carry into other octaves, which is why careful engraving often marks those anyway.",
+      },
+      {
+        slug: "whole-and-half-steps",
+        heading: "The Two Natural Half Steps",
+        prompt: "Which two pairs of adjacent letter names are a half step apart with no black key between them?",
+        choices: [
+          "E\u2013F and B\u2013C",
+          "C\u2013D and F\u2013G",
+          "A\u2013B and D\u2013E",
+          "G\u2013A and B\u2013C",
+        ],
+        answer: 0,
+        why: "E to F and B to C have no black key between them, so they are half steps. Every other pair of adjacent letters has a black key between and is a whole step. Those two gaps are also why the black keys fall into groups of two and three.",
+      },
+      {
         slug: "what-are-musical-notes",
         heading: "Sound Becomes Music",
         prompt: "What turns a sound into a note?",
@@ -266,6 +292,19 @@ export const level1Exams: UnitExamSpec[] = [
     blurb: "Five lines, the two common clefs, the grand staff and ledger lines.",
     questions: [
       {
+        slug: "keyboard-layout",
+        heading: "Which C Is Middle C",
+        prompt: "In the naming convention this app uses, which C is middle C?",
+        choices: [
+          "C4",
+          "C3",
+          "C5",
+          "Middle C has no octave number",
+        ],
+        answer: 0,
+        why: "Middle C is C4 \u2014 the fourth C up a standard keyboard, sitting in the gap between the treble and bass staves. A4, the A above it, is the 440 Hz tuning reference. A few older sources call middle C C3, so a chart from one convention reads an octave out in the other.",
+      },
+      {
         slug: "the-staff",
         heading: "Five lines and four spaces",
         prompt: "What does a note's vertical position on the staff show?",
@@ -367,6 +406,32 @@ export const level1Exams: UnitExamSpec[] = [
     title: "Rhythm Basics",
     blurb: "Note values, rests, time signatures and what a meter promises.",
     questions: [
+      {
+        slug: "note-values-and-rests",
+        heading: "Dots and Ties",
+        prompt: "A dot is written after an eighth note. How much does the dot add?",
+        choices: [
+          "A sixteenth \u2014 half of the note it follows",
+          "An eighth \u2014 it doubles the note",
+          "A sixteenth, unless the metre is compound",
+          "Half a beat, whatever the note is",
+        ],
+        answer: 0,
+        why: "A dot adds half the value of whatever it follows, so a dotted eighth is an eighth plus a sixteenth. It is not a fixed amount of time: a dot on a half note adds a quarter.",
+      },
+      {
+        slug: "time-signatures",
+        heading: "Simple and Compound",
+        prompt: "How many beats does a bar of 6/8 normally have, and what divides into what?",
+        choices: [
+          "Two beats, each dividing into three",
+          "Six beats, each dividing into two",
+          "Three beats, each dividing into two",
+          "Six beats that do not divide",
+        ],
+        answer: 0,
+        why: "6/8 is compound: the signature counts the divisions rather than the beats, so a bar is two dotted-quarter beats of three eighths each. A bar of 3/4 holds the same six eighth notes grouped as three beats of two, which is why the notes alone do not tell you the metre.",
+      },
       {
         slug: "note-values-and-rests",
         heading: "Time Made Visible",
@@ -471,6 +536,19 @@ export const level1Exams: UnitExamSpec[] = [
     questions: [
       {
         slug: "major-scales",
+        heading: "Key Signatures",
+        prompt: "Why are a key's sharps or flats collected at the front of the staff rather than written as accidentals?",
+        choices: [
+          "They belong to the key, so every one of those notes is altered unless something says otherwise",
+          "Because accidentals are only allowed on the first beat of a bar",
+          "To save space on the page",
+          "Because a key signature can hold notes an accidental cannot write",
+        ],
+        answer: 0,
+        why: "In G major every F is sharp, in every octave, for the whole piece. Writing an accidental on each one would be exhausting to read and easy to get wrong, so the key's own alterations go once at the front and apply until the signature changes.",
+      },
+      {
+        slug: "major-scales",
         heading: "One Pattern, Every Key",
         prompt: "What is the step pattern of a major scale?",
         choices: [
@@ -556,6 +634,19 @@ export const level1Exams: UnitExamSpec[] = [
     title: "Key Signatures & the Circle of Fifths",
     blurb: "Why sharps and flats arrive in a fixed order, and how keys are related.",
     questions: [
+      {
+        slug: "circle-of-fifths",
+        heading: "Reading a Key Signature Off the Circle",
+        prompt: "A key signature has three sharps. Which major key is it, and how can you tell from the last sharp?",
+        choices: [
+          "A major \u2014 the last sharp is G sharp, and the key is a half step above it",
+          "E major \u2014 the last sharp is D sharp, and the key is a fifth above it",
+          "F sharp major \u2014 count one key per sharp up the circle from C",
+          "D major \u2014 three sharps is always the third key clockwise, which is D",
+        ],
+        answer: 0,
+        why: "Sharps always arrive in the order F C G D A E B, so three sharps are F sharp, C sharp and G sharp. The last sharp is the leading tone, a half step below the tonic, so the key is A major. For flats the rule is different: the second-to-last flat names the key.",
+      },
       {
         slug: "circle-of-fifths",
         heading: "The Wheel of Keys",
@@ -658,6 +749,19 @@ export const level1Exams: UnitExamSpec[] = [
     title: "Minor Scales",
     blurb: "Natural, harmonic and melodic minor, and how minor relates to major.",
     questions: [
+      {
+        slug: "minor-scales",
+        heading: "Harmonic and Melodic Minor",
+        prompt: "Why does harmonic minor raise the seventh degree?",
+        choices: [
+          "To restore a leading tone, so the dominant becomes major and pulls home",
+          "To make the scale easier to sing",
+          "To match the key signature, which already contains that sharp",
+          "To avoid the augmented second between the sixth and seventh degrees",
+        ],
+        answer: 0,
+        why: "Natural minor's seventh sits a whole step below the tonic, so the chord on the fifth degree is minor and has no pull. Raising the seventh makes V major and V\u2013i work. The cost is the augmented second it creates between the sixth and seventh, which is awkward to sing \u2014 and which melodic minor fixes by raising the sixth as well on the way up.",
+      },
       {
         slug: "minor-scales",
         heading: "The Minor Pattern",

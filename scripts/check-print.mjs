@@ -15,7 +15,8 @@
  * how big a page box is. It does not boot the app: the app needs an account
  * and a saved score, and none of that exercises a single selector.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import puppeteer from "puppeteer-core";
 
 const problems = [];
@@ -65,9 +66,52 @@ const html = `<!doctype html>
   </div>
 </body></html>`;
 
+/**
+ * Find a browser rather than naming one.
+ *
+ * This used to hard-code /opt/pw-browsers/chromium-1194/chrome-linux/chrome,
+ * which is a specific Playwright build number — so the day the container's
+ * Chromium moved to 1243 in a directory called chrome-linux64 instead, the
+ * check stopped running at all. A pinned path to something somebody else
+ * installs is a check that breaks for a reason unrelated to the thing it
+ * tests.
+ *
+ * CHROME_PATH still wins if it is set.
+ */
+function findChrome() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+
+  const root = process.env.PLAYWRIGHT_BROWSERS_PATH || "/opt/pw-browsers";
+  if (existsSync(root)) {
+    // Newest build first, so a container holding two does not pick the old one.
+    const dirs = readdirSync(root)
+      .filter((d) => d.startsWith("chromium"))
+      .sort()
+      .reverse();
+    for (const dir of dirs) {
+      for (const layout of ["chrome-linux64/chrome", "chrome-linux/chrome", "chrome-linux/headless_shell"]) {
+        const candidate = join(root, dir, layout);
+        if (existsSync(candidate)) return candidate;
+      }
+    }
+  }
+  for (const p of ["/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome"]) {
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
+
+const chrome = findChrome();
+if (!chrome) {
+  console.log(
+    "FAIL - no Chromium found. Set CHROME_PATH, or install one where " +
+      "PLAYWRIGHT_BROWSERS_PATH points."
+  );
+  process.exit(1);
+}
+
 const browser = await puppeteer.launch({
-  executablePath:
-    process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+  executablePath: chrome,
   args: ["--no-sandbox", "--disable-dev-shm-usage"],
 });
 

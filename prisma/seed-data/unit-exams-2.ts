@@ -17,6 +17,19 @@ export const level2Exams: UnitExamSpec[] = [
     questions: [
       {
         slug: "basic-intervals",
+        heading: "Number and Quality",
+        prompt: "C to E and C to E flat are both thirds. What distinguishes them?",
+        choices: [
+          "Quality: four semitones is a major third, three is a minor third",
+          "Nothing \u2014 both are thirds and the spelling is a matter of taste",
+          "The number: one is a third and the other is a second",
+          "Only which one sounds consonant; thirds have no quality",
+        ],
+        answer: 0,
+        why: "An interval needs a number and a quality. The number comes from counting letter names, which is three either way. The quality comes from the exact size: C to E is four semitones and major, C to E flat is three and minor. Seconds, thirds, sixths and sevenths come in both; unisons, fourths, fifths and octaves are called perfect instead.",
+      },
+      {
+        slug: "basic-intervals",
         heading: "Distance Has a Name",
         prompt: "An interval is named by a number and a quality. What does the number count?",
         choices: [
@@ -117,6 +130,19 @@ export const level2Exams: UnitExamSpec[] = [
     title: "Triads",
     blurb: "Stacking thirds, the four triad qualities, and the chords a key hands you.",
     questions: [
+      {
+        slug: "triads-major-minor",
+        heading: "Diminished and Augmented",
+        prompt: "A triad is built from two stacked minor thirds \u2014 C, E flat, G flat. What is it, and what is its outer interval?",
+        choices: [
+          "Diminished, with a diminished fifth \u2014 the tritone",
+          "Minor, with a perfect fifth",
+          "Augmented, with an augmented fifth",
+          "Major in first inversion, with a perfect fourth",
+        ],
+        answer: 0,
+        why: "Two minor thirds make a diminished triad, and its outer interval is a diminished fifth, which is the tritone \u2014 so it sounds unstable because it is. Two major thirds make an augmented triad instead. You meet the diminished triad immediately: it is the chord on the seventh degree of every major key.",
+      },
       {
         slug: "triads-major-minor",
         heading: "Three Notes, One Sound",
@@ -306,6 +332,19 @@ export const level2Exams: UnitExamSpec[] = [
     title: "Chord Inversions",
     blurb: "What each chord is doing, and what changes when the bass note changes.",
     questions: [
+      {
+        slug: "chord-functions-inversions",
+        heading: "Figured Bass: How Inversions Are Written",
+        prompt: "In figured bass, what does the 6 in a I6 chord tell you?",
+        choices: [
+          "The third is in the bass \u2014 a first-inversion triad",
+          "The chord has six notes in it",
+          "The root is the sixth degree of the scale",
+          "A sixth has been added above the triad",
+        ],
+        answer: 0,
+        why: "The figures are intervals above the bass note. Root position is 5/3 and the figures are left off; first inversion, with the third in the bass, is 6/3 and written just 6; second inversion, with the fifth in the bass, is 6/4. So I6 is a tonic chord with its third underneath.",
+      },
       {
         slug: "chord-functions-inversions",
         heading: "Three Jobs",

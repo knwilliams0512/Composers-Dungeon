@@ -17,27 +17,41 @@
  *
  *   npx tsx scripts/check-exams.ts
  */
-import { PrismaClient } from "@prisma/client";
 import { ALL_UNITS } from "../src/lib/curriculum";
 import { unitExams } from "../prisma/seed-data/unit-exams";
+import { beginnerLessons } from "../prisma/seed-data/lessons-beginner";
+import { advancedLessons } from "../prisma/seed-data/lessons-advanced";
+import { curriculumLessons } from "../prisma/seed-data/lessons-curriculum";
+import { orchestralLessons } from "../prisma/seed-data/lessons-orchestral";
+import { lessonDetail } from "../prisma/seed-data/lesson-detail";
 
-const db = new PrismaClient();
 const problems: string[] = [];
 const fail = (m: string) => problems.push(m);
 
 async function main() {
-const lessons = await db.lesson.findMany({ select: { slug: true, content: true } });
+/*
+ * Sections come from the seed files, not from the database.
+ *
+ * They used to come from the database, and that let this check pass on stale
+ * data — which it did. Twenty new lesson sections were written and no exam
+ * questions for them, and this script reported the exams as covering every
+ * section of every unit, because the database it was reading had been seeded
+ * before those sections existed. It was comparing new exams against old
+ * lessons and finding no gap.
+ *
+ * The seed files are the source of truth for both halves, so reading both from
+ * there makes the comparison order-independent and the result impossible to
+ * fake by not re-seeding. It also means the check no longer needs a database
+ * at all, which is why it is now the same kind of script as the rest of them.
+ */
+const lessons = [...beginnerLessons, ...advancedLessons, ...curriculumLessons, ...orchestralLessons];
 const sectionsBySlug = new Map<string, string[]>();
 for (const lesson of lessons) {
-  try {
-    const parsed = JSON.parse(lesson.content) as { heading?: string }[];
-    sectionsBySlug.set(
-      lesson.slug,
-      Array.isArray(parsed) ? parsed.map((s) => s.heading ?? "") : []
-    );
-  } catch {
-    fail(`lesson "${lesson.slug}": content will not parse`);
-  }
+  const extra = lessonDetail[lesson.slug]?.extraSections ?? [];
+  sectionsBySlug.set(
+    lesson.slug,
+    [...lesson.content, ...extra].map((s) => s.heading ?? "")
+  );
 }
 
 const examByUnit = new Map(unitExams.map((e) => [e.unit, e]));
@@ -116,7 +130,7 @@ for (const unit of ALL_UNITS) {
 
 }
 
-await db.$disconnect();
+
 
 if (problems.length) {
   console.error(`exam problems (${problems.length}):\n  - ` + problems.join("\n  - "));

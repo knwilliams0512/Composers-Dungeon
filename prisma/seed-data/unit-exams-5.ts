@@ -259,6 +259,19 @@ export const level5Exams: UnitExamSpec[] = [
     questions: [
       {
         slug: "advanced-rhythm-texture",
+        heading: "Syncopation and Hemiola",
+        prompt: "A passage in 3/4 is made to sound like 6/8 for two bars by accenting every second eighth note. What is that called?",
+        choices: [
+          "Hemiola \u2014 the same notes regrouped without changing the metre",
+          "Syncopation, because the accents are off the beat",
+          "Polyrhythm, because two metres are sounding at once",
+          "A metric modulation, because the beat has changed length",
+        ],
+        answer: 0,
+        why: "Hemiola regroups the pulse without changing the time signature: six eighth notes can be three groups of two or two groups of three. It is everywhere in Baroque cadences. Both it and syncopation depend on a metre the listener is already counting \u2014 establish it first, or there is nothing for the regrouping to work against.",
+      },
+      {
+        slug: "advanced-rhythm-texture",
         heading: "Irregular Meters",
         prompt: "What makes a meter irregular?",
         choices: [
@@ -476,6 +489,19 @@ export const level5Exams: UnitExamSpec[] = [
     title: "Orchestration & Arranging",
     blurb: "Writing a second voice, and knowing what each instrument can do.",
     questions: [
+      {
+        slug: "countermelody-orchestration-basics",
+        heading: "Tessitura, and Where a Line Should Sit",
+        prompt: "What is the difference between an instrument's range and its tessitura?",
+        choices: [
+          "Range is where it can play at all; tessitura is where it sounds like itself",
+          "They are two words for the same span of notes",
+          "Range is written pitch and tessitura is sounding pitch",
+          "Range is what one player can reach; tessitura is what a section can",
+        ],
+        answer: 0,
+        why: "A clarinet's throat register is inside its range and pale and weak within it \u2014 a countermelody written there and marked forte will still vanish. Knowing where each instrument is strong, and putting a second line in a register the melody is not using, is what makes it audible.",
+      },
       {
         slug: "countermelody-orchestration-basics",
         heading: "The Second Voice",

@@ -9,6 +9,19 @@ export const level3Exams: UnitExamSpec[] = [
     questions: [
       {
         slug: "cadences-and-accompaniment",
+        heading: "What Makes a Cadence Final",
+        prompt: "A phrase ends V\u2013I, but the melody lands on the third of the tonic chord rather than the tonic. What kind of cadence is it?",
+        choices: [
+          "Imperfect authentic \u2014 it sounds like an ending that is not quite the ending",
+          "Perfect authentic, since the chords are V\u2013I and that is what decides it",
+          "A half cadence, because it does not end on the tonic note",
+          "A plagal cadence",
+        ],
+        answer: 0,
+        why: "A perfect authentic cadence needs all three at once: V to I, both chords in root position, and the melody arriving on the tonic. Miss any one and it is imperfect \u2014 still an ending, but a softer one. That is how a piece can cadence several times in its last minute and still be going.",
+      },
+      {
+        slug: "cadences-and-accompaniment",
         heading: "Punctuation Marks",
         prompt: "What is a cadence?",
         choices: [
