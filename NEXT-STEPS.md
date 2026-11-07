@@ -214,13 +214,15 @@ from an agent session.
 re-run **Download site**. The web version and the installer download need
 neither and both work now.
 
-### Worth a look while you are in Settings
+### The default branch is now `composers-dungeon`
 
-The repository's default branch is `claude/composers-dungeon-fullstack-8aire4`.
-That works — the `blob/HEAD` link on the download page resolves to it — but now
-that the repository is public it is the branch a visitor sees as the project's
-main line, named after an agent session. Renaming it, or pointing the default
-at a `main`, is your call; I have not touched it.
+It was `claude/composers-dungeon-fullstack-8aire4` — the branch a visitor saw as
+the project's main line, named after an agent session. Renamed on 7 November.
+
+Nothing in the repository referred to the old name, so nothing broke: both
+workflows are `workflow_dispatch` with no branch filter, and the download page's
+links are `blob/HEAD`, which follows whatever the default is. Development
+continues on `composers-dungeon`.
 
 ---
 
