@@ -1142,3 +1142,26 @@ page, on all twelve protected routes.
 **The app no longer claims things about itself that stopped being true** —
 including that your work never leaves your computer, which is no longer the
 case when you are playing online.
+
+## What's new in v1.19.1
+
+**The app updates itself again.** The updater was switched off because the
+release assets it reads were unreachable: the repository was private, so
+`latest.json` returned 404 to every installed copy, and a feature that quietly
+cannot work is worse than one that is off. The repository is public now and the
+feed serves, so it is back on — each launch checks the releases, verifies the
+download against its published checksum, and replaces the shell before the
+window opens.
+
+One consequence worth knowing: copies installed from v1.19.0 or earlier have
+the updater switched off inside them, so they cannot update themselves to this
+release. Installing v1.19.1 once by hand is the last manual install; after it,
+the app keeps up on its own.
+
+**The download page offers the browser version.** The game has run online for
+weeks and the page never said so — one button, for Windows, and a passing
+mention of "the web version" with no link. Both ways in now play the same world
+against the same account.
+
+**The page no longer scrolls sideways on a phone.** The PowerShell hash command
+and one unbreakable bold run in the install steps each pushed it past the edge.

@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "feedUrl": "https://github.com/knwilliams0512/Composers-Dungeon/releases/latest/download/latest.json",
   "serverUrl": "https://composers-dungeon.vercel.app"
 }
