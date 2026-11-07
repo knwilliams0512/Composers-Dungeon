@@ -116,14 +116,18 @@ packaging rather than relying on that.
 | `DATABASE_PROVIDER` | `postgresql` |
 | `CD_HOSTED` | `1` |
 | `NEXTAUTH_SECRET` | generated in the run, never printed |
-| `CD_ADMIN_EMAIL` | `knwilliams0512@gmail.com` |
+| `CD_ADMIN_EMAIL` | `haelan544@gmail.com` |
 
 `CD_ADMIN_EMAIL` is the only account allowed to configure the mail sender, and
 without a sender nobody can reset a password — so sign up with that address
-first. An earlier version of this note named a different address, which was
-wrong; this is the one the deploy actually set. If you want it to be a
-different mailbox, it is one field in Vercel's environment variables, or one
-re-dispatch of the deploy with another value.
+first. This is the value the deploys of 26 October and 7 November actually
+passed, read back from their own logs, not a value from memory: both printed
+`ADMIN_EMAIL: haelan544@gmail.com`. The table said
+`knwilliams0512@gmail.com` until now, which was wrong twice over — it had been
+corrected to that address by mistake, then left behind when the deploy was
+re-run with the right one. If you want it to be a different mailbox, it is one
+field in Vercel's environment variables, or one re-dispatch of the deploy with
+another value.
 
 `NEXTAUTH_URL` is deliberately unset — the app falls back to Vercel's own
 production domain, which is known to it without anyone having to learn the URL
