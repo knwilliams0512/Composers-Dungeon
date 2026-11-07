@@ -160,39 +160,52 @@ hosted (Postgres) builds compile.
 
 ---
 
-## What is live, as of 26 October
+## What is live, as of 7 November
 
-**The website is live and verified** at https://composers-dungeon.vercel.app —
-deployed from this branch, serving, and passing the two-player guild test: two
-accounts, one shared guild, a post written by one and read by the other with
-the right name on it, no updater on a hosted instance, and the email panel
-asking for a sender.
+**The website** — https://composers-dungeon.vercel.app — deployed from this
+branch, serving, and passing the two-player guild test: two accounts, one
+shared guild, a post written by one and read by the other with the right name
+on it, no updater on a hosted instance, and the email panel asking for a
+sender.
 
-**The hosted database holds this build** — 46 lessons, 37 unit exams, 16
-dungeon areas, 10 bosses, 6 guilds.
+**The hosted database** holds this build: 46 lessons, 37 unit exams, 16 dungeon
+areas, 10 bosses, 6 guilds.
 
-**The Windows app is released as v1.19.0**, with the installer, the update
-zip, `latest.json` and `SHA256SUMS.txt`.
+**The Windows app is released as v1.19.1**, and the repository is public, so
+the download actually works now. Verified against the live release rather than
+assumed: the installer, the update zip, `latest.json` and `SHA256SUMS.txt` all
+serve, and the bytes that download match both published checksums, including
+the hash inside `latest.json`, which is the one the updater checks before it
+installs anything.
 
-### Two things still need you, and they are the same switch
+Also verified inside the shipped payload, not the source: `serverUrl` points at
+the hosted site, so the installed app joins the shared world — this is the
+second release ever to contain it — and `enabled` is `true`, so the app keeps
+itself up to date again.
 
-The repository is **private**, and that blocks both remaining pieces:
+One consequence: anything installed from v1.19.0 or earlier has the updater
+switched off inside it and cannot reach this release on its own. Installing
+v1.19.1 by hand once is the last manual install.
 
-1. **Nobody can download the installer.** GitHub serves release assets on a
-   private repository only to people signed in with access, so
-   `releases/latest/download/ComposersDungeonSetup.exe` — the button on the
-   download page — returns 404 to everybody else. Verified, not assumed. The
-   same is true of `latest.json`, so no existing v1.18.1 install can see
-   v1.19.0 either; the in-app updater and `installer/apply-update.ps1` both
-   read that URL.
+### One switch left: GitHub Pages
 
-2. **The download page cannot publish.** GitHub Pages on a free plan needs a
-   public repository, and Pages has never been switched on. The workflow fails
-   at `configure-pages` and writes the remedy into its own job summary.
+The download page still cannot publish. Pages has never been switched on, and
+being public is not enough on its own — the workflow fails at
+`configure-pages` with `Not Found` and writes the remedy into its own job
+summary. Nothing in the repository can turn it on, and the API path is blocked
+from an agent session.
 
-So: **Settings → General → Change visibility → Public**, then **Settings →
-Pages → Source: GitHub Actions**, then re-run **Download site**. The web
-version needs neither and is already live.
+**Settings → Pages → Build and deployment → Source: GitHub Actions**, then
+re-run **Download site**. The web version and the installer download need
+neither and both work now.
+
+### Worth a look while you are in Settings
+
+The repository's default branch is `claude/composers-dungeon-fullstack-8aire4`.
+That works — the `blob/HEAD` link on the download page resolves to it — but now
+that the repository is public it is the branch a visitor sees as the project's
+main line, named after an agent session. Renaming it, or pointing the default
+at a `main`, is your call; I have not touched it.
 
 ---
 
