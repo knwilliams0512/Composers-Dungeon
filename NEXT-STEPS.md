@@ -191,6 +191,17 @@ One consequence: anything installed from v1.19.0 or earlier has the updater
 switched off inside it and cannot reach this release on its own. Installing
 v1.19.1 by hand once is the last manual install.
 
+**`INSTALL.md` was the last file still describing the old game.** The public
+download page links to it as the full install guide, and it opened by promising
+the app "runs entirely on your own computer… no account held anywhere else, and
+no internet connection needed", listed the launch counts (25 lessons, 9 areas,
+4 bosses), and answered "Is anything sent anywhere?" with "No." All of that was
+true until the app started joining the shared world. It now describes both
+worlds, the dialog that chooses between them, and the one manual install. It is
+also in `check:claims` now, so its counts cannot rot again — `check:claims`
+covered only the README, the landing page and the download page, which is the
+same gap that let "133 sections" stand.
+
 ### One switch left: GitHub Pages
 
 The download page still cannot publish. Pages has never been switched on, and

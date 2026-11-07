@@ -116,7 +116,11 @@ const NOUNS: Record<string, string> = {
 };
 
 const WORDS: Record<number, string[]> = {
-  3: ["three"], 5: ["five"], 6: ["six"], 9: ["nine"], 10: ["ten"],
+  // 4, 8, 15 and 25 are the launch counts. They are listed only so that a file
+  // still advertising them is told which stale number it is holding, rather
+  // than being told it merely fails to state the right one.
+  3: ["three"], 4: ["four"], 5: ["five"], 6: ["six"], 8: ["eight"],
+  9: ["nine"], 10: ["ten"], 15: ["fifteen"], 25: ["twenty-five"],
   12: ["twelve"], 16: ["sixteen"], 21: ["twenty-one"], 46: ["forty-six"],
   58: ["fifty-eight"], 73: ["seventy-three"], 93: ["ninety-three"],
   // 133 is here only so that a page still claiming it gets named in the error
@@ -129,6 +133,12 @@ const CLAIMS: { file: string; needs: (keyof typeof TRUTH)[] }[] = [
   { file: "README.md", needs: ["areas", "bosses", "achievements", "artifacts", "specializations"] },
   { file: "src/app/page.tsx", needs: ["areas", "bosses", "artifacts", "achievements", "instruments", "ensembles", "drills", "sections", "rooms"] },
   { file: "site/index.html", needs: ["lessons", "areas", "bosses", "instruments", "ensembles", "guildBosses", "sections", "rooms"] },
+  // INSTALL.md is linked from the public download page as the full install
+  // guide, and was the last user-facing file whose counts nothing checked: it
+  // still advertised the launch numbers (25 lessons, 9 areas, 4 bosses) long
+  // after every one of them had changed, and described the app as local-only
+  // for a month after it started joining the shared world.
+  { file: "INSTALL.md", needs: ["lessons", "areas", "bosses", "artifacts", "achievements"] },
 ];
 
 const problems: string[] = [];

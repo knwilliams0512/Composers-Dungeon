@@ -11,17 +11,24 @@ Everything you need, in one page. Pick the route that matches you:
 | Build the installer yourself | [5 · Building the installer](#5--building-the-installer-yourself) |
 | Fix something | [Troubleshooting](#troubleshooting) |
 
-Composer's Dungeon runs **entirely on your own computer**. There is no server to
-sign up for, no account held anywhere else, and no internet connection needed
-after installation. Everything you write stays in a file on your machine.
+Composer's Dungeon plays in **one shared world**, hosted at
+<https://composers-dungeon.vercel.app>. The installed Windows app and a browser
+tab are the same game: one account system, one Guild, one library, whichever you
+sign in from.
+
+If that server cannot be reached, the app offers to play from a local database
+on your own PC instead. It **asks first**, because the two are separate saves
+and nothing moves between them: a character built offline stays offline.
 
 ---
 
 ## 1 · Windows, one file (recommended)
 
-**Download → double-click → play.** Nothing else to install: the Node runtime,
-the compiled app and a database already stocked with all 25 lessons, 9 dungeon
-areas, 4 bosses, 8 artifacts and 15 achievements are inside the installer.
+**Download → double-click → play.** Nothing else to install. The installer
+carries the Node runtime, the compiled app, and a local database already stocked
+with all 46 lessons, 16 dungeon areas, 10 bosses, 21 artifacts and
+58 achievements — the offline fallback, ready before you ever need it. Online,
+the same content comes from the server.
 
 ### Step by step
 
@@ -50,7 +57,7 @@ areas, 4 bosses, 8 artifacts and 15 achievements are inside the installer.
 | Your save file | `%LOCALAPPDATA%\ComposersDungeon\data\dungeon.db` |
 | Shortcuts | Desktop and Start menu |
 | Add/Remove Programs | Yes — listed as *Composer's Dungeon* |
-| Network access | Loopback only (`127.0.0.1`). Windows Firewall never prompts. |
+| Network access | Outbound HTTPS to the game server and the update feed. Nothing listens for inbound connections, so Windows Firewall never prompts. Playing offline is loopback only (`127.0.0.1`). |
 | Registry | One key under `HKCU\Software\ComposersDungeon` for the uninstaller |
 
 Nothing is written outside your user profile, and nothing is downloaded during
@@ -64,6 +71,10 @@ chrome. Closing the window stops it, like any normal program.
 Sign up to start from your first note — onboarding and the adaptive Placement
 Trial take a couple of minutes and shape the whole dungeon to you.
 
+The account you make is on the shared server, so it is the same account in a
+browser on any other machine. If you are offline when you first sign up, it is a
+local account on this PC only.
+
 **Pin it to the taskbar:** once open, use the window's `…` menu →
 **Install Composer's Dungeon**. Windows then treats it as a properly installed
 app, with jump-list shortcuts straight to the Academy, the Dungeon and today's
@@ -71,7 +82,15 @@ Daily Trial.
 
 ### Updating
 
-**You don't.** Every time you launch it, the app checks for a newer version,
+> **One exception, once.** Copies installed from **v1.19.0 or earlier** have the
+> updater switched off inside them — releases were private then, so the feed
+> they read could not answer, and shipping a check that fails on every launch
+> was worse than shipping none. Those copies cannot reach v1.19.1 on their own.
+> Install v1.19.1 by hand, following the steps above, and that is the last
+> manual install: the updater is on from v1.19.1 onward. Installing over an
+> existing copy keeps your local save.
+
+**After that, you don't.** Every time you launch it, the app checks for a newer version,
 verifies the download against its published checksum, swaps itself out, applies
 any database migrations, pulls in new lessons and dungeon areas, and opens — all
 before the window appears. If you're offline or the check fails, it just starts
@@ -238,7 +257,7 @@ launch.
 | **From source** | Node.js 18 or newer, ~600 MB free disk during install |
 | **Browser (source installs)** | Chrome, Edge, Firefox or Safari, current version |
 | **Audio** | Any working sound output — the composer synthesises notes in the page |
-| **Internet** | Only to download or update. Playing needs none. |
+| **Internet** | Needed for the shared world and for updates. Without it the app offers offline play from the local database on this PC. |
 
 ---
 
@@ -279,22 +298,35 @@ the file and download it again.
 ## Frequently asked
 
 **Is anything sent anywhere?**
-No. The app binds to `127.0.0.1` only, so nothing outside your machine can even
-reach it. The single network request it ever makes is the update check, and you
-can turn that off by setting `"enabled": false` in
-`%LOCALAPPDATA%\ComposersDungeon\launch\update-config.json`.
+Online, yes — the app talks to the game server exactly as a browser does, so
+your account, progress and anything you publish live there. It makes two kinds
+of outbound request and no others: the game server, and the update feed. No
+database credential is ever shipped to your machine (`npm run check:launcher`
+enforces that), so the app can only reach the database through the server, the
+same as any other player.
+
+Playing offline, nothing leaves the machine. The local server binds to
+`127.0.0.1` only. You can switch the update check off on its own by setting
+`"enabled": false` in
+`%LOCALAPPDATA%\ComposersDungeon\launch\update-config.json`, and you can leave
+the shared world by removing `"serverUrl"` from that same file.
 
 **Can other people see my compositions?**
-Only people using the same installation. The Guild is populated by accounts
-created on your copy. Compositions are private by default, and marking one
-public makes it visible inside your install — not on the internet.
+Online, yes, if you publish them: the Guild is shared with every other player,
+and a composition marked public is visible to them. Compositions are private by
+default. Playing offline, the Guild is populated only by accounts created on
+your copy and nothing is visible beyond your install.
 
 **Where is my progress stored?**
-One SQLite file: `%LOCALAPPDATA%\ComposersDungeon\data\dungeon.db`. Copy it
-anywhere to back it up. Close the app first.
+Online, on the server, keyed to your account — sign in from anywhere and it is
+there. Offline progress is one SQLite file:
+`%LOCALAPPDATA%\ComposersDungeon\data\dungeon.db`. Copy it anywhere to back it
+up, with the app closed.
 
 **Can I move my progress to another PC?**
-Yes. Install on the new machine, close it, and copy `dungeon.db` across.
+Online, there is nothing to move: sign in. An offline save moves by installing
+on the new machine, closing it, and copying `dungeon.db` across. An offline save
+cannot be turned into an online one.
 
 **Does it need to stay installed to keep my music?**
 No — but back up `dungeon.db` before uninstalling, or accept the backup the
